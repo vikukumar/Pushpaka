@@ -1,0 +1,41 @@
+http:
+  middlewares:
+    # Rate limiter
+    ratelimit:
+      rateLimit:
+        burst: 100
+        average: 50
+
+    # Security headers
+    secureHeaders:
+      headers:
+        sslRedirect: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        permissionsPolicy: "geolocation=(), microphone=(), camera=()"
+
+    # CORS
+    cors:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - PUT
+          - PATCH
+          - DELETE
+          - OPTIONS
+        accessControlAllowHeaders:
+          - "Origin"
+          - "Content-Type"
+          - "Authorization"
+          - "X-API-Key"
+        accessControlAllowOriginList:
+          - "https://app.example.com"
+        accessControlMaxAge: 100
+        addVaryHeader: true

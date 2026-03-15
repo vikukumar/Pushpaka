@@ -1,0 +1,59 @@
+version: "3.9"
+
+# docker-compose.dev.yml — local development overrides
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  traefik:
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=pushpaka-network"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=DEBUG"
+    ports:
+      - "80:80"
+      - "8888:8080"  # Traefik dashboard on :8888
+
+  pushpaka-api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: development
+      PORT: "8080"
+    ports:
+      - "8080:8080"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pushpaka-api.rule=Host(`localhost`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.pushpaka-api.entrypoints=web"
+
+  pushpaka-dashboard:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080
+      NEXT_PUBLIC_WS_URL: ws://localhost:8080
+    ports:
+      - "3000:3000"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.pushpaka-dashboard.rule=Host(`localhost`)"
+      - "traefik.http.routers.pushpaka-dashboard.entrypoints=web"
+
+  pushpaka-worker:
+    environment:
+      APP_ENV: development
+      BUILD_WORKERS: "2"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"

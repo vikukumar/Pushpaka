@@ -1,0 +1,8 @@
+# Go build artifacts
+worker
+worker.exe
+*.exe
+*.exe~
+*.test
+*.prof
+coverage.out

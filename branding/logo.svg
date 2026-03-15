@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 80" fill="none">
+  <!-- Background glow -->
+  <defs>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="wingGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#6366F1;stop-opacity:1" />
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Vimana Platform Body (cloud base) -->
+  <rect x="12" y="28" width="52" height="18" rx="9" fill="url(#cloudGrad)" filter="url(#glow)"/>
+  <!-- Cloud bumps on top -->
+  <circle cx="24" cy="28" r="8" fill="url(#cloudGrad)" filter="url(#glow)"/>
+  <circle cx="38" cy="24" r="10" fill="url(#cloudGrad)" filter="url(#glow)"/>
+  <circle cx="52" cy="27" r="8" fill="url(#cloudGrad)" filter="url(#glow)"/>
+
+  <!-- Vimana Wings -->
+  <path d="M14 40 Q2 36 4 44 Q2 50 14 46" fill="url(#wingGrad)" opacity="0.85"/>
+  <path d="M62 40 Q74 36 72 44 Q74 50 62 46" fill="url(#wingGrad)" opacity="0.85"/>
+
+  <!-- Platform deck (Vimana top structure) -->
+  <rect x="26" y="18" width="24" height="7" rx="3.5" fill="#C4B5FD" opacity="0.9"/>
+  <!-- Antenna/spire -->
+  <line x1="38" y1="11" x2="38" y2="18" stroke="#E0D6FF" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="38" cy="10" r="2" fill="#06B6D4" filter="url(#glow)"/>
+
+  <!-- Speed lines -->
+  <line x1="2" y1="38" x2="10" y2="38" stroke="#06B6D4" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  <line x1="2" y1="42" x2="8" y2="42" stroke="#8B5CF6" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+
+  <!-- Wordmark: Pushpaka -->
+  <text x="86" y="46" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-weight="700" font-size="26" fill="#E0E7FF" letter-spacing="-0.5">Pushpaka</text>
+
+  <!-- Version tag -->
+  <rect x="87" y="54" width="28" height="10" rx="5" fill="#6366F1" opacity="0.3"/>
+  <text x="101" y="63" font-family="'Inter', 'Segoe UI', system-ui, sans-serif" font-weight="500" font-size="8" fill="#A5B4FC" text-anchor="middle" letter-spacing="1">v1.0.0</text>
+</svg>
