@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"github.com/jmoiron/sqlx"
-	"github.com/yourusername/pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/internal/models"
 )
 
 type UserRepository struct {

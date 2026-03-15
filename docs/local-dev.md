@@ -11,7 +11,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/pushpaka
+git clone https://github.com/vikukumar/Pushpaka
 cd pushpaka
 
 # Copy environment variables

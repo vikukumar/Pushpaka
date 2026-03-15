@@ -9,9 +9,9 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/yourusername/pushpaka-worker/internal/config"
-	"github.com/yourusername/pushpaka-worker/internal/database"
-	"github.com/yourusername/pushpaka-worker/internal/worker"
+	"github.com/vikukumar/Pushpaka-worker/internal/config"
+	"github.com/vikukumar/Pushpaka-worker/internal/database"
+	"github.com/vikukumar/Pushpaka-worker/internal/worker"
 )
 
 // Run starts the Pushpaka build worker pool and blocks until ctx is cancelled.

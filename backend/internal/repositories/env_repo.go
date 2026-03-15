@@ -1,10 +1,8 @@
 package repositories
 
 import (
-	"time"
-
 	"github.com/jmoiron/sqlx"
-	"github.com/yourusername/pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/internal/models"
 )
 
 type EnvVarRepository struct {
@@ -16,7 +14,7 @@ func NewEnvVarRepository(db *sqlx.DB) *EnvVarRepository {
 }
 
 func (r *EnvVarRepository) Upsert(e *models.EnvVar) error {
-	e.UpdatedAt = time.Now().UTC()
+	e.UpdatedAt = models.NowUTC()
 	query := `
 			INSERT INTO environment_variables (id, project_id, user_id, key, value, created_at, updated_at)
 			VALUES (:id, :project_id, :user_id, :key, :value, :created_at, :updated_at)

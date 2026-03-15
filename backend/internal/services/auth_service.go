@@ -1,4 +1,4 @@
-package services
+﻿package services
 
 import (
 	"errors"
@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/yourusername/pushpaka/internal/config"
-	"github.com/yourusername/pushpaka/internal/models"
-	"github.com/yourusername/pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/internal/config"
+	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
 var (
@@ -40,7 +40,7 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.AuthRespons
 		return nil, fmt.Errorf("hashing password: %w", err)
 	}
 
-	now := time.Now().UTC()
+	now := models.NowUTC()
 	user := &models.User{
 		ID:           uuid.New().String(),
 		Email:        req.Email,

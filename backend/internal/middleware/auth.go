@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/yourusername/pushpaka/internal/services"
+	"github.com/vikukumar/Pushpaka/internal/services"
 )
 
 const UserIDKey = "userID"

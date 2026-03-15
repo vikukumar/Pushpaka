@@ -3,7 +3,7 @@ package database
 import (
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
-	// registers the "sqlite" driver with proper time.Time handling
+	_ "modernc.org/sqlite" // registers "sqlite" driver
 )
 
 // sqliteSchema is the SQLite-compatible equivalent of migrations 001-006.

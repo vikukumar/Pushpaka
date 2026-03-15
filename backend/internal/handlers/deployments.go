@@ -7,9 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/yourusername/pushpaka/internal/middleware"
-	"github.com/yourusername/pushpaka/internal/models"
-	"github.com/yourusername/pushpaka/internal/services"
+	"github.com/vikukumar/Pushpaka/internal/middleware"
+	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/internal/services"
 )
 
 type DeploymentHandler struct {

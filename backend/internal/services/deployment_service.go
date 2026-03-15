@@ -1,4 +1,4 @@
-package services
+﻿package services
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/yourusername/pushpaka/internal/models"
-	"github.com/yourusername/pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
 const deployJobQueue = "pushpaka:deploy:queue"
@@ -53,7 +53,7 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		branch = project.Branch
 	}
 
-	now := time.Now().UTC()
+	now := models.NowUTC()
 	imageTag := fmt.Sprintf("pushpaka/%s:%s", project.ID[:8], uuid.New().String()[:8])
 
 	d := &models.Deployment{

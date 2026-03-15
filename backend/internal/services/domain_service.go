@@ -1,14 +1,13 @@
-package services
+﻿package services
 
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/yourusername/pushpaka/internal/models"
-	"github.com/yourusername/pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
 var ErrDomainExists = errors.New("domain already registered")
@@ -39,7 +38,7 @@ func (s *DomainService) Add(userID string, req *models.AddDomainRequest) (*model
 		return nil, ErrDomainExists
 	}
 
-	now := time.Now().UTC()
+	now := models.NowUTC()
 	d := &models.Domain{
 		ID:        uuid.New().String(),
 		ProjectID: req.ProjectID,

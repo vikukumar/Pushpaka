@@ -1,4 +1,4 @@
-module github.com/yourusername/pushpaka
+module github.com/vikukumar/Pushpaka
 
 go 1.24.0
 

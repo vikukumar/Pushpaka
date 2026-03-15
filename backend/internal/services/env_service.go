@@ -1,13 +1,12 @@
-package services
+﻿package services
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/yourusername/pushpaka/internal/models"
-	"github.com/yourusername/pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
 type EnvService struct {
@@ -30,7 +29,7 @@ func (s *EnvService) Set(userID string, req *models.SetEnvVarRequest) (*models.E
 		return nil, ErrProjectNotFound
 	}
 
-	now := time.Now().UTC()
+	now := models.NowUTC()
 	e := &models.EnvVar{
 		ID:        uuid.New().String(),
 		ProjectID: req.ProjectID,

@@ -6,7 +6,7 @@
 
 ### *Carry your code to the cloud effortlessly.*
 
-[![Version](https://img.shields.io/badge/version-v1.0.0-6366f1?style=flat-square)](https://github.com/yourusername/pushpaka)
+[![Version](https://img.shields.io/badge/version-v1.0.0-6366f1?style=flat-square)](https://github.com/vikukumar/Pushpaka)
 [![Go](https://img.shields.io/badge/backend-Go%201.22-00ADD8?style=flat-square&logo=go)](https://go.dev)
 [![Next.js](https://img.shields.io/badge/frontend-Next.js%2014-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![Docker](https://img.shields.io/badge/infra-Docker-2496ED?style=flat-square&logo=docker)](https://docker.com)
@@ -96,8 +96,8 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
 
 ```bash
 # Clone
-git clone https://github.com/yourusername/pushpaka
-cd pushpaka
+git clone https://github.com/vikukumar/Pushpaka
+cd Pushpaka
 
 # Configure
 cp .env.example .env

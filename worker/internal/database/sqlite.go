@@ -1,9 +1,9 @@
 package database
 
 import (
-	_ "github.com/glebarez/sqlite"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
+	_ "modernc.org/sqlite" // registers "sqlite" driver
 )
 
 // NewSQLite reuses the same embedded schema as the backend module.

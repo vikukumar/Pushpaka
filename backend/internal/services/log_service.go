@@ -1,13 +1,12 @@
-package services
+﻿package services
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/yourusername/pushpaka/internal/models"
-	"github.com/yourusername/pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
 type LogService struct {
@@ -29,7 +28,7 @@ func (s *LogService) Append(deploymentID, level, stream, message string) error {
 		Level:        level,
 		Stream:       stream,
 		Message:      message,
-		CreatedAt:    time.Now().UTC(),
+		CreatedAt:    models.NowUTC(),
 	}
 	if err := s.logRepo.Create(l); err != nil {
 		return fmt.Errorf("appending log: %w", err)

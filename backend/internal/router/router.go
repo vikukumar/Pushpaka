@@ -6,11 +6,11 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/yourusername/pushpaka/internal/config"
-	"github.com/yourusername/pushpaka/internal/handlers"
-	"github.com/yourusername/pushpaka/internal/middleware"
-	"github.com/yourusername/pushpaka/internal/repositories"
-	"github.com/yourusername/pushpaka/internal/services"
+	"github.com/vikukumar/Pushpaka/internal/config"
+	"github.com/vikukumar/Pushpaka/internal/handlers"
+	"github.com/vikukumar/Pushpaka/internal/middleware"
+	"github.com/vikukumar/Pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/internal/services"
 )
 
 func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) *gin.Engine {

@@ -11,9 +11,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
-	"github.com/yourusername/pushpaka/internal/config"
-	"github.com/yourusername/pushpaka/internal/database"
-	"github.com/yourusername/pushpaka/internal/router"
+	"github.com/vikukumar/Pushpaka/internal/config"
+	"github.com/vikukumar/Pushpaka/internal/database"
+	"github.com/vikukumar/Pushpaka/internal/router"
 )
 
 // Run starts the Pushpaka API server and blocks until ctx is cancelled.

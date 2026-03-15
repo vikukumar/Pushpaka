@@ -30,7 +30,7 @@ sudo apt install docker-compose-plugin -y
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/pushpaka /opt/pushpaka
+git clone https://github.com/vikukumar/Pushpaka /opt/pushpaka
 cd /opt/pushpaka
 
 # Configure environment

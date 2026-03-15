@@ -1,14 +1,13 @@
-package services
+﻿package services
 
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/yourusername/pushpaka/internal/models"
-	"github.com/yourusername/pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
 var ErrProjectNotFound = errors.New("project not found")
@@ -31,7 +30,7 @@ func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest)
 		port = 3000
 	}
 
-	now := time.Now().UTC()
+	now := models.NowUTC()
 	p := &models.Project{
 		ID:           uuid.New().String(),
 		UserID:       userID,
