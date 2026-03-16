@@ -1,6 +1,12 @@
 package router
 
 import (
+	"io"
+	"io/fs"
+	"net/http"
+	"path"
+	"strings"
+
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -13,7 +19,9 @@ import (
 	"github.com/vikukumar/Pushpaka/internal/services"
 )
 
-func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) *gin.Engine {
+// New builds the Gin engine. Pass a non-nil uiFS to serve the embedded
+// Next.js static export under /; pass nil to skip frontend serving (dev mode).
+func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -121,5 +129,196 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client) *gin.Engine {
 		}
 	}
 
+	// Serve embedded frontend SPA (only when built with frontend assets).
+	if uiFS != nil {
+		spaH := newSPAHandler(uiFS)
+		r.NoRoute(func(c *gin.Context) {
+			spaH.ServeHTTP(c.Writer, c.Request)
+		})
+	}
+
 	return r
+}
+
+// newSPAHandler returns an http.Handler that serves a Next.js static export.
+//
+// Next.js App Router makes two kinds of requests:
+//   - Full page / hard navigation  → GET /dashboard/       (no _rsc param) → serve .html
+//   - RSC navigation fetch         → GET /dashboard/?_rsc= → serve .txt with text/x-component
+//
+// Resolution order for both kinds:
+//  1. Exact non-directory file (JS, CSS, images, fonts, explicit .html …)
+//  2. RSC request → path/index.txt  (RSC payload pre-built by Next.js static export)
+//  3. HTML request → path/index.html (full pre-rendered page)
+//  4. Dynamic-segment placeholder: substitute unknown UUID segments with "_"
+//  5. SPA fallback → root index.html
+func newSPAHandler(fsys fs.FS) http.Handler {
+	fsh := http.FileServerFS(fsys)
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upath := r.URL.Path
+		if !strings.HasPrefix(upath, "/") {
+			upath = "/" + upath
+		}
+		upath = path.Clean(upath)
+		name := strings.TrimPrefix(upath, "/")
+		if name == "" {
+			name = "index.html"
+		}
+
+		// 1. Exact non-directory file (CSS, JS, images, explicit .html, etc.)
+		if fi, err := fs.Stat(fsys, name); err == nil && !fi.IsDir() {
+			fsh.ServeHTTP(w, r)
+			return
+		}
+
+		// 2 & 3. Handle RSC navigation vs full-page requests differently.
+		//
+		// Next.js App Router adds ?_rsc=<ts> to its navigation fetch and sets
+		// Accept: text/x-component.  The pre-built static export stores the RSC
+		// payload alongside the HTML as  <route>/index.txt.  Returning HTML for
+		// this fetch causes the RSC parser to throw "Uncaught (in promise) Event"
+		// and navigation silently fails.
+		baseName := strings.TrimRight(name, "/")
+		isRSC := r.URL.Query().Has("_rsc") ||
+			strings.Contains(r.Header.Get("Accept"), "text/x-component")
+
+		if isRSC {
+			// Serve RSC payload with the correct content-type.
+			w.Header().Set("Content-Type", "text/x-component; charset=utf-8")
+
+			// The path may contain an explicit /index.txt suffix (Next.js 16 Turbopack
+			// requests /dashboard/projects/<uuid>/index.txt?_rsc=…).  Strip it so we
+			// work with the bare directory path in all steps below.
+			dirBase := strings.TrimRight(name, "/")
+			if strings.HasSuffix(dirBase, "/index.txt") {
+				dirBase = strings.TrimSuffix(dirBase, "/index.txt")
+			}
+
+			// 2a. Exact index.txt for this directory.
+			if serveFile(w, r, fsys, dirBase+"/index.txt") {
+				return
+			}
+			// 2b. Dynamic-segment fallback: /projects/<uuid>/ → projects/_/index.txt
+			if segs := splitSegments(dirBase); len(segs) > 0 {
+				if resolved := resolveFile(fsys, segs, "index.txt"); resolved != "" {
+					serveFile(w, r, fsys, resolved)
+					return
+				}
+			}
+
+			// 2c. __next.X.Y.Z.txt segment payload files.
+			//
+			// Next.js Turbopack stores segment RSC payloads in a directory tree:
+			//   __next.dashboard.settings.txt        → NOT a flat file
+			//   __next.dashboard/settings.txt        ← actual file in the FS
+			//   __next.dashboard.settings.__PAGE__.txt
+			//   __next.dashboard/settings/__PAGE__.txt ← actual file in the FS
+			//
+			// When the flat dotted path is not found (step 1 already failed),
+			// convert "X.Y.Z" after "__next." into "X/Y/Z" and retry.
+			base := path.Base(name)
+			if strings.HasPrefix(base, "__next.") && strings.HasSuffix(base, ".txt") {
+				dir := path.Dir(name)
+				dirPrefix := ""
+				if dir != "." {
+					dirPrefix = dir + "/"
+				}
+				inner := strings.TrimPrefix(strings.TrimSuffix(base, ".txt"), "__next.")
+				// Split on first dot: "dashboard.settings.__PAGE__" → "dashboard" + "settings.__PAGE__"
+				if dot := strings.Index(inner, "."); dot != -1 {
+					firstSeg := inner[:dot]
+					// Replace remaining dots with slashes for nested sub-paths.
+					rest := strings.ReplaceAll(inner[dot+1:], ".", "/")
+					candidate := dirPrefix + "__next." + firstSeg + "/" + rest + ".txt"
+					if serveFile(w, r, fsys, candidate) {
+						return
+					}
+				}
+			}
+
+			http.NotFound(w, r)
+			return
+		}
+
+		// 3. Full-page (hard navigation): serve the pre-rendered HTML.
+		// Directory-style URL: /dashboard/ → dashboard/index.html
+		if serveFile(w, r, fsys, baseName+"/index.html") {
+			return
+		}
+
+		// 4. File-style URL: /dashboard → dashboard.html (trailingSlash: false)
+		if serveFile(w, r, fsys, baseName+".html") {
+			return
+		}
+
+		// 5. Dynamic-segment resolution: /projects/<uuid>/ → projects/_/index.html
+		if segs := splitSegments(baseName); len(segs) > 0 {
+			if resolved := resolveFile(fsys, segs, "index.html"); resolved != "" {
+				serveFile(w, r, fsys, resolved)
+				return
+			}
+		}
+
+		// 6. SPA fallback → root index.html
+		serveFile(w, r, fsys, "index.html")
+	})
+}
+
+// serveFile serves a specific file from the FS using http.ServeContent,
+// bypassing FileServer's index.html→directory redirect behaviour.
+// Returns true if the file was found and served.
+func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string) bool {
+	f, err := fsys.Open(name)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil || fi.IsDir() {
+		return false
+	}
+	http.ServeContent(w, r, fi.Name(), fi.ModTime(), f.(io.ReadSeeker))
+	return true
+}
+
+// splitSegments splits a clean URL path (no leading slash) into non-empty segments.
+func splitSegments(name string) []string {
+	var out []string
+	for _, s := range strings.Split(name, "/") {
+		if s != "" {
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
+// resolveFile finds the best static file for URL segments by substituting
+// unknown path segments with the "_" placeholder produced by generateStaticParams
+// in the Next.js static export.  file is "index.html" or "index.txt".
+//
+// Example: (["dashboard","projects","abc-123","env"], "index.html")
+//
+//	→ "dashboard/projects/_/env/index.html"
+func resolveFile(fsys fs.FS, segments []string, file string) string {
+	var try func(idx int, prefix string) string
+	try = func(idx int, prefix string) string {
+		if idx == len(segments) {
+			candidate := prefix + file
+			if _, err := fs.Stat(fsys, candidate); err == nil {
+				return candidate
+			}
+			return ""
+		}
+		seg := segments[idx]
+		if result := try(idx+1, prefix+seg+"/"); result != "" {
+			return result
+		}
+		if seg != "_" {
+			if result := try(idx+1, prefix+"_/"); result != "" {
+				return result
+			}
+		}
+		return ""
+	}
+	return try(0, "")
 }

@@ -1,45 +1,61 @@
-.PHONY: dev dev-all build clean help
+.PHONY: dev dev-all build build-api build-worker build-all front-build front-dev clean help
 
-# ── Development ────────────────────────────────────────────────────────────────
-## Run the API only in dev mode with an embedded SQLite database.
-## No Postgres, Redis, or Docker required.
+# Detect OS for binary extension
+ifeq ($(OS),Windows_NT)
+  EXT := .exe
+else
+  EXT :=
+endif
+
+LDFLAGS := -ldflags="-w -s"
+
+# Development
+
 dev:
 	go run ./cmd/pushpaka -dev
 
-## Run API + worker in dev mode. Requires local Redis and Docker.
 dev-all:
-	DATABASE_DRIVER=sqlite DATABASE_URL=pushpaka-dev.db \
-	APP_ENV=development LOG_LEVEL=debug \
-	go run ./cmd/pushpaka
+	DATABASE_DRIVER=sqlite DATABASE_URL=pushpaka-dev.db APP_ENV=development go run ./cmd/pushpaka
 
-# ── Build ──────────────────────────────────────────────────────────────────────
-## Build the combined pushpaka binary.
-build:
-	go build -C cmd/pushpaka -ldflags="-w -s" -o ../../pushpaka .
+front-dev:
+	cd frontend && pnpm dev
 
-## Run the dev binary directly (requires `make build` first).
-run-dev: build
-	./pushpaka -dev
+# Production
 
-# ── Backend & worker individually ─────────────────────────────────────────────
-build-api:
-	go build -C backend -o ../pushpaka-api ./cmd/server
+front-build:
+	node scripts/patch-layout.js remove
+	cd frontend && STATIC_EXPORT=1 pnpm build || (node scripts/patch-layout.js restore && exit 1)
+	node scripts/patch-layout.js restore
+	node scripts/copy-frontend.js
+
+build: front-build
+	go build $(LDFLAGS) -o pushpaka$(EXT) ./cmd/pushpaka
+	@echo Built: pushpaka$(EXT)
+
+build-api: front-build
+	go build -C backend $(LDFLAGS) -o ../pushpaka-api$(EXT) ./cmd/server
+	@echo Built: pushpaka-api$(EXT)
 
 build-worker:
-	go build -C worker -o ../pushpaka-worker .
+	go build -C worker $(LDFLAGS) -o ../pushpaka-worker$(EXT) .
+	@echo Built: pushpaka-worker$(EXT)
 
-# ── Housekeeping ───────────────────────────────────────────────────────────────
+build-all: build build-worker
+	@echo All binaries built.
+
 clean:
-	rm -f pushpaka pushpaka.exe pushpaka-api pushpaka-api.exe \
-	      pushpaka-worker pushpaka-worker.exe \
-	      pushpaka-dev.db
+	rm -f pushpaka pushpaka.exe pushpaka-api pushpaka-api.exe pushpaka-worker pushpaka-worker.exe pushpaka-dev.db pushpaka-dev.db-shm pushpaka-dev.db-wal
 
 help:
-	@echo ""
-	@echo "  make dev         Run API only (SQLite – zero external deps)"
-	@echo "  make dev-all     Run API + worker (SQLite + Redis + Docker)"
-	@echo "  make build       Build the combined binary  →  ./pushpaka"
-	@echo "  make build-api   Build backend only         →  ./pushpaka-api"
-	@echo "  make build-worker Build worker only         →  ./pushpaka-worker"
-	@echo "  make clean       Remove build artifacts and dev database"
-	@echo ""
+	@echo "
+	@echo "  Dev commands:"
+	@echo "    make dev           Run API, SQLite (no external deps)"
+	@echo "    make dev-all       Run API + worker (SQLite + Redis + Docker)"
+	@echo "    make front-dev     Next.js dev server on :3000"
+	@echo "
+	@echo "  Build commands:"
+	@echo "    make build         All-in-one binary  ->  ./pushpaka"
+	@echo "    make build-api     API-only binary    ->  ./pushpaka-api"
+	@echo "    make build-worker  Worker-only binary ->  ./pushpaka-worker"
+	@echo "    make build-all     All three binaries"
+	@echo "

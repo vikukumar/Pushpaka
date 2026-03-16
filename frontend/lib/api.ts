@@ -13,9 +13,16 @@ export const apiClient = axios.create({
 // Attach token to every request
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    const token = localStorage.getItem('pushpaka_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
+    try {
+      const raw = localStorage.getItem('pushpaka_auth')
+      if (raw) {
+        const { state } = JSON.parse(raw)
+        if (state?.token) {
+          config.headers.Authorization = `Bearer ${state.token}`
+        }
+      }
+    } catch {
+      // ignore malformed storage
     }
   }
   return config
@@ -26,8 +33,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem('pushpaka_token')
-      localStorage.removeItem('pushpaka_user')
+      localStorage.removeItem('pushpaka_auth')
       window.location.href = '/login'
     }
     return Promise.reject(error)
