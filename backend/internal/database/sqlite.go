@@ -1,6 +1,8 @@
 package database
 
 import (
+	"strings"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	_ "modernc.org/sqlite" // registers "sqlite" driver
@@ -37,6 +39,8 @@ CREATE TABLE IF NOT EXISTS projects (
     framework     TEXT NOT NULL DEFAULT '',
     status        TEXT NOT NULL DEFAULT 'inactive'
                     CHECK (status IN ('active', 'inactive', 'building')),
+    is_private    INTEGER NOT NULL DEFAULT 0,
+    git_token     TEXT NOT NULL DEFAULT '',
     created_at    TEXT NOT NULL,
     updated_at    TEXT NOT NULL
 );
@@ -45,22 +49,23 @@ CREATE INDEX IF NOT EXISTS idx_projects_status     ON projects(status);
 CREATE INDEX IF NOT EXISTS idx_projects_created_at ON projects(created_at DESC);
 
 CREATE TABLE IF NOT EXISTS deployments (
-    id           TEXT PRIMARY KEY,
-    project_id   TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-    user_id      TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    commit_sha   TEXT NOT NULL DEFAULT '',
-    commit_msg   TEXT NOT NULL DEFAULT '',
-    branch       TEXT NOT NULL DEFAULT 'main',
-    status       TEXT NOT NULL DEFAULT 'queued'
-                   CHECK (status IN ('queued', 'building', 'running', 'failed', 'stopped')),
-    image_tag    TEXT NOT NULL DEFAULT '',
-    container_id TEXT NOT NULL DEFAULT '',
-    url          TEXT NOT NULL DEFAULT '',
-    error_msg    TEXT NOT NULL DEFAULT '',
-    started_at   TEXT,
-    finished_at  TEXT,
-    created_at   TEXT NOT NULL,
-    updated_at   TEXT NOT NULL
+    id            TEXT PRIMARY KEY,
+    project_id    TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id       TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    commit_sha    TEXT NOT NULL DEFAULT '',
+    commit_msg    TEXT NOT NULL DEFAULT '',
+    branch        TEXT NOT NULL DEFAULT 'main',
+    status        TEXT NOT NULL DEFAULT 'queued'
+                    CHECK (status IN ('queued', 'building', 'running', 'failed', 'stopped')),
+    image_tag     TEXT NOT NULL DEFAULT '',
+    container_id  TEXT NOT NULL DEFAULT '',
+    url           TEXT NOT NULL DEFAULT '',
+    external_port INTEGER NOT NULL DEFAULT 0,
+    error_msg     TEXT NOT NULL DEFAULT '',
+    started_at    TEXT,
+    finished_at   TEXT,
+    created_at    TEXT NOT NULL,
+    updated_at    TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_deployments_project_id ON deployments(project_id);
 CREATE INDEX IF NOT EXISTS idx_deployments_user_id    ON deployments(user_id);
@@ -128,6 +133,20 @@ func NewSQLite(path string) (*sqlx.DB, error) {
 	}
 	if _, err := db.Exec(sqliteSchema); err != nil {
 		return nil, err
+	}
+	// Idempotent column additions for databases created before schema updates.
+	migrations := []string{
+		`ALTER TABLE deployments ADD COLUMN external_port INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE projects ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE projects ADD COLUMN git_token TEXT NOT NULL DEFAULT ''`,
+	}
+	for _, m := range migrations {
+		if _, err := db.Exec(m); err != nil {
+			// "duplicate column name" is expected on an up-to-date database — ignore it.
+			if !strings.Contains(err.Error(), "duplicate column name") {
+				return nil, err
+			}
+		}
 	}
 	log.Info().Str("path", path).Msg("connected to sqlite")
 	return db, nil

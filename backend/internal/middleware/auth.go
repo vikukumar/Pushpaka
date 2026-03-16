@@ -11,22 +11,29 @@ import (
 
 const UserIDKey = "userID"
 
-// JWT validates the Bearer token and sets userID in context
+// JWT validates the Bearer token and sets userID in context.
+// For WebSocket connections that cannot set headers, the token may
+// alternatively be passed as the `token` query parameter.
 func JWT(authSvc *services.AuthService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authorization header required"})
+		var raw string
+
+		if authHeader := c.GetHeader("Authorization"); authHeader != "" {
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization format, expected: Bearer <token>"})
+				return
+			}
+			raw = parts[1]
+		} else if q := c.Query("token"); q != "" {
+			// Fallback: ?token= for WebSocket upgrades (browsers cannot set custom headers)
+			raw = q
+		} else {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "authorization required"})
 			return
 		}
 
-		parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 || !strings.EqualFold(parts[0], "bearer") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid authorization format, expected: Bearer <token>"})
-			return
-		}
-
-		userID, err := authSvc.ValidateToken(parts[1])
+		userID, err := authSvc.ValidateToken(raw)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
 			return

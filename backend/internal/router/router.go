@@ -1,9 +1,12 @@
 package router
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"path"
 	"strings"
 
@@ -17,11 +20,13 @@ import (
 	"github.com/vikukumar/Pushpaka/internal/middleware"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/internal/services"
+	"github.com/vikukumar/Pushpaka/queue"
 )
 
 // New builds the Gin engine. Pass a non-nil uiFS to serve the embedded
 // Next.js static export under /; pass nil to skip frontend serving (dev mode).
-func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS) *gin.Engine {
+// inQueue is only non-nil in dev mode (embedded worker, no Redis).
+func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue *queue.InProcess) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -50,7 +55,7 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS) *gin.En
 	// Services
 	authSvc := services.NewAuthService(userRepo, cfg)
 	projectSvc := services.NewProjectService(projectRepo)
-	deploymentSvc := services.NewDeploymentService(deploymentRepo, projectRepo, envRepo, rdb)
+	deploymentSvc := services.NewDeploymentService(deploymentRepo, projectRepo, envRepo, domainRepo, rdb, inQueue, cfg.BaseURL)
 	logSvc := services.NewLogService(logRepo)
 	domainSvc := services.NewDomainService(domainRepo, projectRepo)
 	envSvc := services.NewEnvService(envRepo, projectRepo)
@@ -62,7 +67,14 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS) *gin.En
 	logHandler := handlers.NewLogHandler(logSvc)
 	domainHandler := handlers.NewDomainHandler(domainSvc)
 	envHandler := handlers.NewEnvHandler(envSvc)
-	healthHandler := handlers.NewHealthHandler(db, rdb)
+	// Avoid the nil-interface trap: a nil *queue.InProcess assigned directly to
+	// WorkerStatsProvider creates a non-nil interface with a nil concrete value,
+	// which passes the != nil check but panics on method calls.
+	var workerStats handlers.WorkerStatsProvider
+	if inQueue != nil {
+		workerStats = inQueue
+	}
+	healthHandler := handlers.NewHealthHandler(db, rdb, workerStats)
 
 	// Auth middleware
 	authMW := middleware.JWT(authSvc)
@@ -73,6 +85,7 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS) *gin.En
 		// Health & Metrics (public)
 		api.GET("/health", healthHandler.Health)
 		api.GET("/ready", healthHandler.Ready)
+		api.GET("/system", healthHandler.System)
 		api.GET("/metrics", handlers.MetricsHandler())
 
 		// Auth (public)
@@ -92,6 +105,7 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS) *gin.En
 				projects.POST("", projectHandler.Create)
 				projects.GET("", projectHandler.List)
 				projects.GET("/:id", projectHandler.Get)
+				projects.PUT("/:id", projectHandler.Update)
 				projects.DELETE("/:id", projectHandler.Delete)
 			}
 
@@ -128,6 +142,11 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS) *gin.En
 			}
 		}
 	}
+
+	// /app/:projectID — path-based deployment access (when no custom domain is set).
+	// Proxies all requests to the running container's external port.
+	r.Any("/app/:projectID/*proxyPath", newDeploymentProxyHandler(deploymentRepo))
+	r.Any("/app/:projectID", newDeploymentProxyHandler(deploymentRepo))
 
 	// Serve embedded frontend SPA (only when built with frontend assets).
 	if uiFS != nil {
@@ -190,9 +209,7 @@ func newSPAHandler(fsys fs.FS) http.Handler {
 			// requests /dashboard/projects/<uuid>/index.txt?_rsc=…).  Strip it so we
 			// work with the bare directory path in all steps below.
 			dirBase := strings.TrimRight(name, "/")
-			if strings.HasSuffix(dirBase, "/index.txt") {
-				dirBase = strings.TrimSuffix(dirBase, "/index.txt")
-			}
+			dirBase = strings.TrimSuffix(dirBase, "/index.txt")
 
 			// 2a. Exact index.txt for this directory.
 			if serveFile(w, r, fsys, dirBase+"/index.txt") {
@@ -209,28 +226,50 @@ func newSPAHandler(fsys fs.FS) http.Handler {
 			// 2c. __next.X.Y.Z.txt segment payload files.
 			//
 			// Next.js Turbopack stores segment RSC payloads in a directory tree:
-			//   __next.dashboard.settings.txt        → NOT a flat file
-			//   __next.dashboard/settings.txt        ← actual file in the FS
-			//   __next.dashboard.settings.__PAGE__.txt
-			//   __next.dashboard/settings/__PAGE__.txt ← actual file in the FS
+			//   Request filename:  __next.dashboard.projects.$d$id.deployments.__PAGE__.txt
+			//   Converted path:    __next.dashboard/projects/$d$id/deployments/__PAGE__.txt
+			//   Actual file (FS):  dashboard/projects/_/deployments/__next.dashboard/projects/$d$id/deployments/__PAGE__.txt
 			//
-			// When the flat dotted path is not found (step 1 already failed),
-			// convert "X.Y.Z" after "__next." into "X/Y/Z" and retry.
+			// Two transforms are needed:
+			//   1. Dot-to-slash on the filename  ("X.Y.Z" → "X/Y/Z")
+			//   2. UUID-to-placeholder on parent dir segments
 			base := path.Base(name)
 			if strings.HasPrefix(base, "__next.") && strings.HasSuffix(base, ".txt") {
 				dir := path.Dir(name)
-				dirPrefix := ""
-				if dir != "." {
-					dirPrefix = dir + "/"
-				}
+				dirSegs := splitSegments(dir)
 				inner := strings.TrimPrefix(strings.TrimSuffix(base, ".txt"), "__next.")
-				// Split on first dot: "dashboard.settings.__PAGE__" → "dashboard" + "settings.__PAGE__"
 				if dot := strings.Index(inner, "."); dot != -1 {
 					firstSeg := inner[:dot]
-					// Replace remaining dots with slashes for nested sub-paths.
 					rest := strings.ReplaceAll(inner[dot+1:], ".", "/")
-					candidate := dirPrefix + "__next." + firstSeg + "/" + rest + ".txt"
-					if serveFile(w, r, fsys, candidate) {
+					convertedFile := "__next." + firstSeg + "/" + rest + ".txt"
+					// 2c-i: exact (no dynamic segments in parent path)
+					dirPrefix := ""
+					if dir != "." {
+						dirPrefix = dir + "/"
+					}
+					if serveFile(w, r, fsys, dirPrefix+convertedFile) {
+						return
+					}
+					// 2c-ii: UUID placeholder substitution in parent dir segments
+					if len(dirSegs) > 0 {
+						if resolved := resolveFile(fsys, dirSegs, convertedFile); resolved != "" {
+							serveFile(w, r, fsys, resolved)
+							return
+						}
+					}
+				}
+			}
+
+			// 2d. Other RSC files (e.g. __next._tree.txt, __next._head.txt) nested
+			// inside a dynamic path that contains UUID segments.
+			// e.g.: dashboard/projects/<uuid>/deployments/__next._tree.txt
+			//   →   dashboard/projects/_/deployments/__next._tree.txt
+			{
+				fileName := path.Base(dirBase)
+				parentSegs := splitSegments(path.Dir(dirBase))
+				if len(parentSegs) > 0 {
+					if resolved := resolveFile(fsys, parentSegs, fileName); resolved != "" {
+						serveFile(w, r, fsys, resolved)
 						return
 					}
 				}
@@ -321,4 +360,37 @@ func resolveFile(fsys fs.FS, segments []string, file string) string {
 		return ""
 	}
 	return try(0, "")
+}
+
+// newDeploymentProxyHandler returns a gin.HandlerFunc that reverse-proxies
+// requests to the running container for the given :projectID.
+// The container must have a non-zero ExternalPort set by the deployment worker.
+func newDeploymentProxyHandler(repo *repositories.DeploymentRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		projectID := c.Param("projectID")
+
+		d, err := repo.FindRunningByProjectID(projectID)
+		if err != nil || d == nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "no running deployment for this project"})
+			return
+		}
+		if d.ExternalPort == 0 {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "deployment has no exposed port yet"})
+			return
+		}
+
+		target, _ := url.Parse(fmt.Sprintf("http://localhost:%d", d.ExternalPort))
+		proxy := httputil.NewSingleHostReverseProxy(target)
+
+		// Strip the /app/:projectID prefix so the downstream app sees a clean path.
+		proxyPath := c.Param("proxyPath")
+		if proxyPath == "" {
+			proxyPath = "/"
+		}
+		c.Request.URL.Path = proxyPath
+		c.Request.URL.RawPath = proxyPath
+		c.Request.Host = target.Host
+
+		proxy.ServeHTTP(c.Writer, c.Request)
+	}
 }

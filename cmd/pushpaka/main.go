@@ -16,10 +16,11 @@ import (
 
 	workerApp "github.com/vikukumar/Pushpaka-worker/app"
 	backendApp "github.com/vikukumar/Pushpaka/app"
+	"github.com/vikukumar/Pushpaka/queue"
 )
 
 func main() {
-	dev := flag.Bool("dev", false, "dev mode: use SQLite + no Redis required")
+	dev := flag.Bool("dev", false, "dev mode: use SQLite + embedded worker (no Postgres/Redis required)")
 	flag.Parse()
 
 	if *dev {
@@ -36,38 +37,58 @@ func main() {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
 	}
 
-	component := os.Getenv("PUSHPAKA_COMPONENT")
-	if component == "" {
-		if *dev {
-			component = "api" // worker needs Redis; skip in dev mode
-		} else {
-			component = "all"
-		}
-	}
-
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	var wg sync.WaitGroup
 
-	if component == "api" || component == "all" {
+	if *dev {
+		// Dev mode: API + embedded worker connected via a fast in-process channel.
+		// No Redis or Postgres required — everything runs in a single binary.
+		q := queue.New(100)
+		log.Info().Msg("dev mode: in-process job queue active, embedded worker starting")
+
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := backendApp.Run(ctx); err != nil {
+			opts := backendApp.RunOptions{InProcessQueue: q}
+			if err := backendApp.RunWithOptions(ctx, opts); err != nil {
 				log.Error().Err(err).Msg("API server error")
 			}
 		}()
-	}
 
-	if component == "worker" || component == "all" {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := workerApp.Run(ctx); err != nil {
-				log.Error().Err(err).Msg("worker error")
+			if err := workerApp.RunInProcess(ctx, q.Chan(), q); err != nil {
+				log.Error().Err(err).Msg("embedded worker error")
 			}
 		}()
+	} else {
+		component := os.Getenv("PUSHPAKA_COMPONENT")
+		if component == "" {
+			component = "all"
+		}
+
+		if component == "api" || component == "all" {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if err := backendApp.Run(ctx); err != nil {
+					log.Error().Err(err).Msg("API server error")
+				}
+			}()
+		}
+
+		if component == "worker" || component == "all" {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				if err := workerApp.Run(ctx); err != nil {
+					log.Error().Err(err).Msg("worker error")
+				}
+			}()
+		}
 	}
 
 	wg.Wait()

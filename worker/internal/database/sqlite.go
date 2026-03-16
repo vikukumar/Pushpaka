@@ -1,6 +1,8 @@
 package database
 
 import (
+	"strings"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 	_ "modernc.org/sqlite" // registers "sqlite" driver
@@ -21,7 +23,9 @@ CREATE TABLE IF NOT EXISTS projects (
     repo_url TEXT NOT NULL, branch TEXT NOT NULL DEFAULT 'main',
     build_command TEXT NOT NULL DEFAULT '', start_command TEXT NOT NULL DEFAULT '',
     port INTEGER NOT NULL DEFAULT 3000, framework TEXT NOT NULL DEFAULT '',
-    status TEXT NOT NULL DEFAULT 'inactive', created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+    status TEXT NOT NULL DEFAULT 'inactive',
+    is_private INTEGER NOT NULL DEFAULT 0, git_token TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS deployments (
     id TEXT PRIMARY KEY, project_id TEXT NOT NULL, user_id TEXT NOT NULL,
@@ -67,6 +71,18 @@ func NewSQLite(path string) (*sqlx.DB, error) {
 	}
 	if _, err := db.Exec(sqliteSchema); err != nil {
 		return nil, err
+	}
+	// Idempotent column additions for databases created before schema updates.
+	migrations := []string{
+		`ALTER TABLE projects ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0`,
+		`ALTER TABLE projects ADD COLUMN git_token TEXT NOT NULL DEFAULT ''`,
+	}
+	for _, m := range migrations {
+		if _, err := db.Exec(m); err != nil {
+			if !strings.Contains(err.Error(), "duplicate column name") {
+				return nil, err
+			}
+		}
 	}
 	log.Info().Str("path", path).Msg("worker connected to sqlite")
 	return db, nil

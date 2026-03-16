@@ -60,7 +60,19 @@ export const projectsApi = {
     start_command?: string
     port?: number
     framework?: string
+    is_private?: boolean
+    git_token?: string
   }) => apiClient.post('/projects', data),
+  update: (id: string, data: {
+    name?: string
+    branch?: string
+    build_command?: string
+    start_command?: string
+    port?: number
+    framework?: string
+    is_private?: boolean
+    git_token?: string
+  }) => apiClient.put(`/projects/${id}`, data),
   delete: (id: string) => apiClient.delete(`/projects/${id}`),
 }
 
@@ -94,4 +106,9 @@ export const envApi = {
     apiClient.post('/env', data),
   delete: (data: { project_id: string; key: string }) =>
     apiClient.delete('/env', { data }),
+}
+
+// System capabilities (public — no auth required)
+export const systemApi = {
+  get: () => apiClient.get('/system'),
 }

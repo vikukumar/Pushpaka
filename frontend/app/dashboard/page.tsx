@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -7,134 +7,211 @@ import { Project, Deployment } from '@/types'
 import { Header } from '@/components/layout/Header'
 import { ProjectCard } from '@/components/dashboard/ProjectCard'
 import { StatusBadge } from '@/components/dashboard/StatusBadge'
+import { SystemStatus } from '@/components/dashboard/SystemStatus'
 import { timeAgo } from '@/lib/utils'
 import { Plus, Rocket, FolderGit2, Activity, TrendingUp } from 'lucide-react'
+
+const statDefs = [
+  {
+    label: 'Projects',
+    key: 'totalProjects' as const,
+    icon: FolderGit2,
+    gradient: 'linear-gradient(135deg, #818cf8, #a5b4fc)',
+    glow: 'rgba(99,102,241,0.35)',
+    iconBg: 'rgba(99,102,241,0.12)',
+    iconBorder: 'rgba(99,102,241,0.25)',
+    orb: 'rgba(99,102,241,0.18)',
+  },
+  {
+    label: 'Running',
+    key: 'activeDeployments' as const,
+    icon: Activity,
+    gradient: 'linear-gradient(135deg, #34d399, #6ee7b7)',
+    glow: 'rgba(52,211,153,0.35)',
+    iconBg: 'rgba(52,211,153,0.1)',
+    iconBorder: 'rgba(52,211,153,0.25)',
+    orb: 'rgba(52,211,153,0.15)',
+  },
+  {
+    label: 'Building',
+    key: 'buildingDeployments' as const,
+    icon: TrendingUp,
+    gradient: 'linear-gradient(135deg, #fbbf24, #fcd34d)',
+    glow: 'rgba(251,191,36,0.35)',
+    iconBg: 'rgba(251,191,36,0.1)',
+    iconBorder: 'rgba(251,191,36,0.25)',
+    orb: 'rgba(251,191,36,0.15)',
+  },
+  {
+    label: 'Failed',
+    key: 'failedDeployments' as const,
+    icon: Rocket,
+    gradient: 'linear-gradient(135deg, #f87171, #fca5a5)',
+    glow: 'rgba(248,113,113,0.35)',
+    iconBg: 'rgba(248,113,113,0.1)',
+    iconBorder: 'rgba(248,113,113,0.25)',
+    orb: 'rgba(248,113,113,0.15)',
+  },
+]
 
 export default function DashboardPage() {
   const { data: projectsData } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsApi.list().then((r) => r.data),
   })
-
   const { data: deploymentsData } = useQuery({
     queryKey: ['deployments'],
     queryFn: () => deploymentsApi.list(10).then((r) => r.data),
   })
 
-  const projects: Project[] = projectsData?.data || []
+  const projects: Project[]    = projectsData?.data    || []
   const deployments: Deployment[] = deploymentsData?.data || []
 
   const stats = {
-    totalProjects: projects.length,
-    activeDeployments: deployments.filter((d) => d.status === 'running').length,
+    totalProjects:       projects.length,
+    activeDeployments:   deployments.filter((d) => d.status === 'running').length,
     buildingDeployments: deployments.filter((d) => d.status === 'building').length,
-    failedDeployments: deployments.filter((d) => d.status === 'failed').length,
+    failedDeployments:   deployments.filter((d) => d.status === 'failed').length,
   }
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header title="Overview" subtitle="Your deployment platform dashboard" />
+      <Header title="Overview" subtitle="Your deployment platform" />
 
-      <div className="p-6 space-y-6">
-        {/* Stats */}
+      <div className="p-6 space-y-6 animate-fade-in">
+
+        {/* â”€â”€â”€ Stat cards â”€â”€â”€ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { label: 'Projects', value: stats.totalProjects, icon: FolderGit2, color: 'text-brand-400' },
-            { label: 'Running', value: stats.activeDeployments, icon: Activity, color: 'text-emerald-400' },
-            { label: 'Building', value: stats.buildingDeployments, icon: TrendingUp, color: 'text-amber-400' },
-            { label: 'Failed', value: stats.failedDeployments, icon: Rocket, color: 'text-red-400' },
-          ].map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="card">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-sm text-slate-500">{label}</span>
-                <Icon size={18} className={color} />
+          {statDefs.map(({ label, key, icon: Icon, gradient, glow, iconBg, iconBorder, orb }) => (
+            <div key={label} className="card relative overflow-hidden group">
+              {/* Ambient orb */}
+              <div
+                className="absolute -top-6 -right-6 w-20 h-20 rounded-full pointer-events-none"
+                style={{ background: `radial-gradient(circle, ${orb} 0%, transparent 70%)` }}
+              />
+              {/* Icon */}
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                style={{
+                  background: iconBg,
+                  border: `1px solid ${iconBorder}`,
+                  boxShadow: `0 0 16px -4px ${glow}`,
+                }}
+              >
+                <Icon size={18} style={{ background: gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }} />
               </div>
-              <div className="text-3xl font-bold text-white">{value}</div>
+              {/* Value */}
+              <div
+                className="text-4xl font-bold tracking-tight mb-1"
+                style={{
+                  background: gradient,
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  textShadow: 'none',
+                }}
+              >
+                {stats[key]}
+              </div>
+              <p className="text-xs text-slate-600 font-medium tracking-wider uppercase">{label}</p>
             </div>
           ))}
         </div>
 
-        {/* Projects & recent deployments side by side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Projects */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-white">Projects</h2>
-              <Link href="/dashboard/projects/new" className="btn-primary text-xs py-1.5">
-                <Plus size={14} />
-                New project
+        {/* â”€â”€â”€ Main grid â”€â”€â”€ */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Projects */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Projects</h2>
+              <Link href="/dashboard/projects/new" className="btn-primary text-xs py-1.5 px-3">
+                <Plus size={13} />
+                New
               </Link>
             </div>
-
             {projects.length === 0 ? (
-              <div className="card text-center py-12">
-                <FolderGit2 size={32} className="mx-auto text-slate-600 mb-3" />
-                <p className="text-slate-400 text-sm">No projects yet</p>
-                <Link href="/dashboard/projects/new" className="btn-primary mt-4 inline-flex">
-                  <Plus size={14} />
-                  Create your first project
+              <div className="card text-center py-10">
+                <FolderGit2 size={28} className="mx-auto text-slate-700 mb-3" />
+                <p className="text-slate-500 text-sm">No projects yet</p>
+                <Link href="/dashboard/projects/new" className="btn-primary mt-4 inline-flex text-xs">
+                  <Plus size={13} /> Create project
                 </Link>
               </div>
             ) : (
               <div className="space-y-3">
-                {projects.slice(0, 4).map((project) => {
-                  const latestDeployment = deployments.find(
-                    (d) => d.project_id === project.id
-                  )
+                {projects.slice(0, 4).map((project) => (
+                  <ProjectCard
+                    key={project.id}
+                    project={project}
+                    latestDeployment={deployments.find((d) => d.project_id === project.id)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Deployments */}
+          <div className="lg:col-span-1 space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Deployments</h2>
+              <Link href="/dashboard/deployments" className="text-[11px] text-slate-600 hover:text-slate-300 transition-colors">
+                View all
+              </Link>
+            </div>
+            {deployments.length === 0 ? (
+              <div className="card text-center py-10">
+                <Rocket size={28} className="mx-auto text-slate-700 mb-3" />
+                <p className="text-slate-500 text-sm">No deployments yet</p>
+              </div>
+            ) : (
+              <div
+                className="rounded-xl overflow-hidden"
+                style={{
+                  background: 'linear-gradient(150deg, #1a2844 0%, #111c30 45%, #14213a 100%)',
+                  border: '1px solid rgba(99,102,241,0.18)',
+                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
+                }}
+              >
+                {deployments.slice(0, 7).map((d, i) => {
+                  const project = projects.find((p) => p.id === d.project_id)
                   return (
-                    <ProjectCard
-                      key={project.id}
-                      project={project}
-                      latestDeployment={latestDeployment}
-                    />
+                    <Link
+                      key={d.id}
+                      href={`/dashboard/deployments/${d.id}`}
+                      className="flex items-center gap-3 px-4 py-3 transition-all duration-150 group"
+                      style={{
+                        borderTop: i > 0 ? '1px solid rgba(99,102,241,0.07)' : 'none',
+                      }}
+                      onMouseEnter={(e) => {
+                        ;(e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.06)'
+                      }}
+                      onMouseLeave={(e) => {
+                        ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+                      }}
+                    >
+                      <StatusBadge status={d.status} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium text-slate-200 truncate">
+                          {project?.name || 'Unknown'}
+                        </div>
+                        <div className="text-[10px] text-slate-600">{timeAgo(d.created_at)}</div>
+                      </div>
+                      <div className="text-[10px] text-slate-700 font-mono shrink-0">{d.id.slice(0, 7)}</div>
+                    </Link>
                   )
                 })}
               </div>
             )}
           </div>
 
-          {/* Recent Deployments */}
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base font-semibold text-white">Recent Deployments</h2>
-              <Link href="/dashboard/deployments" className="text-xs text-slate-500 hover:text-slate-300">
-                View all
-              </Link>
-            </div>
-
-            {deployments.length === 0 ? (
-              <div className="card text-center py-12">
-                <Rocket size={32} className="mx-auto text-slate-600 mb-3" />
-                <p className="text-slate-400 text-sm">No deployments yet</p>
-              </div>
-            ) : (
-              <div className="card p-0 overflow-hidden">
-                <div className="divide-y divide-surface-border">
-                  {deployments.slice(0, 8).map((d) => {
-                    const project = projects.find((p) => p.id === d.project_id)
-                    return (
-                      <Link
-                        key={d.id}
-                        href={`/dashboard/deployments/${d.id}`}
-                        className="flex items-center gap-3 px-4 py-3 hover:bg-slate-800/50 transition-colors"
-                      >
-                        <StatusBadge status={d.status} />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm text-slate-200 font-medium truncate">
-                            {project?.name || 'Unknown project'}
-                          </div>
-                          <div className="text-xs text-slate-500">{d.branch} · {timeAgo(d.created_at)}</div>
-                        </div>
-                        <div className="text-xs text-slate-600 font-mono">{d.id.slice(0, 8)}</div>
-                      </Link>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+          {/* System Status */}
+          <div className="lg:col-span-1">
+            <SystemStatus />
           </div>
         </div>
       </div>
     </div>
   )
 }
+

@@ -71,3 +71,23 @@ func (h *ProjectHandler) Delete(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "project deleted"})
 }
+
+func (h *ProjectHandler) Update(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	id := c.Param("id")
+	var req models.UpdateProjectRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	project, err := h.projectSvc.Update(id, userID, &req)
+	if err != nil {
+		if errors.Is(err, services.ErrProjectNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update project"})
+		return
+	}
+	c.JSON(http.StatusOK, project)
+}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { projectsApi } from '@/lib/api'
 import { Header } from '@/components/layout/Header'
 import toast from 'react-hot-toast'
-import { Loader2, GitBranch, Terminal, Globe, ChevronDown } from 'lucide-react'
+import { Loader2, GitBranch, Terminal, Globe, ChevronDown, Lock, Eye, EyeOff } from 'lucide-react'
 
 const FRAMEWORKS = [
   { value: '', label: 'Auto-detect' },
@@ -22,6 +22,7 @@ const FRAMEWORKS = [
 export default function NewProjectPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [showToken, setShowToken] = useState(false)
   const [form, setForm] = useState({
     name: '',
     repo_url: '',
@@ -30,6 +31,8 @@ export default function NewProjectPage() {
     start_command: '',
     port: 3000,
     framework: '',
+    is_private: false,
+    git_token: '',
   })
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,7 +53,6 @@ export default function NewProjectPage() {
   return (
     <div className="flex flex-col min-h-screen">
       <Header title="New Project" subtitle="Connect a Git repository to deploy" />
-
       <div className="p-6 max-w-2xl">
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -83,10 +85,54 @@ export default function NewProjectPage() {
                 onChange={(e) => setForm({ ...form, repo_url: e.target.value })}
                 required
               />
-              <p className="text-xs text-slate-600 mt-1">
-                Public repositories are supported. For private repos, set up SSH keys.
-              </p>
             </div>
+
+            {/* Private repo toggle */}
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-surface-border bg-surface-elevated">
+              <Lock size={15} className="text-slate-500 shrink-0" />
+              <div className="flex-1">
+                <div className="text-sm font-medium text-slate-300">Private Repository</div>
+                <div className="text-xs text-slate-500">Enable to provide a Personal Access Token</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, is_private: !form.is_private, git_token: form.is_private ? '' : form.git_token })}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.is_private ? 'bg-brand-600' : 'bg-slate-700'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.is_private ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {/* PAT field (only when private) */}
+            {form.is_private && (
+              <div>
+                <label className="label">
+                  <Lock size={13} className="inline mr-1.5" />
+                  Personal Access Token (PAT)
+                </label>
+                <div className="relative">
+                  <input
+                    type={showToken ? 'text' : 'password'}
+                    className="input pr-10"
+                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                    value={form.git_token}
+                    onChange={(e) => setForm({ ...form, git_token: e.target.value })}
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                  >
+                    {showToken ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                <p className="text-xs text-slate-600 mt-1">
+                  GitHub: Settings → Developer settings → Personal access tokens → Grant <code className="text-slate-400">repo</code> scope.
+                  The token is stored securely and never shown again.
+                </p>
+              </div>
+            )}
 
             {/* Branch */}
             <div>
@@ -190,3 +236,4 @@ export default function NewProjectPage() {
     </div>
   )
 }
+

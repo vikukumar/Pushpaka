@@ -42,6 +42,8 @@ func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest)
 		Port:         port,
 		Framework:    req.Framework,
 		Status:       "inactive",
+		IsPrivate:    req.IsPrivate,
+		GitToken:     req.GitToken,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
@@ -60,6 +62,42 @@ func (s *ProjectService) Get(id, userID string) (*models.Project, error) {
 	p, err := s.projectRepo.FindByID(id, userID)
 	if err != nil {
 		return nil, ErrProjectNotFound
+	}
+	return p, nil
+}
+
+func (s *ProjectService) Update(id, userID string, req *models.UpdateProjectRequest) (*models.Project, error) {
+	p, err := s.projectRepo.FindByID(id, userID)
+	if err != nil {
+		return nil, ErrProjectNotFound
+	}
+	if req.Name != "" {
+		p.Name = req.Name
+	}
+	if req.Branch != "" {
+		p.Branch = req.Branch
+	}
+	if req.BuildCommand != "" {
+		p.BuildCommand = req.BuildCommand
+	}
+	if req.StartCommand != "" {
+		p.StartCommand = req.StartCommand
+	}
+	if req.Port > 0 {
+		p.Port = req.Port
+	}
+	if req.Framework != "" {
+		p.Framework = req.Framework
+	}
+	p.IsPrivate = req.IsPrivate
+	// Only update the token when a new one is explicitly provided.
+	if req.GitToken != "" {
+		p.GitToken = req.GitToken
+	}
+	p.UpdatedAt = models.NowUTC()
+
+	if err := s.projectRepo.Update(p); err != nil {
+		return nil, fmt.Errorf("updating project: %w", err)
 	}
 	return p, nil
 }

@@ -1,10 +1,14 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { Project, Deployment } from '@/types'
 import { StatusBadge } from './StatusBadge'
 import { timeAgo, truncate } from '@/lib/utils'
-import { GitBranch, GitCommit, ExternalLink, Rocket } from 'lucide-react'
+import { projectsApi } from '@/lib/api'
+import { useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
+import { GitBranch, GitCommit, ExternalLink, Rocket, Trash2, Lock } from 'lucide-react'
 
 interface ProjectCardProps {
   project: Project
@@ -12,20 +16,47 @@ interface ProjectCardProps {
 }
 
 export function ProjectCard({ project, latestDeployment }: ProjectCardProps) {
+  const queryClient = useQueryClient()
+  const [deleting, setDeleting] = useState(false)
+
+  const handleDelete = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!confirm(`Delete project "${project.name}"? This cannot be undone.`)) return
+    setDeleting(true)
+    try {
+      await projectsApi.delete(project.id)
+      toast.success('Project deleted')
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
+    } catch {
+      toast.error('Failed to delete project')
+      setDeleting(false)
+    }
+  }
+
   return (
     <div className="card hover:border-brand-500/30 transition-all group">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
           <Link
             href={`/dashboard/projects/${project.id}`}
-            className="text-base font-semibold text-white hover:text-brand-300 transition-colors"
+            className="text-base font-semibold text-white hover:text-brand-300 transition-colors inline-flex items-center gap-1.5"
           >
+            {project.is_private && <Lock size={12} className="text-slate-500 shrink-0" />}
             {project.name}
           </Link>
           <p className="text-xs text-slate-500 mt-0.5 truncate">{project.repo_url}</p>
         </div>
         <div className="flex items-center gap-2 ml-3">
           {latestDeployment && <StatusBadge status={latestDeployment.status} />}
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            title="Delete project"
+            className="p-1.5 rounded text-slate-600 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
 

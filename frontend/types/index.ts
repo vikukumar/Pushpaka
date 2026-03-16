@@ -17,6 +17,7 @@ export interface Project {
   port: number
   framework: string
   status: 'active' | 'inactive' | 'building'
+  is_private: boolean
   created_at: string
   updated_at: string
 }
@@ -76,4 +77,26 @@ export interface AuthResponse {
 export interface ApiResponse<T> {
   data?: T
   error?: string
+}
+
+export interface SystemInfo {
+  docker: {
+    available: boolean
+    host: string
+  }
+  git: {
+    available: boolean
+    version: string
+  }
+  workers: {
+    total: number
+    active_jobs: number
+    idle: number
+    queue_mode: 'redis' | 'in-process'
+  }
+  runtime: {
+    os: string
+    arch: string
+    in_container: boolean
+  }
 }

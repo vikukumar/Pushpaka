@@ -20,20 +20,34 @@ export default function DeploymentDetailPage() {
   const { data: deployment, isLoading: deployLoading } = useQuery<Deployment>({
     queryKey: ['deployment', id],
     queryFn: () => deploymentsApi.get(id).then((r) => r.data),
-    refetchInterval: (d) =>
-      d?.state.data?.status === 'building' || d?.state.data?.status === 'queued' ? 3000 : false,
+    refetchInterval: (d) => {
+      const status = d?.state.data?.status
+      if (status === 'building') return 3000
+      // Only poll 'queued' for up to 30s; after that it should have been processed or failed
+      if (status === 'queued') {
+        const created = d?.state.data?.created_at
+        const age = created ? Date.now() - new Date(created).getTime() : 0
+        return age < 30_000 ? 3000 : false
+      }
+      return false
+    },
   })
 
   const { data: logsData } = useQuery({
     queryKey: ['logs', id],
     queryFn: () => logsApi.get(id).then((r) => r.data),
-    refetchInterval: (d) => {
-      return deployment?.status === 'building' || deployment?.status === 'queued' ? 2000 : false
+    refetchInterval: () => {
+      if (deployment?.status === 'building') return 2000
+      if (deployment?.status === 'queued') {
+        const age = deployment?.created_at ? Date.now() - new Date(deployment.created_at).getTime() : 0
+        return age < 30_000 ? 2000 : false
+      }
+      return false
     },
   })
 
   const logs: DeploymentLog[] = logsData?.data || []
-  const isLive = deployment?.status === 'building' || deployment?.status === 'queued'
+  const isLive = deployment?.status === 'building'
 
   const handleRollback = async () => {
     try {

@@ -3,81 +3,96 @@
 package app
 
 import (
-"context"
-"fmt"
-"io/fs"
-"net/http"
-"time"
+	"context"
+	"fmt"
+	"io/fs"
+	"net/http"
+	"time"
 
-"github.com/redis/go-redis/v9"
-"github.com/rs/zerolog/log"
+	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 
-"github.com/vikukumar/Pushpaka/internal/config"
-"github.com/vikukumar/Pushpaka/internal/database"
-"github.com/vikukumar/Pushpaka/internal/router"
-"github.com/vikukumar/Pushpaka/ui"
+	"github.com/vikukumar/Pushpaka/internal/config"
+	"github.com/vikukumar/Pushpaka/internal/database"
+	"github.com/vikukumar/Pushpaka/internal/router"
+	"github.com/vikukumar/Pushpaka/queue"
+	"github.com/vikukumar/Pushpaka/ui"
 )
 
-// Run starts the Pushpaka API server and blocks until ctx is cancelled.
+// RunOptions configures optional behaviour for Run.
+type RunOptions struct {
+	// InProcessQueue, when non-nil, is used instead of Redis for deployment jobs.
+	// Intended for dev mode where the embedded worker reads from the same queue.
+	InProcessQueue *queue.InProcess
+}
+
+// Run starts the Pushpaka API server with default options and blocks until ctx is cancelled.
 func Run(ctx context.Context) error {
-cfg := config.Load()
-
-db, err := database.New(cfg.DatabaseDriver, cfg.DatabaseURL)
-if err != nil {
-return fmt.Errorf("database: %w", err)
-}
-defer db.Close()
-
-// Redis is optional: skipped when REDIS_URL is empty (e.g. dev/sqlite mode).
-var rdb *redis.Client
-if cfg.RedisURL != "" {
-rdb, err = database.NewRedis(cfg.RedisURL)
-if err != nil {
-log.Warn().Err(err).Msg("redis unavailable - deployment triggers disabled")
-} else {
-defer rdb.Close()
-}
-} else {
-log.Warn().Msg("REDIS_URL not set - deployment triggers disabled")
+	return RunWithOptions(ctx, RunOptions{})
 }
 
-// Detect whether the frontend was compiled into the binary.
-// In dev mode ui/dist only contains a placeholder, so uiFS stays nil.
-var uiFS fs.FS
-if _, ferr := ui.FS.Open("dist/index.html"); ferr == nil {
-if sub, serr := fs.Sub(ui.FS, "dist"); serr == nil {
-uiFS = sub
-log.Info().Msg("serving embedded frontend")
-}
-}
+// RunWithOptions starts the Pushpaka API server with the supplied options.
+func RunWithOptions(ctx context.Context, opts RunOptions) error {
+	cfg := config.Load()
 
-r := router.New(cfg, db, rdb, uiFS)
+	db, err := database.New(cfg.DatabaseDriver, cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("database: %w", err)
+	}
+	defer db.Close()
 
-srv := &http.Server{
-Addr:         ":" + cfg.Port,
-Handler:      r,
-ReadTimeout:  15 * time.Second,
-WriteTimeout: 15 * time.Second,
-IdleTimeout:  60 * time.Second,
-}
+	// Redis is optional: skipped when REDIS_URL is empty or an in-process queue is used.
+	var rdb *redis.Client
+	if opts.InProcessQueue != nil {
+		log.Info().Msg("using in-process job queue (dev mode)")
+	} else if cfg.RedisURL != "" {
+		rdb, err = database.NewRedis(cfg.RedisURL)
+		if err != nil {
+			log.Warn().Err(err).Msg("redis unavailable - deployment triggers disabled")
+		} else {
+			defer rdb.Close()
+		}
+	} else {
+		log.Warn().Msg("REDIS_URL not set and no in-process queue — deployment triggers disabled")
+	}
 
-errCh := make(chan error, 1)
-go func() {
-log.Info().Str("port", cfg.Port).Str("version", "v1.0.0").Msg("Pushpaka API starting")
-if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-errCh <- err
-}
-}()
+	// Detect whether the frontend was compiled into the binary.
+	// In dev mode ui/dist only contains a placeholder, so uiFS stays nil.
+	var uiFS fs.FS
+	if _, ferr := ui.FS.Open("dist/index.html"); ferr == nil {
+		if sub, serr := fs.Sub(ui.FS, "dist"); serr == nil {
+			uiFS = sub
+			log.Info().Msg("serving embedded frontend")
+		}
+	}
 
-select {
-case err := <-errCh:
-return err
-case <-ctx.Done():
-}
+	r := router.New(cfg, db, rdb, uiFS, opts.InProcessQueue)
 
-shutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-defer cancel()
+	srv := &http.Server{
+		Addr:         ":" + cfg.Port,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
 
-log.Info().Msg("shutting down API server...")
-return srv.Shutdown(shutCtx)
+	errCh := make(chan error, 1)
+	go func() {
+		log.Info().Str("port", cfg.Port).Str("version", "v1.0.0").Msg("Pushpaka API starting")
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errCh <- err
+		}
+	}()
+
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+	}
+
+	shutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	log.Info().Msg("shutting down API server...")
+	return srv.Shutdown(shutCtx)
 }

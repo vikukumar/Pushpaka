@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { DeploymentLog } from '@/types'
 import { cn } from '@/lib/utils'
 import { Terminal, Download, XCircle } from 'lucide-react'
+import { useAuthStore } from '@/lib/auth'
 
 interface LogViewerProps {
   logs: DeploymentLog[]
@@ -29,6 +30,7 @@ export function LogViewer({ logs, isStreaming, deploymentId }: LogViewerProps) {
   const [autoScroll, setAutoScroll] = useState(true)
   const wsRef = useRef<WebSocket | null>(null)
   const [streamLogs, setStreamLogs] = useState<DeploymentLog[]>(logs)
+  const token = useAuthStore((s) => s.token)
 
   useEffect(() => {
     setStreamLogs(logs)
@@ -36,11 +38,10 @@ export function LogViewer({ logs, isStreaming, deploymentId }: LogViewerProps) {
 
   // WebSocket streaming
   useEffect(() => {
-    if (!isStreaming || !deploymentId) return
+    if (!isStreaming || !deploymentId || !token) return
 
     const WS_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8080'
-    const token = typeof window !== 'undefined' ? localStorage.getItem('pushpaka_token') : ''
-    const ws = new WebSocket(`${WS_URL}/api/v1/logs/${deploymentId}/stream?token=${token}`)
+    const ws = new WebSocket(`${WS_URL}/api/v1/logs/${deploymentId}/stream?token=${encodeURIComponent(token)}`)
     wsRef.current = ws
 
     ws.onmessage = (event) => {
