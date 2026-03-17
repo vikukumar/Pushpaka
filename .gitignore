@@ -48,6 +48,8 @@ desktop.ini
 /tmp/
 dist/
 build/
+!backend/ui/dist/
+!backend/ui/dist/.gitkeep
 
 .db
 *.db
@@ -68,3 +70,16 @@ Archieve/*
 .gocache
 .gocache/
 .gocache/*
+
+node_modules/
+node_modules/*
+helm-bin/
+helm/pushpaka/charts/
+build/*
+dist/*
+dist/
+*.zip
+*.tar.gz
+*.tar
+*.tgz
+Chart.lock

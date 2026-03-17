@@ -16,7 +16,6 @@ sources:
 maintainers:
   - name: Viku Kumar
     email: vikukumar@example.com
-repository: https://vikukumar.github.io/Pushpaka/helm
 icon: https://raw.githubusercontent.com/vikukumar/Pushpaka/main/branding/logo.svg
 dependencies:
   - name: traefik
