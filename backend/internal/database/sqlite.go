@@ -117,7 +117,14 @@ func NewSQLite(path string) (*sqlx.DB, error) {
 	if path == "" {
 		path = "pushpaka-dev.db"
 	}
-	db, err := sqlx.Open("sqlite", "file:"+path)
+	// _busy_timeout: retry for up to 5 s instead of immediately returning
+	// SQLITE_BUSY when another connection holds a write lock. This is essential
+	// in all-in-one mode where the API and the embedded worker share the same
+	// SQLite file and both run schema setup on startup.
+	// _journal_mode=WAL: allows concurrent reads alongside writes and reduces
+	// contention significantly.
+	dsn := "file:" + path + "?_busy_timeout=5000&_journal_mode=WAL"
+	db, err := sqlx.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +134,11 @@ func NewSQLite(path string) (*sqlx.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, err
 	}
-	// Enable foreign keys and WAL mode, then apply schema (all idempotent).
+	// Enable foreign keys; WAL is already set via DSN but we also run it via
+	// PRAGMA to ensure it is active for this connection.
+	if _, err := db.Exec("PRAGMA busy_timeout = 5000;"); err != nil {
+		return nil, err
+	}
 	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
 		return nil, err
 	}

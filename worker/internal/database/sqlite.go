@@ -58,12 +58,19 @@ func NewSQLite(path string) (*sqlx.DB, error) {
 	if path == "" {
 		path = "pushpaka-dev.db"
 	}
-	db, err := sqlx.Open("sqlite", "file:"+path)
+	// _busy_timeout: retry for up to 5 s on SQLITE_BUSY instead of failing
+	// immediately. Required when the API and embedded worker share the same file
+	// in all-in-one / dev mode and both run schema setup concurrently.
+	dsn := "file:" + path + "?_busy_timeout=5000&_journal_mode=WAL"
+	db, err := sqlx.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}
 	db.SetMaxOpenConns(1)
 	if err := db.Ping(); err != nil {
+		return nil, err
+	}
+	if _, err := db.Exec("PRAGMA busy_timeout = 5000;"); err != nil {
 		return nil, err
 	}
 	if _, err := db.Exec("PRAGMA foreign_keys = ON;"); err != nil {
