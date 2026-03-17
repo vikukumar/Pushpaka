@@ -54,3 +54,7 @@ build/
 *.db-*
 
 *.tmp
+
+new-docs.md
+
+docs.md

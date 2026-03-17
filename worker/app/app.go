@@ -85,14 +85,22 @@ func RunInProcess(ctx context.Context, ch <-chan []byte, reporter StatsReporter)
 	defer db.Close()
 
 	var wg sync.WaitGroup
+
+	// Pre-register all workers synchronously *before* launching goroutines.
+	// This ensures the worker count is immediately visible via /api/v1/system
+	// even before the Go scheduler has run any of the worker goroutines.
+	if reporter != nil {
+		for i := 0; i < cfg.BuildWorkers; i++ {
+			reporter.WorkerStarted()
+		}
+	}
+
 	for i := 0; i < cfg.BuildWorkers; i++ {
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			// Mark the worker as started before the Docker-availability check
-			// (NewBuildWorker) so the API reports the correct count immediately.
+			// Decrement on exit (was pre-incremented above).
 			if reporter != nil {
-				reporter.WorkerStarted()
 				defer reporter.WorkerStopped()
 			}
 			// rdb is nil -- RunInProcess does not use Redis

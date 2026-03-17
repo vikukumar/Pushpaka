@@ -54,7 +54,7 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
                +------------------+-------------------+
                |                  |                   |
      +---------v------+  +--------v-------+  +--------v-------+
-     |  PostgreSQL 16 |  |   Redis 7      |  |  Build Worker  |
+     |  PostgreSQL 17 |  |   Redis 8      |  |  Build Worker  |
      |  (Data store)  |  |  (Job queue)   |  |  (Go process)  |
      +----------------+  +----------------+  +--------+-------+
                                                       |
@@ -64,8 +64,15 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
                                         |  or direct deploy       |
                                         +-------------------------+
 
-  Dev mode (single binary, no Redis/Postgres):
-  pushpaka -dev  =>  API + embedded worker + SQLite + in-process queue
+  Dev mode (-dev flag, SQLite + in-process queue):
+  pushpaka -dev  =>  API + embedded workers + SQLite
+
+  All-in-one mode (default, any DB + in-process queue):
+  pushpaka  =>  API + embedded workers (in-process channel, no Redis needed for routing)
+
+  Split mode (horizontal scale):
+  PUSHPAKA_COMPONENT=api     =>  API only  (pushes jobs to Redis)
+  PUSHPAKA_COMPONENT=worker  =>  Workers only (reads from Redis)
 ```
 
 ---
@@ -213,7 +220,7 @@ pushpaka/
 | WebSocket | gorilla/websocket | 1.5.3 |
 | JWT | golang-jwt/jwt | v5.3.1 |
 | ORM/SQL | sqlx | 1.4.0 |
-| Database (prod) | PostgreSQL | 16 |
+| Database (prod) | PostgreSQL | 17 |
 | Database (dev) | SQLite (modernc) | 1.46.1 |
 | Queue (prod) | Redis (go-redis v9) | 9.18.0 |
 | Queue (dev) | In-process channel | — |

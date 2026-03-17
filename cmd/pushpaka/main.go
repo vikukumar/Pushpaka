@@ -40,13 +40,22 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
+	component := os.Getenv("PUSHPAKA_COMPONENT")
+	if component == "" {
+		component = "all"
+	}
+
 	var wg sync.WaitGroup
 
-	if *dev {
-		// Dev mode: API + embedded worker connected via a fast in-process channel.
-		// No Redis or Postgres required  everything runs in a single binary.
+	switch component {
+	case "all":
+		// API + embedded worker in one process, connected by a fast in-process channel.
+		// Works in both -dev mode (SQLite) and production (Postgres).
+		// Redis is NOT used for job routing in this mode — the in-process channel
+		// handles all dispatch and gives the API live worker/job counts.
+		// For horizontal worker scaling, use PUSHPAKA_COMPONENT=api + PUSHPAKA_COMPONENT=worker.
 		q := queue.New(100)
-		log.Info().Msg("dev mode: in-process job queue active, embedded worker starting")
+		log.Info().Bool("dev", *dev).Msg("all-in-one mode: in-process queue active, embedded workers starting")
 
 		wg.Add(1)
 		go func() {
@@ -64,31 +73,31 @@ func main() {
 				log.Error().Err(err).Msg("embedded worker error")
 			}
 		}()
-	} else {
-		component := os.Getenv("PUSHPAKA_COMPONENT")
-		if component == "" {
-			component = "all"
-		}
 
-		if component == "api" || component == "all" {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if err := backendApp.Run(ctx); err != nil {
-					log.Error().Err(err).Msg("API server error")
-				}
-			}()
-		}
+	case "api":
+		// API only — expects external worker processes reading from Redis.
+		log.Info().Msg("api-only mode: external workers must connect via Redis")
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := backendApp.Run(ctx); err != nil {
+				log.Error().Err(err).Msg("API server error")
+			}
+		}()
 
-		if component == "worker" || component == "all" {
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if err := workerApp.Run(ctx); err != nil {
-					log.Error().Err(err).Msg("worker error")
-				}
-			}()
-		}
+	case "worker":
+		// Worker only — reads jobs from Redis, pairs with PUSHPAKA_COMPONENT=api.
+		log.Info().Msg("worker-only mode: connecting to Redis queue")
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := workerApp.Run(ctx); err != nil {
+				log.Error().Err(err).Msg("worker error")
+			}
+		}()
+
+	default:
+		log.Fatal().Str("component", component).Msg("unknown PUSHPAKA_COMPONENT; valid values: all, api, worker")
 	}
 
 	wg.Wait()
