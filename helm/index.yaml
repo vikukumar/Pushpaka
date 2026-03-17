@@ -1,0 +1,33 @@
+apiVersion: v1
+entries:
+  pushpaka:
+  - apiVersion: v2
+    appVersion: 1.0.0
+    created: "2026-03-17T18:42:53.612762059Z"
+    dependencies:
+    - alias: traefik-ingress
+      condition: traefik.enabled
+      name: traefik
+      repository: https://traefik.github.io/charts
+      version: 27.0.0
+    description: Pushpaka - Self-hosted Cloud Deployment Platform
+    digest: 370280f67f91fd2b9ebd774b19aba88a17ff1d24bd7ea6eec3fdf1b9f1c28605
+    home: https://github.com/vikukumar/Pushpaka
+    icon: https://raw.githubusercontent.com/vikukumar/Pushpaka/main/branding/logo.svg
+    keywords:
+    - deployment
+    - cloud
+    - git
+    - docker
+    - traefik
+    maintainers:
+    - email: vikukumar@example.com
+      name: Viku Kumar
+    name: pushpaka
+    sources:
+    - https://github.com/vikukumar/Pushpaka
+    type: application
+    urls:
+    - https://vikukumar.github.io/Pushpaka/helm/pushpaka-1.0.0.tgz
+    version: 1.0.0
+generated: "2026-03-17T18:42:53.605447056Z"
