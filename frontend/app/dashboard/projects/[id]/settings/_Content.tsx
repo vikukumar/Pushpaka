@@ -84,7 +84,7 @@ export default function ProjectSettingsPage() {
             <div className="flex gap-3">
               <dt className="text-slate-500 text-sm w-24">Created</dt>
               <dd className="text-sm text-slate-300">
-                {project?.created_at ? new Date(project.created_at).toLocaleString() : '—'}
+                {project?.created_at ? new Date(project.created_at).toLocaleString() : ''}
               </dd>
             </div>
           </dl>
@@ -123,7 +123,7 @@ export default function ProjectSettingsPage() {
                 <input
                   type={showToken ? 'text' : 'password'}
                   className="input pr-10"
-                  placeholder={project?.is_private ? '••••••••••••••••• (stored)' : 'ghp_xxxxxxxxxxxxxxxxxxxx'}
+                  placeholder={project?.is_private ? ' (stored)' : 'ghp_xxxxxxxxxxxxxxxxxxxx'}
                   value={newToken}
                   onChange={(e) => setNewToken(e.target.value)}
                   autoComplete="off"
@@ -137,7 +137,7 @@ export default function ProjectSettingsPage() {
                 </button>
               </div>
               <p className="text-xs text-slate-600 mt-1">
-                GitHub: Settings → Developer settings → Personal access tokens → Grant <code className="text-slate-400">repo</code> scope.
+                GitHub: Settings  Developer settings  Personal access tokens  Grant <code className="text-slate-400">repo</code> scope.
               </p>
             </div>
 

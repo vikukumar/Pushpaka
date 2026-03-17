@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useQuery } from '@tanstack/react-query'
 import { systemApi } from '@/lib/api'
@@ -131,7 +131,7 @@ export function SystemStatus() {
           icon={Container}
           iconColor={docker.available ? '#4ade80' : '#f87171'}
           label="Docker"
-          detail={docker.available ? docker.host || 'Connected' : 'Not found â€” direct deploy mode'}
+          detail={docker.available ? docker.host || 'Connected' : 'Not found " direct deploy mode'}
           ok={docker.available}
         />
 
@@ -149,8 +149,12 @@ export function SystemStatus() {
           icon={Cpu}
           iconColor="#818cf8"
           label="Build Workers"
-          detail={`${workers.total} workers Â· ${workers.active_jobs} active Â· ${workers.idle} idle`}
-          ok={workers.total > 0}
+          detail={
+            !workers.tracked
+              ? 'External workers via Redis (untracked)'
+              : `${workers.total} workers \u00b7 ${workers.active_jobs} active \u00b7 ${workers.idle} idle`
+          }
+          ok={!workers.tracked ? true : workers.total > 0}
           extra={
             <span
               className="text-[10px] font-mono px-1.5 py-0.5 rounded"
@@ -165,8 +169,8 @@ export function SystemStatus() {
           }
         />
 
-        {/* Active jobs bar */}
-        {workers.total > 0 && (
+        {/* Active jobs bar  only shown for in-process (tracked) workers */}
+        {workers.tracked && workers.total > 0 && (
           <div
             className="px-3 py-2.5 rounded-xl"
             style={{
@@ -201,7 +205,7 @@ export function SystemStatus() {
           icon={Zap}
           iconColor="#22d3ee"
           label="Runtime"
-          detail={`${runtime.os} / ${runtime.arch}${runtime.in_container ? ' Â· container' : ''}`}
+          detail={`${runtime.os} / ${runtime.arch}${runtime.in_container ? ' * container' : ''}`}
           ok
         />
       </div>

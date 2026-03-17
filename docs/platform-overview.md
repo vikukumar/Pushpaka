@@ -12,12 +12,15 @@ Pushpaka is a **production-grade self-hosted cloud deployment platform** that le
 
 A **Project** connects a Git repository to the Pushpaka platform. Each project has:
 
-- A Git repository URL
+- A Git repository URL (public or private)
 - A target branch (default: `main`)
 - Build and start commands
 - An exposed port
 - Environment variables
 - Custom domains
+- Private flag + Personal Access Token (PAT) for private repos
+
+Projects can be created, updated (name, branch, commands, PAT, private flag), and deleted from the dashboard.
 
 ### Deployments
 
@@ -32,11 +35,16 @@ Deployments are immutable — every push creates a new deployment.
 
 ### Workers
 
-Background workers consume jobs from the Redis queue and:
-- Clone repositories
-- Build Docker images
-- Deploy containers
-- Stream logs back
+Background workers consume jobs from the queue and:
+
+- Clone repositories (including private repos via PAT — token redacted from all logs)
+- Auto-detect package manager (`npm` / `yarn` / `pnpm` / `bun`) with PATH fallback
+- Generate optimized Dockerfile if not present in the repo
+- Build Docker images (or fall back to direct in-place deployment when Docker is unavailable)
+- Deploy containers with Traefik routing labels
+- Stream structured logs (level + stream) to the database in real time
+
+In **dev mode** (`pushpaka -dev`), workers run embedded in the API process using an in-process channel queue. Worker count and active job stats are exposed via `/api/v1/system`.
 
 ### Environment Variables
 
@@ -66,13 +74,15 @@ Pushpaka auto-detects your framework and generates an appropriate Dockerfile:
 
 | Framework | Detection |
 |-----------|-----------|
-| Next.js / React / Vue | `package.json` present |
+| Next.js / React / Vue / Node | `package.json` present |
 | Go | `go.mod` present |
-| Python | `requirements.txt` present |
-| Docker | `Dockerfile` already present |
-| Any | Falls through to generic |
+| Python | `requirements.txt` or `pyproject.toml` present |
+| Docker | `Dockerfile` already present (used as-is) |
+| Any | Falls through to a generic build container |
 
-You can override by providing a `Dockerfile` in your repository root.
+Package manager is also auto-detected (`package.json` lock files) and falls back to `npm` if no lock file is found or the detected PM is not in PATH.
+
+You can always override by providing a `Dockerfile` in your repository root.
 
 ---
 
@@ -83,6 +93,17 @@ You can override by providing a `Dockerfile` in your repository root.
 - TLS is handled by Traefik + Let's Encrypt
 - Deployed containers run with no privileged access
 - The Docker socket is only accessible to the worker
+
+---
+
+## Theming
+
+The dashboard supports full dark and light mode via a custom CSS-variable-based theme system:
+
+- Preference is stored in `localStorage` (key: `pushpaka_theme`)
+- Falls back to system `prefers-color-scheme` on first visit
+- Animated toggle pill in the header
+- `.dark` / `.light` class toggled on `<html>`, matched by CSS `var(--*)` color tokens
 
 ---
 

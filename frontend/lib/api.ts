@@ -108,7 +108,7 @@ export const envApi = {
     apiClient.delete('/env', { data }),
 }
 
-// System capabilities (public — no auth required)
+// System capabilities (public  no auth required)
 export const systemApi = {
   get: () => apiClient.get('/system'),
 }

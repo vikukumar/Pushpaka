@@ -3,7 +3,7 @@
 //
 // It is used in dev/single-binary mode so that the API and the embedded build
 // worker can exchange deployment jobs without any external infrastructure.
-// The payload format is identical to the Redis queue — raw JSON bytes — so
+// The payload format is identical to the Redis queue -- raw JSON bytes -- so
 // no serialisation changes are needed elsewhere in the codebase.
 //
 // This package is intentionally NOT under internal/ so that the combined

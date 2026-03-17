@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
@@ -80,7 +80,7 @@ export default function DashboardPage() {
 
       <div className="p-6 space-y-6 animate-fade-in">
 
-        {/* â”€â”€â”€ Stat cards â”€â”€â”€ */}
+        {/* """ Stat cards """ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {statDefs.map(({ label, key, icon: Icon, gradient, glow, iconBg, iconBorder, orb }) => (
             <div key={label} className="card relative overflow-hidden group">
@@ -118,7 +118,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* â”€â”€â”€ Main grid â”€â”€â”€ */}
+        {/* """ Main grid """ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Projects */}

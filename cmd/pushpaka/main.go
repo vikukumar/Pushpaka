@@ -44,7 +44,7 @@ func main() {
 
 	if *dev {
 		// Dev mode: API + embedded worker connected via a fast in-process channel.
-		// No Redis or Postgres required — everything runs in a single binary.
+		// No Redis or Postgres required  everything runs in a single binary.
 		q := queue.New(100)
 		log.Info().Msg("dev mode: in-process job queue active, embedded worker starting")
 

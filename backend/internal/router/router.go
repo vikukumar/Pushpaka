@@ -143,7 +143,7 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 		}
 	}
 
-	// /app/:projectID — path-based deployment access (when no custom domain is set).
+	// /app/:projectID -- path-based deployment access (when no custom domain is set).
 	// Proxies all requests to the running container's external port.
 	r.Any("/app/:projectID/*proxyPath", newDeploymentProxyHandler(deploymentRepo))
 	r.Any("/app/:projectID", newDeploymentProxyHandler(deploymentRepo))
@@ -162,15 +162,15 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 // newSPAHandler returns an http.Handler that serves a Next.js static export.
 //
 // Next.js App Router makes two kinds of requests:
-//   - Full page / hard navigation  → GET /dashboard/       (no _rsc param) → serve .html
-//   - RSC navigation fetch         → GET /dashboard/?_rsc= → serve .txt with text/x-component
+//   - Full page / hard navigation  -> GET /dashboard/       (no _rsc param) -> serve .html
+//   - RSC navigation fetch         -> GET /dashboard/?_rsc= -> serve .txt with text/x-component
 //
 // Resolution order for both kinds:
-//  1. Exact non-directory file (JS, CSS, images, fonts, explicit .html …)
-//  2. RSC request → path/index.txt  (RSC payload pre-built by Next.js static export)
-//  3. HTML request → path/index.html (full pre-rendered page)
+//  1. Exact non-directory file (JS, CSS, images, fonts, explicit .html ...)
+//  2. RSC request -> path/index.txt  (RSC payload pre-built by Next.js static export)
+//  3. HTML request -> path/index.html (full pre-rendered page)
 //  4. Dynamic-segment placeholder: substitute unknown UUID segments with "_"
-//  5. SPA fallback → root index.html
+//  5. SPA fallback -> root index.html
 func newSPAHandler(fsys fs.FS) http.Handler {
 	fsh := http.FileServerFS(fsys)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -206,7 +206,7 @@ func newSPAHandler(fsys fs.FS) http.Handler {
 			w.Header().Set("Content-Type", "text/x-component; charset=utf-8")
 
 			// The path may contain an explicit /index.txt suffix (Next.js 16 Turbopack
-			// requests /dashboard/projects/<uuid>/index.txt?_rsc=…).  Strip it so we
+			// requests /dashboard/projects/<uuid>/index.txt?_rsc=...).  Strip it so we
 			// work with the bare directory path in all steps below.
 			dirBase := strings.TrimRight(name, "/")
 			dirBase = strings.TrimSuffix(dirBase, "/index.txt")
@@ -215,7 +215,7 @@ func newSPAHandler(fsys fs.FS) http.Handler {
 			if serveFile(w, r, fsys, dirBase+"/index.txt") {
 				return
 			}
-			// 2b. Dynamic-segment fallback: /projects/<uuid>/ → projects/_/index.txt
+			// 2b. Dynamic-segment fallback: /projects/<uuid>/ -> projects/_/index.txt
 			if segs := splitSegments(dirBase); len(segs) > 0 {
 				if resolved := resolveFile(fsys, segs, "index.txt"); resolved != "" {
 					serveFile(w, r, fsys, resolved)
@@ -231,7 +231,7 @@ func newSPAHandler(fsys fs.FS) http.Handler {
 			//   Actual file (FS):  dashboard/projects/_/deployments/__next.dashboard/projects/$d$id/deployments/__PAGE__.txt
 			//
 			// Two transforms are needed:
-			//   1. Dot-to-slash on the filename  ("X.Y.Z" → "X/Y/Z")
+			//   1. Dot-to-slash on the filename  ("X.Y.Z" -> "X/Y/Z")
 			//   2. UUID-to-placeholder on parent dir segments
 			base := path.Base(name)
 			if strings.HasPrefix(base, "__next.") && strings.HasSuffix(base, ".txt") {
@@ -263,7 +263,7 @@ func newSPAHandler(fsys fs.FS) http.Handler {
 			// 2d. Other RSC files (e.g. __next._tree.txt, __next._head.txt) nested
 			// inside a dynamic path that contains UUID segments.
 			// e.g.: dashboard/projects/<uuid>/deployments/__next._tree.txt
-			//   →   dashboard/projects/_/deployments/__next._tree.txt
+			//   ->   dashboard/projects/_/deployments/__next._tree.txt
 			{
 				fileName := path.Base(dirBase)
 				parentSegs := splitSegments(path.Dir(dirBase))
@@ -280,17 +280,17 @@ func newSPAHandler(fsys fs.FS) http.Handler {
 		}
 
 		// 3. Full-page (hard navigation): serve the pre-rendered HTML.
-		// Directory-style URL: /dashboard/ → dashboard/index.html
+		// Directory-style URL: /dashboard/ -> dashboard/index.html
 		if serveFile(w, r, fsys, baseName+"/index.html") {
 			return
 		}
 
-		// 4. File-style URL: /dashboard → dashboard.html (trailingSlash: false)
+		// 4. File-style URL: /dashboard -> dashboard.html (trailingSlash: false)
 		if serveFile(w, r, fsys, baseName+".html") {
 			return
 		}
 
-		// 5. Dynamic-segment resolution: /projects/<uuid>/ → projects/_/index.html
+		// 5. Dynamic-segment resolution: /projects/<uuid>/ -> projects/_/index.html
 		if segs := splitSegments(baseName); len(segs) > 0 {
 			if resolved := resolveFile(fsys, segs, "index.html"); resolved != "" {
 				serveFile(w, r, fsys, resolved)
@@ -298,13 +298,13 @@ func newSPAHandler(fsys fs.FS) http.Handler {
 			}
 		}
 
-		// 6. SPA fallback → root index.html
+		// 6. SPA fallback -> root index.html
 		serveFile(w, r, fsys, "index.html")
 	})
 }
 
 // serveFile serves a specific file from the FS using http.ServeContent,
-// bypassing FileServer's index.html→directory redirect behaviour.
+// bypassing FileServer's index.html->directory redirect behaviour.
 // Returns true if the file was found and served.
 func serveFile(w http.ResponseWriter, r *http.Request, fsys fs.FS, name string) bool {
 	f, err := fsys.Open(name)
@@ -337,7 +337,7 @@ func splitSegments(name string) []string {
 //
 // Example: (["dashboard","projects","abc-123","env"], "index.html")
 //
-//	→ "dashboard/projects/_/env/index.html"
+//	-> "dashboard/projects/_/env/index.html"
 func resolveFile(fsys fs.FS, segments []string, file string) string {
 	var try func(idx int, prefix string) string
 	try = func(idx int, prefix string) string {

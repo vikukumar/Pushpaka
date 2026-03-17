@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 type Project struct {
 	ID           string `db:"id"            json:"id"`
@@ -40,6 +40,6 @@ type UpdateProjectRequest struct {
 	Port         int    `json:"port"`
 	Framework    string `json:"framework"`
 	IsPrivate    bool   `json:"is_private"`
-	// GitToken — if empty the existing stored token is preserved.
+	// GitToken -- if empty the existing stored token is preserved.
 	GitToken string `json:"git_token"`
 }

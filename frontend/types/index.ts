@@ -93,6 +93,8 @@ export interface SystemInfo {
     active_jobs: number
     idle: number
     queue_mode: 'redis' | 'in-process'
+    /** false when workers run as separate Redis-connected processes (untracked by API) */
+    tracked: boolean
   }
   runtime: {
     os: string

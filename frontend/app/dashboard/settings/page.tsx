@@ -58,7 +58,7 @@ export default function SettingsPage() {
             <input
               type="password"
               className="input font-mono text-xs flex-1"
-              value="sk-••••••••••••••••••••••••••••••••"
+              value="sk-"
               readOnly
             />
             <button className="btn-secondary text-sm">Reveal</button>

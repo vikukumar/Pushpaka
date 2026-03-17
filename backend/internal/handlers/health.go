@@ -99,7 +99,8 @@ func (h *HealthHandler) System(c *gin.Context) {
 
 	// Worker stats
 	totalWorkers, activeJobs := 0, 0
-	if h.workerStats != nil {
+	tracked := h.workerStats != nil
+	if tracked {
 		totalWorkers = h.workerStats.TotalWorkers()
 		activeJobs = h.workerStats.ActiveJobs()
 	}
@@ -118,6 +119,9 @@ func (h *HealthHandler) System(c *gin.Context) {
 			"active_jobs": activeJobs,
 			"idle":        max(0, totalWorkers-activeJobs),
 			"queue_mode":  queueMode,
+			// tracked=false means workers run as external processes (Redis mode);
+			// the API cannot count them but they may still be healthy.
+			"tracked": tracked,
 		},
 		"runtime": gin.H{
 			"os":           runtime.GOOS,
@@ -147,7 +151,7 @@ func checkDockerAvailable() (bool, string) {
 
 	for _, path := range candidates {
 		if _, err := os.Stat(path); err == nil {
-			// Socket exists — also verify we can connect
+			// Socket exists -- also verify we can connect
 			if _, err2 := runWithTimeout("docker", "info"); err2 == nil {
 				return true, path
 			}

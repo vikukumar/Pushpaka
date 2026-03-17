@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProvider } from '@/lib/theme'
 import { Toaster } from 'react-hot-toast'
 import { QueryProvider } from '@/components/providers/QueryProvider'
 import './globals.css'
@@ -14,7 +14,7 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Pushpaka — Carry your code to the cloud',
+    default: 'Pushpaka -- Carry your code to the cloud',
     template: '%s | Pushpaka',
   },
   description:
@@ -37,18 +37,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider>
           <QueryProvider>
             {children}
             <Toaster
               position="top-right"
               toastOptions={{
                 style: {
-                  background: '#1e293b',
-                  color: '#e2e8f0',
-                  border: '1px solid #334155',
+                  background: 'var(--toast-bg, #1e293b)',
+                  color: 'var(--toast-color, #e2e8f0)',
+                  border: '1px solid var(--toast-border, #334155)',
                 },
               }}
             />

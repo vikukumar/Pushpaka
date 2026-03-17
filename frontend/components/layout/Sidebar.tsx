@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -36,11 +36,11 @@ export function Sidebar() {
 
   return (
     <aside
-      className="w-64 h-screen flex flex-col fixed left-0 top-0 z-30 overflow-hidden"
+      className="w-64 h-screen flex flex-col fixed left-0 top-0 z-30 overflow-hidden transition-all duration-300"
       style={{
-        background: 'linear-gradient(175deg, #0e1c32 0%, #091520 60%, #0c1b2e 100%)',
-        borderRight: '1px solid rgba(99,102,241,0.12)',
-        boxShadow: '4px 0 32px rgba(0,0,0,0.5), 1px 0 0 rgba(99,102,241,0.05)',
+        background: 'var(--sidebar-bg)',
+        borderRight: '1px solid var(--sidebar-border)',
+        boxShadow: '4px 0 32px rgba(0,0,0,0.4), 1px 0 0 rgba(99,102,241,0.05)',
       }}
     >
       {/* Ambient top-left glow orb */}
@@ -49,10 +49,10 @@ export function Sidebar() {
         style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.09) 0%, transparent 70%)' }}
       />
 
-      {/* â”€â”€â”€ Logo â”€â”€â”€ */}
+      {/* """ Logo """ */}
       <div
         className="px-5 py-4 relative shrink-0"
-        style={{ borderBottom: '1px solid rgba(99,102,241,0.1)' }}
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
         <Link href="/dashboard" className="flex items-center gap-3 group">
           <div
@@ -93,7 +93,7 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* â”€â”€â”€ Navigation â”€â”€â”€ */}
+      {/* """ Navigation """ */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {navItems.map(({ href, label, icon: Icon }) => {
           // /dashboard exact match to avoid marking Overview active on sub-routes
@@ -150,10 +150,10 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* â”€â”€â”€ User section â”€â”€â”€ */}
+      {/* """ User section """ */}
       <div
         className="p-3 relative shrink-0"
-        style={{ borderTop: '1px solid rgba(99,102,241,0.1)' }}
+        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
       >
         <div
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-default"

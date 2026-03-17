@@ -126,8 +126,8 @@ export default function ProjectDetailPage() {
                 { label: 'Branch', value: project.branch },
                 { label: 'Framework', value: project.framework || 'Auto-detect' },
                 { label: 'Port', value: project.port?.toString() || '3000' },
-                { label: 'Build Command', value: project.build_command || '—', mono: true },
-                { label: 'Start Command', value: project.start_command || '—', mono: true },
+                { label: 'Build Command', value: project.build_command || '', mono: true },
+                { label: 'Start Command', value: project.start_command || '', mono: true },
               ].map(({ label, value, mono }) => (
                 <div key={label} className="flex items-start gap-3">
                   <dt className="text-slate-500 text-sm w-36 shrink-0">{label}</dt>

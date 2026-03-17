@@ -53,7 +53,7 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 			defer rdb.Close()
 		}
 	} else {
-		log.Warn().Msg("REDIS_URL not set and no in-process queue — deployment triggers disabled")
+		log.Warn().Msg("REDIS_URL not set and no in-process queue -- deployment triggers disabled")
 	}
 
 	// Detect whether the frontend was compiled into the binary.

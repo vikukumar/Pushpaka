@@ -63,7 +63,7 @@ export default function AllDeploymentsPage() {
                         <GitBranch size={10} />
                         {d.branch}
                         {d.error_msg && (
-                          <span className="text-red-400 truncate">· {d.error_msg}</span>
+                          <span className="text-red-400 truncate">* {d.error_msg}</span>
                         )}
                       </div>
                     </div>

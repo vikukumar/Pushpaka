@@ -89,12 +89,14 @@ func RunInProcess(ctx context.Context, ch <-chan []byte, reporter StatsReporter)
 		wg.Add(1)
 		go func(id int) {
 			defer wg.Done()
-			// rdb is nil — RunInProcess does not use Redis
-			w := worker.NewBuildWorker(id, db, nil, cfg)
+			// Mark the worker as started before the Docker-availability check
+			// (NewBuildWorker) so the API reports the correct count immediately.
 			if reporter != nil {
 				reporter.WorkerStarted()
 				defer reporter.WorkerStopped()
 			}
+			// rdb is nil -- RunInProcess does not use Redis
+			w := worker.NewBuildWorker(id, db, nil, cfg)
 			w.RunInProcess(ctx, ch, reporter)
 		}(i)
 	}

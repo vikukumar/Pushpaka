@@ -128,7 +128,7 @@ export default function NewProjectPage() {
                   </button>
                 </div>
                 <p className="text-xs text-slate-600 mt-1">
-                  GitHub: Settings → Developer settings → Personal access tokens → Grant <code className="text-slate-400">repo</code> scope.
+                  GitHub: Settings {'->'} Developer settings {'->'} Personal access tokens {'->'} Grant <code className="text-slate-400">repo</code> scope.
                   The token is stored securely and never shown again.
                 </p>
               </div>

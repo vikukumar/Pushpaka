@@ -49,7 +49,7 @@ func (r *ProjectRepository) Update(p *models.Project) error {
 }
 
 // FindByIDInternal returns the project including the git_token (for worker jobs).
-// Only use this server-side — never marshal the result directly to an API response.
+// Only use this server-side -- never marshal the result directly to an API response.
 func (r *ProjectRepository) FindByIDInternal(id string) (*models.Project, error) {
 	var p models.Project
 	err := r.db.Get(&p, r.db.Rebind(`SELECT * FROM projects WHERE id = ?`), id)

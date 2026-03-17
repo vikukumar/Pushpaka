@@ -1,4 +1,4 @@
-﻿package services
+package services
 
 import (
 	"context"
@@ -75,8 +75,8 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 	imageTag := fmt.Sprintf("pushpaka/%s:%s", project.ID[:8], uuid.New().String()[:8])
 
 	// Determine the public URL for this deployment:
-	//   - If the project has a verified custom domain → https://<domain>
-	//   - Otherwise → <baseURL>/app/<projectID>
+	//   - If the project has a verified custom domain -> https://<domain>
+	//   - Otherwise -> <baseURL>/app/<projectID>
 	deployURL := s.baseURL + "/app/" + project.ID
 	if domains, err := s.domainRepo.FindByProjectID(project.ID); err == nil {
 		for _, d := range domains {

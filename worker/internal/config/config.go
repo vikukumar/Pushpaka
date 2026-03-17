@@ -19,7 +19,7 @@ type Config struct {
 	// Default: <os temp dir>/pushpaka-builds
 	CloneDir string
 	// DeployDir is the permanent directory used for in-place (no-Docker)
-	// deployments — each project gets its own subdirectory here.
+	// deployments -- each project gets its own subdirectory here.
 	// Set via BUILD_DEPLOY_DIR.
 	// Default: /deploy/pushpaka  (Linux/Mac) | %LOCALAPPDATA%\pushpaka\deploy  (Windows)
 	DeployDir    string

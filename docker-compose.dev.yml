@@ -1,7 +1,11 @@
-version: "3.9"
-
-# docker-compose.dev.yml — local development overrides
-# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+# docker-compose.dev.yml -- local development overrides
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+#
+# What this file does:
+#   - Exposes all service ports directly (no TLS required)
+#   - Switches Traefik to HTTP-only + insecure dashboard on :8888
+#   - Enables debug logging everywhere
+#   - Reduces build workers to 2 (lighter on local machines)
 
 services:
   traefik:
@@ -15,15 +19,14 @@ services:
       - "--log.level=DEBUG"
     ports:
       - "80:80"
-      - "8888:8080"  # Traefik dashboard on :8888
+      - "8888:8080"  # Traefik dashboard: http://localhost:8888
 
-  pushpaka-api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+  pushpaka:
     environment:
       APP_ENV: development
       PORT: "8080"
+      BUILD_WORKERS: "2"
+      LOG_LEVEL: debug
     ports:
       - "8080:8080"
     labels:
@@ -32,9 +35,6 @@ services:
       - "traefik.http.routers.pushpaka-api.entrypoints=web"
 
   pushpaka-dashboard:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8080
       NEXT_PUBLIC_WS_URL: ws://localhost:8080
@@ -44,11 +44,6 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.pushpaka-dashboard.rule=Host(`localhost`)"
       - "traefik.http.routers.pushpaka-dashboard.entrypoints=web"
-
-  pushpaka-worker:
-    environment:
-      APP_ENV: development
-      BUILD_WORKERS: "2"
 
   postgres:
     ports:

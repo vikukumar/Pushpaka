@@ -140,7 +140,7 @@ export default function ProjectEnvPage() {
                   <Key size={14} className="text-slate-600 shrink-0" />
                   <span className="font-mono text-sm text-slate-200 flex-1">{v.key}</span>
                   <span className="text-xs text-slate-600 font-mono">
-                    {v.has_value ? '••••••••' : '(empty)'}
+                    {v.has_value ? '' : '(empty)'}
                   </span>
                   <button
                     onClick={() => handleDelete(v.key)}

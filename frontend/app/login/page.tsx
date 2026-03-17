@@ -50,7 +50,7 @@ export default function LoginPage() {
             </div>
             <span className="text-2xl font-bold text-white">Pushpaka</span>
           </div>
-          <p className="text-slate-400 text-sm">Welcome back — sign into your account</p>
+          <p className="text-slate-400 text-sm">Welcome back -- sign into your account</p>
         </div>
 
         <div className="card">
@@ -74,7 +74,7 @@ export default function LoginPage() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   className="input pr-10"
-                  placeholder="••••••••"
+                  placeholder=""
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
                   required
@@ -115,7 +115,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-6">
-          Pushpaka v1.0.0 — Self-hosted deployment platform
+          Pushpaka v1.0.0 -- Self-hosted deployment platform
         </p>
       </div>
     </div>

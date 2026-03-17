@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(date: string | null | undefined): string {
-  if (!date) return '—'
+  if (!date) return ''
   return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
@@ -16,7 +16,7 @@ export function formatDate(date: string | null | undefined): string {
 }
 
 export function timeAgo(date: string | null | undefined): string {
-  if (!date) return '—'
+  if (!date) return ''
   const seconds = Math.floor((Date.now() - new Date(date).getTime()) / 1000)
   if (seconds < 60) return `${seconds}s ago`
   if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`

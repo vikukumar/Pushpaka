@@ -52,3 +52,5 @@ build/
 .db
 *.db
 *.db-*
+
+*.tmp

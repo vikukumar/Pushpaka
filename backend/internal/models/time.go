@@ -43,7 +43,7 @@ func (t *Time) Scan(src interface{}) error {
 	}
 }
 
-// Value implements driver.Valuer — stores as RFC3339Nano TEXT for both drivers.
+// Value implements driver.Valuer -- stores as RFC3339Nano TEXT for both drivers.
 func (t Time) Value() (driver.Value, error) {
 	if t.IsZero() {
 		return nil, nil

@@ -9,7 +9,7 @@ import (
 )
 
 // sqliteSchema is the SQLite-compatible equivalent of migrations 001-006.
-// UUIDs → TEXT, BOOLEAN → INTEGER, TIMESTAMP WITH TIME ZONE → TEXT (RFC3339).
+// UUIDs -> TEXT, BOOLEAN -> INTEGER, TIMESTAMP WITH TIME ZONE -> TEXT (RFC3339).
 // All statements are idempotent (IF NOT EXISTS / IF NOT EXISTS index).
 const sqliteSchema = `
 PRAGMA journal_mode = WAL;
@@ -142,7 +142,7 @@ func NewSQLite(path string) (*sqlx.DB, error) {
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {
-			// "duplicate column name" is expected on an up-to-date database — ignore it.
+			// "duplicate column name" is expected on an up-to-date database -- ignore it.
 			if !strings.Contains(err.Error(), "duplicate column name") {
 				return nil, err
 			}

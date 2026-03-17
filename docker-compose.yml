@@ -1,4 +1,6 @@
-version: "3.9"
+# docker-compose.yml  Pushpaka production stack
+# Requires: Docker Engine 24+ with Compose v2 plugin
+# Usage:    docker compose up -d --build
 
 networks:
   pushpaka-network:
@@ -9,13 +11,14 @@ volumes:
   postgres-data:
   redis-data:
   traefik-certs:
+  pushpaka-deploy:
 
 services:
-  # ─────────────────────────────────────────────────
-  # Traefik — Reverse Proxy & SSL Termination
-  # ─────────────────────────────────────────────────
+  # 
+  # Traefik  Reverse Proxy & SSL Termination
+  # 
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.4
     container_name: pushpaka-traefik
     restart: unless-stopped
     command:
@@ -53,11 +56,11 @@ services:
       - "traefik.http.routers.traefik-dashboard.middlewares=auth"
       - "traefik.http.middlewares.auth.basicauth.users=${TRAEFIK_AUTH:-admin:$$apr1$$ruca84Hq$$mbjdMZBAG.KWn7XvjLOCl/}"
 
-  # ─────────────────────────────────────────────────
+  # 
   # PostgreSQL Database
-  # ─────────────────────────────────────────────────
+  # 
   postgres:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: pushpaka-postgres
     restart: unless-stopped
     environment:
@@ -75,11 +78,11 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─────────────────────────────────────────────────
+  # 
   # Redis Queue
-  # ─────────────────────────────────────────────────
+  # 
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     container_name: pushpaka-redis
     restart: unless-stopped
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis_secret}
@@ -93,25 +96,38 @@ services:
       timeout: 5s
       retries: 5
 
-  # ─────────────────────────────────────────────────
-  # Backend API
-  # ─────────────────────────────────────────────────
-  pushpaka-api:
+  # 
+  # Pushpaka  unified binary (API + Worker)
+  # Set PUSHPAKA_COMPONENT=api to run API only,
+  # PUSHPAKA_COMPONENT=worker for worker-only replicas.
+  # 
+  pushpaka:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
-    container_name: pushpaka-api
+    image: pushpaka:latest
+    container_name: pushpaka
     restart: unless-stopped
     environment:
+      PUSHPAKA_COMPONENT: ${PUSHPAKA_COMPONENT:-all}
       PORT: "8080"
       APP_ENV: ${APP_ENV:-production}
+      DATABASE_DRIVER: postgres
       DATABASE_URL: postgres://${POSTGRES_USER:-pushpaka}:${POSTGRES_PASSWORD:-pushpaka_secret}@postgres:5432/${POSTGRES_DB:-pushpaka}?sslmode=disable
       REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379
       JWT_SECRET: ${JWT_SECRET:-change-this-in-production-please}
       JWT_EXPIRY_HOURS: ${JWT_EXPIRY_HOURS:-24}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://app.localhost}
+      DOCKER_HOST: unix:///var/run/docker.sock
       TRAEFIK_NETWORK: pushpaka-network
+      BUILD_CLONE_DIR: /tmp/pushpaka-builds
+      BUILD_DEPLOY_DIR: /deploy/pushpaka
+      BUILD_WORKERS: ${BUILD_WORKERS:-3}
       LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /tmp/pushpaka-builds:/tmp/pushpaka-builds
+      - pushpaka-deploy:/deploy/pushpaka
     depends_on:
       postgres:
         condition: service_healthy
@@ -119,6 +135,12 @@ services:
         condition: service_healthy
     networks:
       - pushpaka-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.pushpaka-api.rule=Host(`api.${DOMAIN:-localhost}`)"
@@ -126,38 +148,9 @@ services:
       - "traefik.http.routers.pushpaka-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.pushpaka-api.loadbalancer.server.port=8080"
 
-  # ─────────────────────────────────────────────────
-  # Build & Deploy Worker
-  # ─────────────────────────────────────────────────
-  pushpaka-worker:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
-    container_name: pushpaka-worker
-    restart: unless-stopped
-    environment:
-      APP_ENV: ${APP_ENV:-production}
-      DATABASE_URL: postgres://${POSTGRES_USER:-pushpaka}:${POSTGRES_PASSWORD:-pushpaka_secret}@postgres:5432/${POSTGRES_DB:-pushpaka}?sslmode=disable
-      REDIS_URL: redis://:${REDIS_PASSWORD:-redis_secret}@redis:6379
-      DOCKER_HOST: unix:///var/run/docker.sock
-      TRAEFIK_NETWORK: pushpaka-network
-      BUILD_DIR: /tmp/pushpaka-builds
-      BUILD_WORKERS: ${BUILD_WORKERS:-3}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /tmp/pushpaka-builds:/tmp/pushpaka-builds
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - pushpaka-network
-
-  # ─────────────────────────────────────────────────
-  # Frontend Dashboard
-  # ─────────────────────────────────────────────────
+  # 
+  # Frontend Dashboard (Next.js 16 static export)
+  # 
   pushpaka-dashboard:
     build:
       context: ./frontend
@@ -168,7 +161,8 @@ services:
       NEXT_PUBLIC_API_URL: https://api.${DOMAIN:-localhost}
       NEXT_PUBLIC_WS_URL: wss://api.${DOMAIN:-localhost}
     depends_on:
-      - pushpaka-api
+      pushpaka:
+        condition: service_healthy
     networks:
       - pushpaka-network
     labels:
