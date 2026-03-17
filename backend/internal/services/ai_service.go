@@ -153,9 +153,9 @@ func (s *AIService) completeWithConfig(userCfg *models.AIConfig, system, user st
 // ─── OpenAI-compatible ────────────────────────────────────────────────────────
 
 type openAIRequest struct {
-	Model    string              `json:"model"`
-	Messages []openAIMessage     `json:"messages"`
-	MaxTokens int               `json:"max_tokens,omitempty"`
+	Model     string          `json:"model"`
+	Messages  []openAIMessage `json:"messages"`
+	MaxTokens int             `json:"max_tokens,omitempty"`
 }
 type openAIMessage struct {
 	Role    string `json:"role"`

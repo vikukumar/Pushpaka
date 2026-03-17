@@ -51,18 +51,18 @@ type rateBucket struct {
 }
 
 type rateLimiter struct {
-	mu       sync.Mutex
-	buckets  map[string]*rateBucket
-	maxReqs  int           // requests per window
-	window   time.Duration // window duration
+	mu        sync.Mutex
+	buckets   map[string]*rateBucket
+	maxReqs   int           // requests per window
+	window    time.Duration // window duration
 	stopClean chan struct{}
 }
 
 func newRateLimiter(maxReqs int, window time.Duration) *rateLimiter {
 	rl := &rateLimiter{
-		buckets:  make(map[string]*rateBucket),
-		maxReqs:  maxReqs,
-		window:   window,
+		buckets:   make(map[string]*rateBucket),
+		maxReqs:   maxReqs,
+		window:    window,
 		stopClean: make(chan struct{}),
 	}
 	// Periodically evict stale buckets to avoid unbounded memory growth.
@@ -130,4 +130,3 @@ func RateLimit(kind string) gin.HandlerFunc {
 		c.Next()
 	}
 }
-

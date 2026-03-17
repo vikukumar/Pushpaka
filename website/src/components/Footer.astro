@@ -1,5 +1,6 @@
 ---
 // Footer component
+const base = import.meta.env.BASE_URL;
 ---
 
 <footer class="bg-surface-elevated border-t border-surface-border mt-32">
@@ -17,10 +18,10 @@
       <div>
         <h4 class="text-white font-semibold mb-4">Product</h4>
         <ul class="space-y-2 text-sm text-gray-400">
-          <li><a href="/Pushpaka/features" class="hover:text-brand-400 transition">Features</a></li>
-          <li><a href="/Pushpaka/docs" class="hover:text-brand-400 transition">Documentation</a></li>
-          <li><a href="/Pushpaka/releases" class="hover:text-brand-400 transition">Releases</a></li>
-          <li><a href="/Pushpaka/install" class="hover:text-brand-400 transition">Installation</a></li>
+          <li><a href={`${base}features`} class="hover:text-brand-400 transition">Features</a></li>
+          <li><a href={`${base}docs`} class="hover:text-brand-400 transition">Documentation</a></li>
+          <li><a href={`${base}releases`} class="hover:text-brand-400 transition">Releases</a></li>
+          <li><a href={`${base}install`} class="hover:text-brand-400 transition">Installation</a></li>
         </ul>
       </div>
 

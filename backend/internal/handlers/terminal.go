@@ -190,4 +190,3 @@ func localShell() string {
 func writeWSError(conn *websocket.Conn, msg string) {
 	conn.WriteMessage(websocket.TextMessage, []byte("\r\n\x1b[31mError: "+msg+"\x1b[0m\r\n")) //nolint:errcheck
 }
-

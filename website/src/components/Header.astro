@@ -1,5 +1,6 @@
 ---
 // Navigation component
+const base = import.meta.env.BASE_URL;
 ---
 
 <nav class="fixed top-0 w-full z-50 glass border-b border-surface-border">
@@ -8,7 +9,7 @@
       <!-- Logo -->
       <div class="flex items-center gap-2">
         <img 
-          src="/Pushpaka/favicon.svg" 
+          src={`${base}favicon.svg`} 
           alt="Pushpaka Logo" 
           class="h-8 w-8"
         />
@@ -17,11 +18,11 @@
 
       <!-- Nav Links -->
       <div class="hidden md:flex items-center gap-8">
-        <a href="/Pushpaka/" class="text-gray-300 hover:text-brand-400 transition">Home</a>
-        <a href="/Pushpaka/features" class="text-gray-300 hover:text-brand-400 transition">Features</a>
-        <a href="/Pushpaka/docs" class="text-gray-300 hover:text-brand-400 transition">Docs</a>
-        <a href="/Pushpaka/install" class="text-gray-300 hover:text-brand-400 transition">Install</a>
-        <a href="/Pushpaka/releases" class="text-gray-300 hover:text-brand-400 transition">Releases</a>
+        <a href={base} class="text-gray-300 hover:text-brand-400 transition">Home</a>
+        <a href={`${base}features`} class="text-gray-300 hover:text-brand-400 transition">Features</a>
+        <a href={`${base}docs`} class="text-gray-300 hover:text-brand-400 transition">Docs</a>
+        <a href={`${base}install`} class="text-gray-300 hover:text-brand-400 transition">Install</a>
+        <a href={`${base}releases`} class="text-gray-300 hover:text-brand-400 transition">Releases</a>
       </div>
 
       <!-- CTA Button -->
@@ -40,10 +41,10 @@
 <!-- Mobile menu overlay (add JS for interactivity) -->
 <div id="mobile-menu" class="hidden fixed inset-0 top-16 bg-surface-bg/95 backdrop-blur-lg z-40 md:hidden">
   <div class="flex flex-col p-8 gap-4">
-    <a href="/Pushpaka/" class="text-gray-300 hover:text-brand-400">Home</a>
-    <a href="/Pushpaka/features" class="text-gray-300 hover:text-brand-400">Features</a>
-    <a href="/Pushpaka/docs" class="text-gray-300 hover:text-brand-400">Docs</a>
-    <a href="/Pushpaka/install" class="text-gray-300 hover:text-brand-400">Install</a>
-    <a href="/Pushpaka/releases" class="text-gray-300 hover:text-brand-400">Releases</a>
+    <a href={base} class="text-gray-300 hover:text-brand-400">Home</a>
+    <a href={`${base}features`} class="text-gray-300 hover:text-brand-400">Features</a>
+    <a href={`${base}docs`} class="text-gray-300 hover:text-brand-400">Docs</a>
+    <a href={`${base}install`} class="text-gray-300 hover:text-brand-400">Install</a>
+    <a href={`${base}releases`} class="text-gray-300 hover:text-brand-400">Releases</a>
   </div>
 </div>

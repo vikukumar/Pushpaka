@@ -90,11 +90,11 @@ func Load() *Config {
 			v, _ := strconv.Atoi(getEnv("AI_RATE_LIMIT_PER_USER_PER_DAY", "0"))
 			return v
 		}(),
-		SMTPHost:           getEnv("SMTP_HOST", ""),
-		SMTPPort:           smtpPort,
-		SMTPUsername:       getEnv("SMTP_USERNAME", ""),
-		SMTPPassword:       getEnv("SMTP_PASSWORD", ""),
-		SMTPFrom:           getEnv("SMTP_FROM", ""),
+		SMTPHost:     getEnv("SMTP_HOST", ""),
+		SMTPPort:     smtpPort,
+		SMTPUsername: getEnv("SMTP_USERNAME", ""),
+		SMTPPassword: getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:     getEnv("SMTP_FROM", ""),
 	}
 }
 

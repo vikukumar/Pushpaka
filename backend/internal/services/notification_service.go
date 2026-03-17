@@ -170,11 +170,11 @@ func sendSlack(webhookURL, title, body string, e *models.NotificationEvent) erro
 	payload := map[string]any{
 		"attachments": []map[string]any{
 			{
-				"color":   color,
-				"title":   title,
-				"text":    body,
-				"ts":      time.Now().Unix(),
-				"footer":  "Pushpaka",
+				"color":  color,
+				"title":  title,
+				"text":   body,
+				"ts":     time.Now().Unix(),
+				"footer": "Pushpaka",
 			},
 		},
 	}

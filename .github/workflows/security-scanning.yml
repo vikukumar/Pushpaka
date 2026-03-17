@@ -81,14 +81,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.work
+          cache-dependency-path: |
+            backend/go.sum
+            worker/go.sum
+            cmd/pushpaka/go.sum
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           queries: security-and-quality
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+      - name: Prepare embedded UI placeholder
+        if: matrix.language == 'go'
+        run: |
+          mkdir -p backend/ui/dist
+          [ -f backend/ui/dist/.gitkeep ] || touch backend/ui/dist/.gitkeep
+
+      - name: Build Go packages
+        if: matrix.language == 'go'
+        run: go build ./backend/... ./cmd/pushpaka/... ./worker/...
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4

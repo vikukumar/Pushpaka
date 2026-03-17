@@ -2,8 +2,8 @@ import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 
 export default defineConfig({
-  site: 'https://vikukumar.github.io/Pushpaka/',
-  base: '/Pushpaka/',
+  site: 'https://pushpaka.vikshro.in/',
+  base: '/',
   integrations: [tailwind()],
   output: 'static'
 });

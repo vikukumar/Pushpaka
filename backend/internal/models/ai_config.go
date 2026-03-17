@@ -44,7 +44,7 @@ type AIMonitorAlert struct {
 type AITokenUsage struct {
 	ID        string `db:"id"         json:"id"`
 	UserID    string `db:"user_id"    json:"user_id"`
-	Date      string `db:"date"       json:"date"`       // YYYY-MM-DD UTC
+	Date      string `db:"date"       json:"date"` // YYYY-MM-DD UTC
 	Calls     int    `db:"calls"      json:"calls"`
 	Tokens    int    `db:"tokens"     json:"tokens"`
 	UpdatedAt Time   `db:"updated_at" json:"updated_at"`

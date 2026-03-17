@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 // DeploymentStatus represents the state of a deployment
 type DeploymentStatus string

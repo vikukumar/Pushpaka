@@ -28,8 +28,8 @@ type Project struct {
 	// DeployTarget determines where the project runs: "docker" (default) or "kubernetes".
 	DeployTarget string `db:"deploy_target"  json:"deploy_target"`
 	K8sNamespace string `db:"k8s_namespace"  json:"k8s_namespace"`
-	CreatedAt Time `db:"created_at" json:"created_at"`
-	UpdatedAt Time `db:"updated_at" json:"updated_at"`
+	CreatedAt    Time   `db:"created_at" json:"created_at"`
+	UpdatedAt    Time   `db:"updated_at" json:"updated_at"`
 }
 
 type CreateProjectRequest struct {
@@ -71,4 +71,3 @@ type UpdateProjectRequest struct {
 	DeployTarget  string `json:"deploy_target"`
 	K8sNamespace  string `json:"k8s_namespace"`
 }
-

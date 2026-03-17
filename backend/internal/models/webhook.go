@@ -7,7 +7,7 @@ type WebhookConfig struct {
 	ID        string `db:"id"         json:"id"`
 	ProjectID string `db:"project_id" json:"project_id"`
 	UserID    string `db:"user_id"    json:"user_id"`
-	Secret    string `db:"secret"     json:"-"` // never exposed in API responses
+	Secret    string `db:"secret"     json:"-"`        // never exposed in API responses
 	Provider  string `db:"provider"   json:"provider"` // "github" | "gitlab"
 	Branch    string `db:"branch"     json:"branch"`   // "" = any branch
 	CreatedAt Time   `db:"created_at" json:"created_at"`
