@@ -50,4 +50,13 @@ type DeploymentJob struct {
 	ImageTag     string            `json:"image_tag"`
 	// GitToken is the PAT for private-repo cloning. Never logged or stored in deployment records.
 	GitToken string `json:"git_token,omitempty"`
+	// Resource limits for the Docker container (empty = Docker defaults)
+	CPULimit      string `json:"cpu_limit,omitempty"`
+	MemoryLimit   string `json:"memory_limit,omitempty"`
+	RestartPolicy string `json:"restart_policy,omitempty"`
+	// NotificationURL is an internal callback URL that the worker POSTs to
+	// when the deployment finishes (success or failure). This triggers all
+	// enabled notification channels (Slack, Discord, SMTP) without the worker
+	// needing direct SMTP / webhook credentials.
+	NotificationURL string `json:"notification_url,omitempty"`
 }

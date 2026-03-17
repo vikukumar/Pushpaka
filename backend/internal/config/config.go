@@ -23,6 +23,10 @@ type Config struct {
 	TraefikNetwork     string
 	GithubClientID     string
 	GithubClientSecret string
+	// GitLab OAuth (also supports self-hosted instances via GitlabBaseURL)
+	GitlabClientID     string
+	GitlabClientSecret string
+	GitlabBaseURL      string // default: https://gitlab.com
 	// CloneDir is the temporary workspace where repositories are git-cloned.
 	// Set via BUILD_CLONE_DIR (or legacy BUILD_DIR).
 	CloneDir string
@@ -30,10 +34,24 @@ type Config struct {
 	// Set via BUILD_DEPLOY_DIR.
 	DeployDir string
 	LogLevel  string
+
+	// AI integration (OpenAI-compatible API)
+	AIProvider string // "openai", "openrouter", "gemini", "anthropic", "ollama"
+	AIAPIKey   string
+	AIModel    string // e.g. "gpt-4o-mini", "claude-3-haiku", "gemini-pro"
+	AIBaseURL  string // override endpoint for OpenRouter / Ollama / self-hosted
+
+	// Default notification channels (can be overridden per-user in DB)
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUsername string
+	SMTPPassword string
+	SMTPFrom     string
 }
 
 func Load() *Config {
 	jwtExpiry, _ := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "24"))
+	smtpPort, _ := strconv.Atoi(getEnv("SMTP_PORT", "587"))
 
 	cloneDir := getEnv("BUILD_CLONE_DIR", "")
 	if cloneDir == "" {
@@ -55,9 +73,21 @@ func Load() *Config {
 		TraefikNetwork:     getEnv("TRAEFIK_NETWORK", "pushpaka-network"),
 		GithubClientID:     getEnv("GITHUB_CLIENT_ID", ""),
 		GithubClientSecret: getEnv("GITHUB_CLIENT_SECRET", ""),
+		GitlabClientID:     getEnv("GITLAB_CLIENT_ID", ""),
+		GitlabClientSecret: getEnv("GITLAB_CLIENT_SECRET", ""),
+		GitlabBaseURL:      getEnv("GITLAB_BASE_URL", "https://gitlab.com"),
 		CloneDir:           cloneDir,
 		DeployDir:          deployDir,
 		LogLevel:           getEnv("LOG_LEVEL", "info"),
+		AIProvider:         getEnv("AI_PROVIDER", "openai"),
+		AIAPIKey:           getEnv("AI_API_KEY", ""),
+		AIModel:            getEnv("AI_MODEL", "gpt-4o-mini"),
+		AIBaseURL:          getEnv("AI_BASE_URL", ""),
+		SMTPHost:           getEnv("SMTP_HOST", ""),
+		SMTPPort:           smtpPort,
+		SMTPUsername:       getEnv("SMTP_USERNAME", ""),
+		SMTPPassword:       getEnv("SMTP_PASSWORD", ""),
+		SMTPFrom:           getEnv("SMTP_FROM", ""),
 	}
 }
 

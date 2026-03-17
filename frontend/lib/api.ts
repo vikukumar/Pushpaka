@@ -112,3 +112,41 @@ export const envApi = {
 export const systemApi = {
   get: () => apiClient.get('/system'),
 }
+
+// Notifications
+export const notificationsApi = {
+  getConfig: () => apiClient.get('/notifications/config'),
+  updateConfig: (data: {
+    slack_webhook_url?: string
+    discord_webhook_url?: string
+    smtp_host?: string
+    smtp_port?: number
+    smtp_username?: string
+    smtp_password?: string
+    smtp_from?: string
+    smtp_to?: string
+    notify_on_success?: boolean
+    notify_on_failure?: boolean
+  }) => apiClient.put('/notifications/config', data),
+}
+
+// Webhooks
+export const webhooksApi = {
+  list: () => apiClient.get('/webhooks'),
+  create: (data: { project_id: string; provider?: string; branch?: string }) =>
+    apiClient.post('/webhooks', data),
+  delete: (id: string) => apiClient.delete(`/webhooks/${id}`),
+}
+
+// Audit logs
+export const auditApi = {
+  list: (limit = 50, offset = 0) =>
+    apiClient.get(`/audit?limit=${limit}&offset=${offset}`),
+}
+
+// AI log analysis
+export const aiApi = {
+  analyzeLogs: (deploymentId: string) =>
+    apiClient.post(`/deployments/${deploymentId}/analyze`),
+}
+

@@ -10,6 +10,7 @@ import {
   Settings,
   Activity,
   LogOut,
+  Shield,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/lib/auth'
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/dashboard/deployments', label: 'Deployments',  icon: Rocket },
   { href: '/dashboard/domains',     label: 'Domains',      icon: Globe },
   { href: '/dashboard/activity',    label: 'Activity',     icon: Activity },
+  { href: '/dashboard/audit',       label: 'Audit Log',    icon: Shield },
   { href: '/dashboard/settings',    label: 'Settings',     icon: Settings },
 ]
 

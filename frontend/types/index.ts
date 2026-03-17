@@ -18,8 +18,32 @@ export interface Project {
   framework: string
   status: 'active' | 'inactive' | 'building'
   is_private: boolean
+  cpu_limit: string
+  memory_limit: string
+  restart_policy: string
   created_at: string
   updated_at: string
+}
+
+export interface AuditLog {
+  id: string
+  user_id: string
+  action: string
+  resource: string
+  resource_id: string
+  metadata: string
+  ip_addr: string
+  user_agent: string
+  created_at: string
+}
+
+export interface WebhookConfig {
+  id: string
+  project_id: string
+  provider: string
+  branch: string
+  webhook_url: string
+  created_at: string
 }
 
 export type DeploymentStatus = 'queued' | 'building' | 'running' | 'failed' | 'stopped'

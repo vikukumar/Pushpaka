@@ -15,8 +15,8 @@ func NewProjectRepository(db *sqlx.DB) *ProjectRepository {
 
 func (r *ProjectRepository) Create(p *models.Project) error {
 	query := `
-		INSERT INTO projects (id, user_id, name, repo_url, branch, build_command, start_command, port, framework, status, is_private, git_token, created_at, updated_at)
-		VALUES (:id, :user_id, :name, :repo_url, :branch, :build_command, :start_command, :port, :framework, :status, :is_private, :git_token, :created_at, :updated_at)`
+		INSERT INTO projects (id, user_id, name, repo_url, branch, build_command, start_command, port, framework, status, is_private, git_token, cpu_limit, memory_limit, restart_policy, created_at, updated_at)
+		VALUES (:id, :user_id, :name, :repo_url, :branch, :build_command, :start_command, :port, :framework, :status, :is_private, :git_token, :cpu_limit, :memory_limit, :restart_policy, :created_at, :updated_at)`
 	_, err := r.db.NamedExec(query, p)
 	return err
 }
@@ -42,7 +42,9 @@ func (r *ProjectRepository) Update(p *models.Project) error {
 		SET name = :name, repo_url = :repo_url, branch = :branch,
 		    build_command = :build_command, start_command = :start_command,
 		    port = :port, framework = :framework, status = :status,
-		    is_private = :is_private, git_token = :git_token, updated_at = :updated_at
+		    is_private = :is_private, git_token = :git_token,
+		    cpu_limit = :cpu_limit, memory_limit = :memory_limit,
+		    restart_policy = :restart_policy, updated_at = :updated_at
 		WHERE id = :id AND user_id = :user_id`
 	_, err := r.db.NamedExec(query, p)
 	return err

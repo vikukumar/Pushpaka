@@ -128,18 +128,22 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 	}
 
 	job := &models.DeploymentJob{
-		DeploymentID: d.ID,
-		ProjectID:    project.ID,
-		UserID:       userID,
-		RepoURL:      project.RepoURL,
-		Branch:       branch,
-		CommitSHA:    req.CommitSHA,
-		BuildCommand: project.BuildCommand,
-		StartCommand: project.StartCommand,
-		Port:         project.Port,
-		EnvVars:      envVars,
-		ImageTag:     imageTag,
-		GitToken:     project.GitToken,
+		DeploymentID:    d.ID,
+		ProjectID:       project.ID,
+		UserID:          userID,
+		RepoURL:         project.RepoURL,
+		Branch:          branch,
+		CommitSHA:       req.CommitSHA,
+		BuildCommand:    project.BuildCommand,
+		StartCommand:    project.StartCommand,
+		Port:            project.Port,
+		EnvVars:         envVars,
+		ImageTag:        imageTag,
+		GitToken:        project.GitToken,
+		CPULimit:        project.CPULimit,
+		MemoryLimit:     project.MemoryLimit,
+		RestartPolicy:   project.RestartPolicy,
+		NotificationURL: s.baseURL + "/api/v1/internal/notify",
 	}
 
 	payload, err := json.Marshal(job)

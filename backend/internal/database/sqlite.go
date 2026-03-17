@@ -110,6 +110,62 @@ CREATE TABLE IF NOT EXISTS deployment_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_logs_deployment_id ON deployment_logs(deployment_id);
 CREATE INDEX IF NOT EXISTS idx_logs_created_at    ON deployment_logs(deployment_id, created_at ASC);
+
+-- Audit logs: immutable record of every user action
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id          TEXT PRIMARY KEY,
+    user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    action      TEXT NOT NULL,       -- e.g. "project.create", "deployment.trigger"
+    resource    TEXT NOT NULL,       -- "project", "deployment", etc.
+    resource_id TEXT NOT NULL DEFAULT '',
+    metadata    TEXT NOT NULL DEFAULT '{}',  -- arbitrary JSON blob
+    ip_addr     TEXT NOT NULL DEFAULT '',
+    user_agent  TEXT NOT NULL DEFAULT '',
+    created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_audit_user_id    ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_action     ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_created_at ON audit_logs(created_at DESC);
+
+-- Per-user notification settings (Slack / Discord / SMTP)
+CREATE TABLE IF NOT EXISTS notification_configs (
+    id                  TEXT PRIMARY KEY,
+    user_id             TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    slack_webhook_url   TEXT NOT NULL DEFAULT '',
+    discord_webhook_url TEXT NOT NULL DEFAULT '',
+    smtp_host           TEXT NOT NULL DEFAULT '',
+    smtp_port           INTEGER NOT NULL DEFAULT 587,
+    smtp_username       TEXT NOT NULL DEFAULT '',
+    smtp_password       TEXT NOT NULL DEFAULT '',
+    smtp_from           TEXT NOT NULL DEFAULT '',
+    smtp_to             TEXT NOT NULL DEFAULT '',
+    notify_on_success   INTEGER NOT NULL DEFAULT 1,
+    notify_on_failure   INTEGER NOT NULL DEFAULT 1,
+    created_at          TEXT NOT NULL,
+    updated_at          TEXT NOT NULL
+);
+
+-- Incoming webhook endpoints (one per project; provider = github | gitlab)
+CREATE TABLE IF NOT EXISTS webhook_configs (
+    id         TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    secret     TEXT NOT NULL,   -- HMAC-SHA256 secret used to verify signatures
+    provider   TEXT NOT NULL DEFAULT 'github' CHECK (provider IN ('github', 'gitlab')),
+    branch     TEXT NOT NULL DEFAULT '',  -- empty = trigger on any branch
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_webhook_project_id ON webhook_configs(project_id);
+
+-- OAuth state tokens (short-lived CSRF prevention)
+CREATE TABLE IF NOT EXISTS oauth_states (
+    state      TEXT PRIMARY KEY,
+    user_id    TEXT,              -- NULL for new-user flows
+    provider   TEXT NOT NULL DEFAULT 'github',
+    redirect   TEXT NOT NULL DEFAULT '',
+    expires_at TEXT NOT NULL
+);
 `
 
 // NewSQLite opens (or creates) a SQLite database at path and applies the schema.
@@ -150,6 +206,10 @@ func NewSQLite(path string) (*sqlx.DB, error) {
 		`ALTER TABLE deployments ADD COLUMN external_port INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE projects ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE projects ADD COLUMN git_token TEXT NOT NULL DEFAULT ''`,
+		// Resource limits added in v2.0
+		`ALTER TABLE projects ADD COLUMN cpu_limit TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE projects ADD COLUMN memory_limit TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE projects ADD COLUMN restart_policy TEXT NOT NULL DEFAULT 'unless-stopped'`,
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {

@@ -51,6 +51,9 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	logRepo := repositories.NewLogRepository(db)
 	domainRepo := repositories.NewDomainRepository(db)
 	envRepo := repositories.NewEnvVarRepository(db)
+	auditRepo := repositories.NewAuditRepository(db)
+	notifRepo := repositories.NewNotificationRepository(db)
+	webhookRepo := repositories.NewWebhookRepository(db)
 
 	// Services
 	authSvc := services.NewAuthService(userRepo, cfg)
@@ -59,6 +62,11 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	logSvc := services.NewLogService(logRepo)
 	domainSvc := services.NewDomainService(domainRepo, projectRepo)
 	envSvc := services.NewEnvService(envRepo, projectRepo)
+	auditSvc := services.NewAuditService(auditRepo)
+	notifSvc := services.NewNotificationService(notifRepo, cfg)
+	oauthSvc := services.NewOAuthService(userRepo, cfg, authSvc, db)
+	webhookSvc := services.NewWebhookService(webhookRepo, projectRepo, deploymentSvc, cfg)
+	aiSvc := services.NewAIService(cfg)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authSvc)
@@ -67,6 +75,12 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	logHandler := handlers.NewLogHandler(logSvc)
 	domainHandler := handlers.NewDomainHandler(domainSvc)
 	envHandler := handlers.NewEnvHandler(envSvc)
+	auditHandler := handlers.NewAuditHandler(auditSvc)
+	notifHandler := handlers.NewNotificationHandler(notifSvc)
+	oauthHandler := handlers.NewOAuthHandler(oauthSvc)
+	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
+	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo)
+	terminalHandler := handlers.NewTerminalHandler(deploymentRepo)
 	// Avoid the nil-interface trap: a nil *queue.InProcess assigned directly to
 	// WorkerStatsProvider creates a non-nil interface with a nil concrete value,
 	// which passes the != nil check but panics on method calls.
@@ -93,7 +107,18 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
+			// OAuth flows (public — redirects handle the JWT issuance)
+			auth.GET("/github", oauthHandler.GithubRedirect)
+			auth.GET("/github/callback", oauthHandler.GithubCallback)
+			auth.GET("/gitlab", oauthHandler.GitlabRedirect)
+			auth.GET("/gitlab/callback", oauthHandler.GitlabCallback)
 		}
+
+		// Incoming webhooks (public — signature-verified)
+		api.POST("/webhooks/:id/receive", webhookHandler.Receive)
+
+		// Internal notification callback (only called by the worker, not exposed publicly)
+		api.POST("/internal/notify", notifHandler.InternalNotify)
 
 		// Protected routes
 		protected := api.Group("")
@@ -140,6 +165,30 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 				env.GET("", envHandler.List)
 				env.DELETE("", envHandler.Delete)
 			}
+
+			// Webhooks (management; the receive endpoint is public above)
+			webhooks := protected.Group("/webhooks")
+			{
+				webhooks.POST("", webhookHandler.Create)
+				webhooks.GET("", webhookHandler.List)
+				webhooks.DELETE("/:id", webhookHandler.Delete)
+			}
+
+			// Notifications config
+			notifications := protected.Group("/notifications")
+			{
+				notifications.GET("/config", notifHandler.Get)
+				notifications.PUT("/config", notifHandler.Upsert)
+			}
+
+			// Audit logs
+			protected.GET("/audit", auditHandler.List)
+
+			// Web terminal (WebSocket)
+			protected.GET("/deployments/:id/terminal", terminalHandler.Connect)
+
+			// AI log analysis
+			protected.POST("/deployments/:id/analyze", aiHandler.AnalyzeLogs)
 		}
 	}
 

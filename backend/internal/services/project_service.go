@@ -32,20 +32,23 @@ func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest)
 
 	now := models.NowUTC()
 	p := &models.Project{
-		ID:           uuid.New().String(),
-		UserID:       userID,
-		Name:         req.Name,
-		RepoURL:      req.RepoURL,
-		Branch:       branch,
-		BuildCommand: req.BuildCommand,
-		StartCommand: req.StartCommand,
-		Port:         port,
-		Framework:    req.Framework,
-		Status:       "inactive",
-		IsPrivate:    req.IsPrivate,
-		GitToken:     req.GitToken,
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		ID:            uuid.New().String(),
+		UserID:        userID,
+		Name:          req.Name,
+		RepoURL:       req.RepoURL,
+		Branch:        branch,
+		BuildCommand:  req.BuildCommand,
+		StartCommand:  req.StartCommand,
+		Port:          port,
+		Framework:     req.Framework,
+		Status:        "inactive",
+		IsPrivate:     req.IsPrivate,
+		GitToken:      req.GitToken,
+		CPULimit:      req.CPULimit,
+		MemoryLimit:   req.MemoryLimit,
+		RestartPolicy: req.RestartPolicy,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 
 	if err := s.projectRepo.Create(p); err != nil {
@@ -93,6 +96,12 @@ func (s *ProjectService) Update(id, userID string, req *models.UpdateProjectRequ
 	// Only update the token when a new one is explicitly provided.
 	if req.GitToken != "" {
 		p.GitToken = req.GitToken
+	}
+	// Resource limits (allow clearing by setting to "")
+	p.CPULimit = req.CPULimit
+	p.MemoryLimit = req.MemoryLimit
+	if req.RestartPolicy != "" {
+		p.RestartPolicy = req.RestartPolicy
 	}
 	p.UpdatedAt = models.NowUTC()
 
