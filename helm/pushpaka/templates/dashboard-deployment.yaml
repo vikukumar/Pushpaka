@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pushpaka.fullname" . }}-dashboard
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pushpaka.labels" . | nindent 4 }}
+    component: dashboard
+spec:
+  {{- if not .Values.dashboard.autoscaling.enabled }}
+  replicas: {{ .Values.dashboard.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pushpaka.selectorLabels" . | nindent 6 }}
+      component: dashboard
+  template:
+    metadata:
+      labels:
+        {{- include "pushpaka.selectorLabels" . | nindent 8 }}
+        component: dashboard
+    spec:
+      serviceAccountName: {{ include "pushpaka.serviceAccountName" . }}
+      containers:
+      - name: dashboard
+        image: "{{ .Values.dashboard.image.registry }}/{{ .Values.dashboard.image.repository }}:{{ coalesce .Values.dashboard.image.tag .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.dashboard.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.dashboard.service.targetPort }}
+          protocol: TCP
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: {{ tpl .Values.dashboard.env.NEXT_PUBLIC_API_URL . | quote }}
+        - name: NODE_ENV
+          value: {{ .Values.dashboard.env.NODE_ENV | quote }}
+        resources:
+          {{- toYaml .Values.dashboard.resources | nindent 10 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

@@ -1,0 +1,320 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="Installation - Pushpaka">
+  <Header />
+  
+  <div class="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Page Header -->
+      <div class="text-center mb-16">
+        <h1 class="text-5xl md:text-6xl font-bold gradient-text mb-6">Installation Guide</h1>
+        <p class="text-xl text-gray-400">Get Pushpaka running on your preferred platform</p>
+      </div>
+
+      <!-- Linux Tab -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>🐧</span> Linux / macOS
+        </h2>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Prerequisites</h3>
+          <ul class="space-y-2 text-gray-300 mb-6">
+            <li>✓ Go 1.25 or higher</li>
+            <li>✓ Docker (optional, for containerization)</li>
+            <li>✓ Git 2.30+</li>
+          </ul>
+
+          <h3 class="text-xl font-bold text-white mb-4">Installation Steps</h3>
+          <div class="code-block mb-6">
+            <pre>
+# Clone the repository
+git clone https://github.com/vikukumar/Pushpaka.git
+cd Pushpaka
+
+# Build the project
+go build -o pushpaka ./cmd/main.go
+
+# Run in dev mode (SQLite, no external deps)
+./pushpaka -dev
+
+# Or run with Docker
+docker-compose up -d</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">Access Dashboard</h3>
+          <p class="text-gray-300">Open your browser and navigate to:</p>
+          <div class="code-block">
+            <pre>http://localhost:3000</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Windows Tab -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>🪟</span> Windows
+        </h2>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Prerequisites</h3>
+          <ul class="space-y-2 text-gray-300 mb-6">
+            <li>✓ Go 1.25 or higher</li>
+            <li>✓ Git for Windows</li>
+            <li>✓ Docker Desktop (optional)</li>
+            <li>✓ PowerShell 5.1 or higher</li>
+          </ul>
+
+          <h3 class="text-xl font-bold text-white mb-4">Installation Steps</h3>
+          <div class="code-block mb-6">
+            <pre>
+# Open PowerShell as Administrator
+
+# Clone the repository
+git clone https://github.com/vikukumar/Pushpaka.git
+cd Pushpaka
+
+# Build the project
+go build -o pushpaka.exe ./cmd/main.go
+
+# Run in dev mode
+.\pushpaka.exe -dev
+
+# Or use the build script
+.\build.ps1</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">Access Dashboard</h3>
+          <p class="text-gray-300">Open your browser and navigate to:</p>
+          <div class="code-block">
+            <pre>http://localhost:3000</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Docker Tab -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>🐳</span> Docker / Docker Compose
+        </h2>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Quick Start with Docker Compose</h3>
+          <div class="code-block mb-6">
+            <pre>
+# Clone the repository
+git clone https://github.com/vikukumar/Pushpaka.git
+cd Pushpaka
+
+# Start all services using Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f pushpaka</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">Docker Compose Services</h3>
+          <ul class="space-y-3 text-gray-300 mb-6">
+            <li>
+              <strong class="text-white">Pushpaka API</strong> - Port 8080
+              <br />Backend API and dashboard
+            </li>
+            <li>
+              <strong class="text-white">Traefik</strong> - Port 80, 443
+              <br />Reverse proxy and SSL termination
+            </li>
+            <li>
+              <strong class="text-white">PostgreSQL</strong> - Port 5432
+              <br />Database (optional, can use SQLite)
+            </li>
+            <li>
+              <strong class="text-white">Redis</strong> - Port 6379
+              <br />Job queue (optional, uses in-process in dev)
+            </li>
+          </ul>
+
+          <h3 class="text-xl font-bold text-white mb-4">Access Services</h3>
+          <div class="code-block">
+            <pre>
+Dashboard:    http://localhost:3000
+API:          http://localhost:8080
+Traefik UI:   http://localhost:8081 (if enabled)</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kubernetes Tab -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>☸️</span> Kubernetes
+        </h2>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Deploy to Kubernetes</h3>
+          <p class="text-gray-300 mb-6">Pushpaka can be deployed to Kubernetes using Helm or kubectl manifests.</p>
+
+          <h3 class="text-xl font-bold text-white mb-4">Prerequisites</h3>
+          <ul class="space-y-2 text-gray-300 mb-6">
+            <li>✓ kubectl 1.20+</li>
+            <li>✓ Kubernetes 1.20+ cluster</li>
+            <li>✓ Helm 3+ (optional, for Helm installation)</li>
+          </ul>
+
+          <h3 class="text-xl font-bold text-white mb-4">Installation</h3>
+          <div class="code-block">
+            <pre>
+# Create namespace
+kubectl create namespace pushpaka
+
+# Deploy using kubectl
+kubectl apply -f infrastructure/k8s/ -n pushpaka
+
+# Or deploy using Helm (when available)
+helm install pushpaka ./helm/pushpaka -n pushpaka</pre>
+          </div>
+
+          <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-4 mt-4">
+            <p class="text-yellow-300 text-sm">
+              <strong>Note:</strong> Kubernetes integration is in development. Check the repository for the latest deployment manifests.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuration Tab -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>⚙️</span> Configuration
+        </h2>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Environment Variables</h3>
+          <div class="space-y-4">
+            <div>
+              <code class="text-accent-400 bg-surface-bg px-2 py-1 rounded">DATABASE_URL</code>
+              <p class="text-gray-400 text-sm mt-1">Database connection string (PostgreSQL or SQLite)</p>
+            </div>
+            <div>
+              <code class="text-accent-400 bg-surface-bg px-2 py-1 rounded">REDIS_URL</code>
+              <p class="text-gray-400 text-sm mt-1">Redis connection string for job queue</p>
+            </div>
+            <div>
+              <code class="text-accent-400 bg-surface-bg px-2 py-1 rounded">PORT</code>
+              <p class="text-gray-400 text-sm mt-1">API server port (default: 8080)</p>
+            </div>
+            <div>
+              <code class="text-accent-400 bg-surface-bg px-2 py-1 rounded">DASHBOARD_URL</code>
+              <p class="text-gray-400 text-sm mt-1">Frontend dashboard URL</p>
+            </div>
+            <div>
+              <code class="text-accent-400 bg-surface-bg px-2 py-1 rounded">PUSHPAKA_COMPONENT</code>
+              <p class="text-gray-400 text-sm mt-1">Component to run: api, worker, all (default: all)</p>
+            </div>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4 mt-8">Example .env File</h3>
+          <div class="code-block">
+            <pre>
+# Database
+DATABASE_URL=sqlite:pushpaka.db
+# DATABASE_URL=postgresql://user:pass@localhost:5432/pushpaka
+
+# Cache & Queue
+REDIS_URL=redis://localhost:6379
+
+# Server
+PORT=8080
+DASHBOARD_URL=http://localhost:3000
+
+# Components
+PUSHPAKA_COMPONENT=all
+
+# Logging
+LOG_LEVEL=debug</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Troubleshooting Tab -->
+      <div>
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>🔧</span> Troubleshooting
+        </h2>
+        <div class="space-y-6">
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-3">Port Already in Use</h3>
+            <p class="text-gray-400 mb-4">If port 8080 (or 3000) is already in use:</p>
+            <div class="code-block">
+              <pre>
+# Linux/macOS: Find process using port
+lsof -i :8080
+
+# Kill process
+kill -9 &lt;PID&gt;
+
+# Or specify different port
+PORT=9080 ./pushpaka -dev</pre>
+            </div>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-3">Build Errors</h3>
+            <p class="text-gray-400 mb-4">If you encounter build errors:</p>
+            <div class="code-block">
+              <pre>
+# Clear Go cache
+go clean -cache
+go clean -modcache
+
+# Reinstall dependencies
+go mod download
+go mod tidy
+
+# Rebuild
+go build -o pushpaka ./cmd/main.go</pre>
+            </div>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-3">Docker Build Failed</h3>
+            <p class="text-gray-400 mb-4">If Docker build fails:</p>
+            <div class="code-block">
+              <pre>
+# Clear Docker cache
+docker system prune -a
+
+# Rebuild image
+docker-compose build --no-cache
+
+# Check logs
+docker-compose logs pushpaka</pre>
+            </div>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-3">Dashboard Not Loading</h3>
+            <p class="text-gray-400 mb-4">Check API connectivity:</p>
+            <div class="code-block">
+              <pre>
+# Test API endpoint
+curl http://localhost:8080/api/v1/health
+
+# Check logs
+docker-compose logs pushpaka
+
+# Ensure API_URL is correct in frontend .env</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="mt-16 text-center">
+        <a href="https://github.com/vikukumar/Pushpaka" target="_blank" rel="noopener noreferrer" class="btn-primary">
+          View Documentation
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>

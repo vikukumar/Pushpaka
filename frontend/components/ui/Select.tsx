@@ -78,11 +78,11 @@ export function Select({ value, onChange, options, placeholder, className, disab
         <div
           role="listbox"
           aria-labelledby={id}
-          className="absolute z-50 mt-1 w-full rounded-lg overflow-hidden"
+          className="absolute z-50 mt-1 w-full rounded-lg overflow-hidden py-0.5"
           style={{
-            background: 'var(--surface-elevated)',
-            border: '1px solid rgba(99,102,241,0.25)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.35), 0 0 0 1px rgba(99,102,241,0.06)',
+            background: 'var(--select-dropdown-bg, #0f172a)',
+            border: '1px solid rgba(99,102,241,0.3)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.65), 0 2px 8px rgba(0,0,0,0.4)',
           }}
         >
           {options.map((opt) => {
@@ -97,11 +97,14 @@ export function Select({ value, onChange, options, placeholder, className, disab
                   onChange(opt.value)
                   setOpen(false)
                 }}
+                style={{
+                  background: isSelected ? 'rgba(99,102,241,0.18)' : 'transparent',
+                }}
                 className={cn(
                   'w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors',
                   isSelected
-                    ? 'text-brand-300 bg-brand-600/20'
-                    : 'text-slate-300 hover:bg-white/[0.06] hover:text-white',
+                    ? 'text-brand-300 hover:bg-[rgba(99,102,241,0.25)]'
+                    : 'text-slate-300 hover:bg-[rgba(255,255,255,0.07)] hover:text-white',
                 )}
               >
                 <span>{opt.label}</span>

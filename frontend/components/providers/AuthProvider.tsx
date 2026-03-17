@@ -63,8 +63,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         <Sidebar />
 
-        <main className="flex-1 min-h-screen md:ml-64 pb-16 md:pb-0">
-          {children}
+        <main className="flex-1 min-h-screen md:ml-64 flex flex-col">
+          <div className="flex-1 pb-16 md:pb-0">{children}</div>
+          {/* Footer */}
+          <footer
+            className="hidden md:flex items-center justify-center gap-1.5 py-3 text-[11px] select-none"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.05)', color: 'var(--text-muted, #475569)' }}
+          >
+            <span>Made with</span>
+            <span title="India">🇮🇳</span>
+            <span>and</span>
+            <span title="love">❤️</span>
+            <span>by</span>
+            <a
+              href="https://github.com/VIKSHRO"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold hover:text-brand-400 transition-colors"
+              style={{ color: '#818cf8' }}
+            >
+              VIKSHRO
+            </a>
+            <span className="mx-1 opacity-40">·</span>
+            <span>© {new Date().getFullYear()} Pushpaka</span>
+          </footer>
         </main>
 
         {/* Mobile bottom navigation */}

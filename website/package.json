@@ -1,0 +1,22 @@
+{
+  "name": "pushpaka-website",
+  "version": "1.0.0",
+  "description": "Modern, metallic enterprise website for Pushpaka Cloud Deployment Platform",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "deploy": "npm run build && echo 'Ready to deploy to GitHub Pages'",
+    "check": "astro check"
+  },
+  "dependencies": {
+    "astro": "^5.1.0",
+    "@astrojs/node": "^7.1.0",
+    "@astrojs/tailwind": "^1.1.0",
+    "tailwindcss": "^4.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

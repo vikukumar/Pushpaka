@@ -1,0 +1,266 @@
+name: Manual Release Component
+
+on:
+  workflow_dispatch:
+    inputs:
+      component:
+        description: 'Component to release'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - backend-only
+          - worker-only
+          - frontend-only
+          - docker-only
+      version:
+        description: 'Version (auto-increment if empty)'
+        required: false
+        type: string
+
+concurrency:
+  group: manual-release
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Calculate version
+  # ─────────────────────────────────────────────────────────────────────────
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build-counter: ${{ steps.version.outputs.build-counter }}
+      full-version: ${{ steps.version.outputs.full-version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate version
+        id: version
+        run: |
+          # Read current version from VERSION file
+          BASE_VERSION=$(cat VERSION)
+          
+          # If force version provided via input
+          if [ "${{ github.event.inputs.version }}" != "" ]; then
+            BASE_VERSION="${{ github.event.inputs.version }}"
+            BUILD_COUNTER=0
+          else
+            # Check if last tag matches current version
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            
+            if [ "$LAST_TAG" != "" ]; then
+              TAG_VERSION=$(echo "$LAST_TAG" | sed 's/v//' | rev | cut -d. -f2- | rev)
+              TAG_COUNTER=$(echo "$LAST_TAG" | rev | cut -d. -f1 | rev)
+              
+              if [ "$TAG_VERSION" = "$BASE_VERSION" ]; then
+                BUILD_COUNTER=$((TAG_COUNTER + 1))
+              else
+                BUILD_COUNTER=0
+              fi
+            else
+              BUILD_COUNTER=0
+            fi
+          fi
+          
+          FULL_VERSION="${BASE_VERSION}.${BUILD_COUNTER}"
+          
+          echo "version=${BASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "build-counter=${BUILD_COUNTER}" >> $GITHUB_OUTPUT
+          echo "full-version=${FULL_VERSION}" >> $GITHUB_OUTPUT
+          
+          echo "📦 Component: ${{ github.event.inputs.component }}"
+          echo "📌 Version: ${FULL_VERSION}"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Backend only
+  # ─────────────────────────────────────────────────────────────────────────
+  backend:
+    needs: version
+    if: contains(github.event.inputs.component, 'backend') || github.event.inputs.component == 'all'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Build backend
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          OUTPUT_NAME="pushpaka-backend-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            OUTPUT_NAME="${OUTPUT_NAME}.exe"
+          fi
+          
+          go build -C cmd/pushpaka \
+            -ldflags="-w -s -X main.version=v${{ needs.version.outputs.full-version }}" \
+            -o "../../${OUTPUT_NAME}" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: pushpaka-backend-*
+          retention-days: 5
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Worker only
+  # ─────────────────────────────────────────────────────────────────────────
+  worker:
+    needs: version
+    if: contains(github.event.inputs.component, 'worker') || github.event.inputs.component == 'all'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Build worker
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          cd worker
+          OUTPUT_NAME="pushpaka-worker-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            OUTPUT_NAME="${OUTPUT_NAME}.exe"
+          fi
+          
+          go build \
+            -ldflags="-w -s -X main.version=v${{ needs.version.outputs.full-version }}" \
+            -o "../${OUTPUT_NAME}" ./cmd/worker
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: worker-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: pushpaka-worker-*
+          retention-days: 5
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Frontend only
+  # ─────────────────────────────────────────────────────────────────────────
+  frontend:
+    needs: version
+    if: contains(github.event.inputs.component, 'frontend') || github.event.inputs.component == 'all'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'frontend/pnpm-lock.yaml'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: pnpm build
+
+      - name: Create artifact archive
+        run: |
+          cd frontend
+          tar -czf ../pushpaka-frontend-${{ needs.version.outputs.full-version }}.tar.gz .next/ public/ package.json pnpm-lock.yaml
+          cd ..
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend
+          path: pushpaka-frontend-*.tar.gz
+          retention-days: 5
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Docker only
+  # ─────────────────────────────────────────────────────────────────────────
+  docker:
+    needs: [version, backend, worker, frontend]
+    if: contains(github.event.inputs.component, 'docker') || github.event.inputs.component == 'all'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=v${{ needs.version.outputs.full-version }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=v${{ needs.version.outputs.full-version }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Summary
+  # ─────────────────────────────────────────────────────────────────────────
+  summary:
+    needs: [version]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Manual Release Summary
+        run: |
+          echo "✅ Manual Release Triggered"
+          echo "Component: ${{ github.event.inputs.component }}"
+          echo "Version: v${{ needs.version.outputs.full-version }}"

@@ -39,7 +39,16 @@ type AIMonitorAlert struct {
 	CreatedAt    Time   `db:"created_at"    json:"created_at"`
 }
 
-// K8sConfig stores Kubernetes cluster connection details for a user.
+// AITokenUsage tracks per-user daily usage of the platform's global AI key.
+// Users with their own API key are exempt from platform rate limits.
+type AITokenUsage struct {
+	ID        string `db:"id"         json:"id"`
+	UserID    string `db:"user_id"    json:"user_id"`
+	Date      string `db:"date"       json:"date"`       // YYYY-MM-DD UTC
+	Calls     int    `db:"calls"      json:"calls"`
+	Tokens    int    `db:"tokens"     json:"tokens"`
+	UpdatedAt Time   `db:"updated_at" json:"updated_at"`
+}
 type K8sConfig struct {
 	ID          string `db:"id"           json:"id"`
 	UserID      string `db:"user_id"      json:"user_id"`

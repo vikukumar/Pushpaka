@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pushpaka.fullname" . }}-api
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pushpaka.labels" . | nindent 4 }}
+    component: api
+spec:
+  {{- if not .Values.api.autoscaling.enabled }}
+  replicas: {{ .Values.api.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pushpaka.selectorLabels" . | nindent 6 }}
+      component: api
+  template:
+    metadata:
+      labels:
+        {{- include "pushpaka.selectorLabels" . | nindent 8 }}
+        component: api
+    spec:
+      serviceAccountName: {{ include "pushpaka.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.api.securityContext | nindent 8 }}
+      containers:
+      - name: api
+        image: "{{ .Values.api.image.registry }}/{{ .Values.api.image.repository }}:{{ coalesce .Values.api.image.tag .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.api.env.PORT }}
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: {{ include "pushpaka.fullname" . }}-config
+        - secretRef:
+            name: {{ include "pushpaka.fullname" . }}-secret
+        livenessProbe:
+          {{- toYaml .Values.api.livenessProbe | nindent 10 }}
+        readinessProbe:
+          {{- toYaml .Values.api.readinessProbe | nindent 10 }}
+        resources:
+          {{- toYaml .Values.api.resources | nindent 10 }}
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

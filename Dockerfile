@@ -2,6 +2,16 @@
 # Go 1.25 matches go.work / cmd/pushpaka/go.mod
 FROM golang:1.25-alpine AS builder
 
+# Build arguments
+ARG VERSION=v1.0.0
+ARG BUILD_DATE
+ARG VCS_REF
+
+# Labels for image metadata
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${VCS_REF}"
+
 RUN apk add --no-cache git ca-certificates
 
 WORKDIR /app
@@ -23,8 +33,9 @@ COPY worker/ ./worker/
 COPY cmd/pushpaka/ ./cmd/pushpaka/
 
 # Build the unified binary (API + embedded worker) from the workspace root
+# Use ARG VERSION for build-time version injection
 RUN go build -C cmd/pushpaka \
-    -ldflags="-w -s -X main.version=v1.0.0" \
+    -ldflags="-w -s -X main.version=${VERSION}" \
     -o /pushpaka .
 
 #  Stage 2: Runtime 

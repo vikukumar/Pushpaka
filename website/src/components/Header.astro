@@ -1,0 +1,49 @@
+---
+// Navigation component
+---
+
+<nav class="fixed top-0 w-full z-50 glass border-b border-surface-border">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between items-center h-16">
+      <!-- Logo -->
+      <div class="flex items-center gap-2">
+        <img 
+          src="/Pushpaka/favicon.svg" 
+          alt="Pushpaka Logo" 
+          class="h-8 w-8"
+        />
+        <span class="gradient-text font-bold text-xl hidden sm:inline">Pushpaka</span>
+      </div>
+
+      <!-- Nav Links -->
+      <div class="hidden md:flex items-center gap-8">
+        <a href="/Pushpaka/" class="text-gray-300 hover:text-brand-400 transition">Home</a>
+        <a href="/Pushpaka/features" class="text-gray-300 hover:text-brand-400 transition">Features</a>
+        <a href="/Pushpaka/docs" class="text-gray-300 hover:text-brand-400 transition">Docs</a>
+        <a href="/Pushpaka/install" class="text-gray-300 hover:text-brand-400 transition">Install</a>
+        <a href="/Pushpaka/releases" class="text-gray-300 hover:text-brand-400 transition">Releases</a>
+      </div>
+
+      <!-- CTA Button -->
+      <a 
+        href="https://github.com/vikukumar/Pushpaka" 
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn-primary text-sm"
+      >
+        GitHub
+      </a>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile menu overlay (add JS for interactivity) -->
+<div id="mobile-menu" class="hidden fixed inset-0 top-16 bg-surface-bg/95 backdrop-blur-lg z-40 md:hidden">
+  <div class="flex flex-col p-8 gap-4">
+    <a href="/Pushpaka/" class="text-gray-300 hover:text-brand-400">Home</a>
+    <a href="/Pushpaka/features" class="text-gray-300 hover:text-brand-400">Features</a>
+    <a href="/Pushpaka/docs" class="text-gray-300 hover:text-brand-400">Docs</a>
+    <a href="/Pushpaka/install" class="text-gray-300 hover:text-brand-400">Install</a>
+    <a href="/Pushpaka/releases" class="text-gray-300 hover:text-brand-400">Releases</a>
+  </div>
+</div>

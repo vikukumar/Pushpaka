@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/vikukumar/Pushpaka/internal/config"
 	"github.com/vikukumar/Pushpaka/internal/middleware"
 	"github.com/vikukumar/Pushpaka/internal/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
@@ -17,25 +19,62 @@ type AIHandler struct {
 	logRepo      *repositories.LogRepository
 	deployRepo   *repositories.DeploymentRepository
 	aiConfigRepo *repositories.AIConfigRepository
+	cfg          *config.Config
 }
 
-func NewAIHandler(aiSvc *services.AIService, logRepo *repositories.LogRepository, deployRepo *repositories.DeploymentRepository, aiConfigRepo *repositories.AIConfigRepository) *AIHandler {
-	return &AIHandler{aiSvc: aiSvc, logRepo: logRepo, deployRepo: deployRepo, aiConfigRepo: aiConfigRepo}
+func NewAIHandler(aiSvc *services.AIService, logRepo *repositories.LogRepository, deployRepo *repositories.DeploymentRepository, aiConfigRepo *repositories.AIConfigRepository, cfg *config.Config) *AIHandler {
+	return &AIHandler{aiSvc: aiSvc, logRepo: logRepo, deployRepo: deployRepo, aiConfigRepo: aiConfigRepo, cfg: cfg}
+}
+
+// resolveUserConfig loads the user's AI config; returns nil when not found (falls back to global).
+func (h *AIHandler) resolveUserConfig(userID string) *models.AIConfig {
+	cfg, _ := h.aiConfigRepo.GetByUserID(userID)
+	return cfg
+}
+
+// checkRateLimit returns (allowed, errMsg). When the user has their own API key the
+// limit is skipped — they pay for their own usage. Global key usage is rate-limited.
+func (h *AIHandler) checkRateLimit(userID string, userCfg *models.AIConfig) (bool, string) {
+	// User has their own key — no platform rate limit.
+	if userCfg != nil && userCfg.APIKey != "" {
+		return true, ""
+	}
+	// No global daily limit configured (0 = unlimited).
+	if h.cfg.AIRateLimitPerUserPerDay == 0 {
+		return true, ""
+	}
+	usage, err := h.aiConfigRepo.GetOrCreateTodayUsage(userID)
+	if err != nil {
+		return true, "" // best-effort: allow on DB error
+	}
+	if usage.Calls >= h.cfg.AIRateLimitPerUserPerDay {
+		return false, fmt.Sprintf(
+			"global AI rate limit reached (%d calls/day). Add your own API key in Settings → AI to remove this limit.",
+			h.cfg.AIRateLimitPerUserPerDay)
+	}
+	return true, ""
 }
 
 // AnalyzeLogs retrieves deployment logs and sends them to the AI for analysis.
 // POST /api/v1/deployments/:id/analyze
 func (h *AIHandler) AnalyzeLogs(c *gin.Context) {
-	if !h.aiSvc.Available() {
+	userID := middleware.GetUserID(c)
+	userCfg := h.resolveUserConfig(userID)
+
+	if !h.aiSvc.AvailableWithUserConfig(userCfg) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "AI integration not configured on this server (set AI_API_KEY)",
+			"error": "AI not configured. Add your API key in Settings → AI, or ask your admin to set AI_API_KEY.",
 		})
 		return
 	}
 
-	userID := middleware.GetUserID(c)
-	deploymentID := c.Param("id")
+	// Rate-limit global key usage.
+	if ok, msg := h.checkRateLimit(userID, userCfg); !ok {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": msg})
+		return
+	}
 
+	deploymentID := c.Param("id")
 	deployment, err := h.deployRepo.FindByID(deploymentID)
 	if err != nil || deployment.UserID != userID {
 		c.JSON(http.StatusNotFound, gin.H{"error": "deployment not found"})
@@ -47,23 +86,29 @@ func (h *AIHandler) AnalyzeLogs(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to retrieve logs"})
 		return
 	}
-
 	if len(logEntries) == 0 {
 		c.JSON(http.StatusOK, gin.H{"analysis": "No logs found for this deployment."})
 		return
 	}
 
-	// Assemble plain-text log dump
 	var sb strings.Builder
 	for _, entry := range logEntries {
 		sb.WriteString(entry.Message)
 		sb.WriteByte('\n')
 	}
 
-	analysis, err := h.aiSvc.AnalyzeLogs(sb.String())
+	// Load user's RAG knowledge base for additional context.
+	ragDocs, _ := h.aiConfigRepo.ListRAG(userID)
+
+	analysis, err := h.aiSvc.AnalyzeLogsWithConfig(userCfg, ragDocs, sb.String())
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": "AI analysis failed: " + err.Error()})
 		return
+	}
+
+	// Track usage (best-effort, only for global key consumers).
+	if userCfg == nil || userCfg.APIKey == "" {
+		_ = h.aiConfigRepo.IncrementTodayUsage(userID, 1)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"analysis": analysis})
@@ -72,14 +117,22 @@ func (h *AIHandler) AnalyzeLogs(c *gin.Context) {
 // Chat handles free-form AI assistant questions, optionally with deployment context.
 // POST /api/v1/ai/chat
 func (h *AIHandler) Chat(c *gin.Context) {
-	if !h.aiSvc.Available() {
+	userID := middleware.GetUserID(c)
+	userCfg := h.resolveUserConfig(userID)
+
+	if !h.aiSvc.AvailableWithUserConfig(userCfg) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{
-			"error": "AI integration not configured on this server (set AI_API_KEY)",
+			"error": "AI not configured. Add your API key in Settings → AI, or ask your admin to set AI_API_KEY.",
 		})
 		return
 	}
 
-	userID := middleware.GetUserID(c)
+	// Rate-limit global key usage.
+	if ok, msg := h.checkRateLimit(userID, userCfg); !ok {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": msg})
+		return
+	}
+
 	var req struct {
 		Message      string `json:"message" binding:"required"`
 		DeploymentID string `json:"deployment_id"`
@@ -89,6 +142,7 @@ func (h *AIHandler) Chat(c *gin.Context) {
 		return
 	}
 
+	// Default system prompt; overridden by user's saved system_prompt if set.
 	systemPrompt := `You are Pushpaka Assistant, an expert AI for the Pushpaka self-hosted cloud deployment platform.
 You help users with:
 - Debugging deployment failures and build errors
@@ -100,16 +154,20 @@ You help users with:
 - Performance monitoring and log analysis
 Be concise, technical, and actionable. Format responses with markdown when helpful.`
 
+	// User's custom system prompt overrides the default.
+	if userCfg != nil && userCfg.SystemPrompt != "" {
+		systemPrompt = userCfg.SystemPrompt
+	}
+
 	userMsg := req.Message
 
-	// If a deployment ID is given, inject its logs as context
+	// Inject deployment logs as context when a deployment ID is given.
 	if req.DeploymentID != "" {
 		deployment, err := h.deployRepo.FindByID(req.DeploymentID)
 		if err == nil && deployment.UserID == userID {
 			logEntries, err := h.logRepo.FindByDeploymentID(req.DeploymentID)
 			if err == nil && len(logEntries) > 0 {
 				var sb strings.Builder
-				// Include last 80 lines max for context
 				start := 0
 				if len(logEntries) > 80 {
 					start = len(logEntries) - 80
@@ -118,15 +176,24 @@ Be concise, technical, and actionable. Format responses with markdown when helpf
 					sb.WriteString(entry.Message)
 					sb.WriteByte('\n')
 				}
-				userMsg = "Deployment context (status: " + string(deployment.Status) + ", branch: " + deployment.Branch + "):\n```\n" + sb.String() + "```\n\nUser question: " + req.Message
+				userMsg = "Deployment context (status: " + string(deployment.Status) + ", branch: " + deployment.Branch +
+					", commit: " + deployment.CommitSHA + "):\n```\n" + sb.String() + "```\n\nUser question: " + req.Message
 			}
 		}
 	}
 
-	reply, err := h.aiSvc.Ask(systemPrompt, userMsg)
+	// Load user's RAG knowledge base for additional context.
+	ragDocs, _ := h.aiConfigRepo.ListRAG(userID)
+
+	reply, err := h.aiSvc.AskWithConfig(userCfg, ragDocs, systemPrompt, userMsg)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": "AI chat failed: " + err.Error()})
 		return
+	}
+
+	// Track global key usage.
+	if userCfg == nil || userCfg.APIKey == "" {
+		_ = h.aiConfigRepo.IncrementTodayUsage(userID, 1)
 	}
 
 	c.JSON(http.StatusOK, gin.H{"reply": reply})
@@ -197,4 +264,100 @@ func (h *AIHandler) SaveAIConfig(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "AI settings saved"})
+}
+
+// ─── RAG Knowledge Base ───────────────────────────────────────────────────────
+
+// ListRAG returns all RAG documents for the authenticated user.
+// GET /api/v1/ai/rag
+func (h *AIHandler) ListRAG(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	docs, err := h.aiConfigRepo.ListRAG(userID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list documents"})
+		return
+	}
+	c.JSON(http.StatusOK, docs)
+}
+
+// CreateRAG adds a new RAG document.
+// POST /api/v1/ai/rag
+func (h *AIHandler) CreateRAG(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	var req struct {
+		Title   string `json:"title" binding:"required"`
+		Content string `json:"content" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	doc := &models.RAGDocument{
+		UserID:  userID,
+		Title:   req.Title,
+		Content: req.Content,
+	}
+	if err := h.aiConfigRepo.CreateRAG(doc); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create document"})
+		return
+	}
+	c.JSON(http.StatusCreated, doc)
+}
+
+// DeleteRAG removes a RAG document.
+// DELETE /api/v1/ai/rag/:id
+func (h *AIHandler) DeleteRAG(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	id := c.Param("id")
+	if err := h.aiConfigRepo.DeleteRAG(id, userID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "document deleted"})
+}
+
+// ─── AI Monitor Alerts ────────────────────────────────────────────────────────
+
+// ListAlerts returns AI monitoring alerts for the authenticated user.
+// GET /api/v1/ai/alerts
+func (h *AIHandler) ListAlerts(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	onlyUnresolved := c.Query("unresolved") == "true"
+	alerts, err := h.aiConfigRepo.ListAlerts(userID, 200, onlyUnresolved)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list alerts"})
+		return
+	}
+	c.JSON(http.StatusOK, alerts)
+}
+
+// ResolveAlert marks an alert as resolved.
+// PUT /api/v1/ai/alerts/:id/resolve
+func (h *AIHandler) ResolveAlert(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	id := c.Param("id")
+	if err := h.aiConfigRepo.ResolveAlert(id, userID); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "alert resolved"})
+}
+
+// GetUsage returns today's AI usage for the authenticated user plus their effective rate limit.
+// GET /api/v1/ai/usage
+func (h *AIHandler) GetUsage(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	userCfg := h.resolveUserConfig(userID)
+	hasOwnKey := userCfg != nil && userCfg.APIKey != ""
+	usage, _ := h.aiConfigRepo.GetOrCreateTodayUsage(userID)
+	calls := 0
+	if usage != nil {
+		calls = usage.Calls
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"calls_today": calls,
+		"limit":       h.cfg.AIRateLimitPerUserPerDay,
+		"has_own_key": hasOwnKey,
+		"unlimited":   hasOwnKey || h.cfg.AIRateLimitPerUserPerDay == 0,
+	})
 }

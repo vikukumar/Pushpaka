@@ -1,0 +1,114 @@
+/* Global Styles - Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #6366f1, #06b6d4);
+  border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #4f46e5, #0891b2);
+}
+
+/* Component Classes */
+.metallic-card {
+  background: rgb(30 41 59);
+  border: 1px solid rgb(51 65 85);
+  border-radius: 0.5rem;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 20px 60px -10px rgba(99, 102, 241, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.metallic-card:hover {
+  box-shadow: 0 40px 80px -20px rgba(99, 102, 241, 0.4), inset 0 2px 2px rgba(255, 255, 255, 0.15);
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(to right, #4f46e5, #6366f1);
+  color: white;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.3);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to right, #3730a3, #4f46e5);
+  box-shadow: 0 20px 60px -10px rgba(99, 102, 241, 0.3);
+}
+
+.btn-secondary {
+  padding: 0.75rem 1.5rem;
+  background: rgb(30 41 59);
+  color: rgb(165 180 252);
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 1px solid #4f46e5;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #4f46e5;
+  color: white;
+}
+
+.gradient-text {
+  background: linear-gradient(to right, #818cf8, #22d3ee, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.code-block {
+  background: rgb(30 41 59);
+  border: 1px solid rgb(51 65 85);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  font-family: monospace;
+}
+
+.section-title {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .section-title {
+    font-size: 3rem;
+  }
+}
+
+.section-subtitle {
+  font-size: 1.125rem;
+  color: rgb(156 163 175);
+  max-width: 42rem;
+}
+
+/* Animations */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+.shimmer {
+  animation: shimmer 2s infinite;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background-size: 1000px 100%;
+}
+
+/* Smooth transitions */
+* {
+  transition: color 0.2s;
+}

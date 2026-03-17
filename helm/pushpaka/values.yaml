@@ -1,0 +1,398 @@
+# Pushpaka Helm Chart - Enterprise Values Configuration
+
+# Global configuration
+global:
+  # Docker registry for images
+  registry: ghcr.io
+  imagePullSecrets: []
+  
+  # Environment configuration
+  environment: production
+  
+  # Domain configuration
+  domain: "pushpaka.example.com"
+  tls:
+    enabled: true
+    certManager:
+      enabled: true
+      issuer: letsencrypt-prod
+
+# Pushpaka API (Backend) Configuration
+api:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    registry: ghcr.io
+    repository: vikukumar/pushpaka
+    pullPolicy: IfNotPresent
+    # Version automatically set from VERSION file via CI/CD
+    tag: "1.0.0"
+  
+  imagePullSecrets: []
+  
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+    annotations: {}
+  
+  ingress:
+    enabled: true
+    className: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+    hosts:
+      - host: "api.{{ .Values.global.domain }}"
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: pushpaka-api-tls
+        hosts:
+          - "api.{{ .Values.global.domain }}"
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80
+  
+  env:
+    PORT: "8080"
+    PUSHPAKA_COMPONENT: "api"
+    LOG_LEVEL: "info"
+    # Database
+    DATABASE_URL: "postgresql://pushpaka:changeme@postgres:5432/pushpaka"
+    REDIS_URL: "redis://redis-master:6379"
+    # JWT
+    JWT_SECRET: "changeme-generate-with-openssl-rand-hex-32"
+    JWT_EXPIRY: "168h"
+    # CORS
+    CORS_ALLOWED_ORIGINS: "https://{{ .Values.global.domain }}"
+  
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 65534
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+  
+  livenessProbe:
+    httpGet:
+      path: /api/v1/health
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+  
+  readinessProbe:
+    httpGet:
+      path: /api/v1/ready
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+
+# Dashboard (Frontend) Configuration
+dashboard:
+  enabled: true
+  replicaCount: 2
+  
+  image:
+    registry: ghcr.io
+    repository: vikukumar/pushpaka-dashboard
+    pullPolicy: IfNotPresent
+    tag: "1.0.0"
+  
+  service:
+    type: ClusterIP
+    port: 3000
+    targetPort: 3000
+  
+  ingress:
+    enabled: true
+    className: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+      traefik.ingress.kubernetes.io/router.entrypoints: websecure
+      traefik.ingress.kubernetes.io/router.tls: "true"
+    hosts:
+      - host: "{{ .Values.global.domain }}"
+        paths:
+          - path: /
+            pathType: Prefix
+    tls:
+      - secretName: pushpaka-dashboard-tls
+        hosts:
+          - "{{ .Values.global.domain }}"
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 80
+  
+  env:
+    NEXT_PUBLIC_API_URL: "https://api.{{ .Values.global.domain }}"
+    NODE_ENV: "production"
+
+# Worker Configuration
+worker:
+  enabled: true
+  replicaCount: 3
+  
+  image:
+    registry: ghcr.io
+    repository: vikukumar/pushpaka-worker
+    pullPolicy: IfNotPresent
+    tag: "1.0.0"
+  
+  service:
+    type: ClusterIP
+    port: 8081
+    targetPort: 8081
+  
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "1000m"
+    limits:
+      memory: "2Gi"
+      cpu: "2000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  env:
+    PUSHPAKA_COMPONENT: "worker"
+    LOG_LEVEL: "info"
+    DATABASE_URL: "postgresql://pushpaka:changeme@postgres:5432/pushpaka"
+    REDIS_URL: "redis://redis-master:6379"
+    DOCKER_HOST: "unix:///var/run/docker.sock"
+  
+  securityContext:
+    runAsNonRoot: false
+    privileged: false
+    allowPrivilegeEscalation: false
+  
+  volumeMounts:
+    - name: docker-socket
+      mountPath: /var/run/docker.sock
+
+# PostgreSQL Database
+postgresql:
+  enabled: true
+  auth:
+    username: pushpaka
+    password: "changeme"
+    database: pushpaka
+    postgresPassword: "changeme"
+  
+  primary:
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+    
+    persistence:
+      enabled: true
+      size: 20Gi
+      storageClassName: standard
+  
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Redis Cache & Queue
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: "changeme"
+  
+  master:
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+    
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClassName: standard
+  
+  replica:
+    replicaCount: 2
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+  
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+# Traefik Ingress Controller
+traefik:
+  enabled: true
+  
+  deployment:
+    replicas: 3
+  
+  service:
+    type: LoadBalancer
+    spec:
+      loadBalancerSourceRanges: []
+  
+  ingressClass:
+    enabled: true
+    isDefaultClass: true
+  
+  ports:
+    web:
+      port: 80
+      exposedPort: 80
+    websecure:
+      port: 443
+      exposedPort: 443
+    traefik:
+      port: 9000
+  
+  logs:
+    general:
+      level: INFO
+    access:
+      enabled: true
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+
+# Cert-Manager for SSL/TLS
+certManager:
+  enabled: true
+  namespace: cert-manager
+  installCRDs: true
+  
+  # Let's Encrypt Configuration
+  letsencrypt:
+    prod:
+      enabled: true
+      email: admin@example.com
+      server: https://acme-v02.api.letsencrypt.org/directory
+    staging:
+      enabled: false
+      email: admin@example.com
+      server: https://acme-staging-v02.api.letsencrypt.org/directory
+
+# Prometheus & Monitoring
+monitoring:
+  enabled: true
+  
+  prometheus:
+    enabled: true
+    retention: 15d
+    resources:
+      requests:
+        memory: "512Mi"
+        cpu: "500m"
+      limits:
+        memory: "1Gi"
+        cpu: "1000m"
+  
+  grafana:
+    enabled: true
+    adminPassword: "changeme"
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Logging Stack (ELK)
+logging:
+  enabled: false
+  elasticsearch:
+    enabled: false
+  logstash:
+    enabled: false
+  kibana:
+    enabled: false
+
+# Network Policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+
+# Pod Disruption Budget
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Service Accounts
+serviceAccount:
+  create: true
+  name: pushpaka
+
+# RBAC Configuration
+rbac:
+  create: true
+
+# Node Affinity & Pod Affinity
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+              - key: app
+                operator: In
+                values:
+                  - pushpaka
+          topologyKey: kubernetes.io/hostname

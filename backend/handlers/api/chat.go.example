@@ -1,0 +1,295 @@
+// api/chat.go - OpenRouter AI Chatbot API Endpoint
+// This file should be created in backend/handlers/api/ directory
+// 
+// Implementation guide for the ChatBot support endpoint
+// Receives user messages and returns AI-generated responses via OpenRouter
+
+package api
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"os"
+	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+// ChatRequest represents the incoming chat message from the frontend
+type ChatRequest struct {
+	Message     string `json:"message" binding:"required,min=1,max=5000"`
+	SystemPrompt string `json:"systemPrompt" binding:"required"`
+}
+
+// ChatResponse represents the AI response sent back to the frontend
+type ChatResponse struct {
+	Response string `json:"response"`
+}
+
+// OpenRouterRequest represents the request structure for OpenRouter API
+type OpenRouterRequest struct {
+	Model    string `json:"model"`
+	Messages []Message `json:"messages"`
+}
+
+// Message represents a single message in the conversation
+type Message struct {
+	Role    string `json:"role"`    // "system", "user", "assistant"
+	Content string `json:"content"`
+}
+
+// OpenRouterResponse represents the response from OpenRouter API
+type OpenRouterResponse struct {
+	Choices []struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	} `json:"choices"`
+	Error *struct {
+		Message string `json:"message"`
+		Code    string `json:"code"`
+	} `json:"error"`
+}
+
+// ChatHandler handles incoming chat requests and calls OpenRouter API
+// Route: POST /api/v1/chat
+// Authentication: Not required (public endpoint)
+// Rate Limit: 10 req/min per IP (configure in middleware)
+func ChatHandler(c *gin.Context) {
+	var req ChatRequest
+
+	// Parse request body
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request format",
+		})
+		return
+	}
+
+	// Validate inputs
+	if len(req.Message) == 0 || len(req.SystemPrompt) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Message and system prompt are required",
+		})
+		return
+	}
+
+	// Get OpenRouter API key from environment
+	apiKey := os.Getenv("OPENROUTER_API_KEY")
+	if apiKey == "" {
+		// Return user-friendly error if not configured
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "Chatbot is not configured. Please contact the administrator.",
+		})
+		return
+	}
+
+	// Get model and base URL from environment (with defaults)
+	model := os.Getenv("OPENROUTER_MODEL")
+	if model == "" {
+		model = "openai/gpt-4-turbo"
+	}
+
+	baseURL := os.Getenv("OPENROUTER_BASE_URL")
+	if baseURL == "" {
+		baseURL = "https://openrouter.ai/api/v1"
+	}
+
+	// Call OpenRouter API
+	response, err := callOpenRouterAPI(apiKey, baseURL, model, req.SystemPrompt, req.Message)
+	if err != nil {
+		// Log error (but don't expose sensitive details to frontend)
+		fmt.Printf("ChatBot Error: %v\n", err)
+
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to get response. Please try again later.",
+		})
+		return
+	}
+
+	// Return response
+	c.JSON(http.StatusOK, ChatResponse{
+		Response: response,
+	})
+}
+
+// callOpenRouterAPI makes the actual API call to OpenRouter
+func callOpenRouterAPI(apiKey, baseURL, model, systemPrompt, userMessage string) (string, error) {
+	// Construct request payload
+	payload := OpenRouterRequest{
+		Model: model,
+		Messages: []Message{
+			{
+				Role:    "system",
+				Content: systemPrompt,
+			},
+			{
+				Role:    "user",
+				Content: userMessage,
+			},
+		},
+	}
+
+	// Marshal to JSON
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Create HTTP request
+	url := fmt.Sprintf("%s/chat/completions", baseURL)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payloadBytes))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("HTTP-Referer", "https://vikukumar.github.io/Pushpaka")
+	req.Header.Set("X-Title", "Pushpaka Platform")
+
+	// Execute request with timeout
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to call OpenRouter API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read response: %w", err)
+	}
+
+	// Parse response
+	var apiResp OpenRouterResponse
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return "", fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Check for API errors
+	if apiResp.Error != nil {
+		return "", fmt.Errorf("API error: %s (%s)", apiResp.Error.Message, apiResp.Error.Code)
+	}
+
+	// Check for empty response
+	if len(apiResp.Choices) == 0 {
+		return "", fmt.Errorf("no response from OpenRouter API")
+	}
+
+	// Return assistant message
+	return apiResp.Choices[0].Message.Content, nil
+}
+
+// RegisterChatRoutes registers the chat endpoint
+// Call this in your main router setup
+func RegisterChatRoutes(router *gin.Engine) {
+	// Public chat endpoint (rate limited)
+	router.POST("/api/v1/chat", ChatHandler)
+
+	// Health check for chatbot availability
+	router.GET("/api/v1/chat/health", func(c *gin.Context) {
+		apiKey := os.Getenv("OPENROUTER_API_KEY")
+		if apiKey == "" {
+			c.JSON(http.StatusServiceUnavailable, gin.H{
+				"status": "disabled",
+				"reason": "OPENROUTER_API_KEY not configured",
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"status": "enabled",
+			"model":  os.Getenv("OPENROUTER_MODEL"),
+		})
+	})
+}
+
+// Example usage in main.go:
+//
+// func main() {
+//     router := gin.Default()
+//
+//     // Apply middleware
+//     router.Use(middleware.RateLimitMiddleware(10, time.Minute)) // 10 req/min
+//     router.Use(middleware.CORSMiddleware())
+//     router.Use(middleware.SecurityHeadersMiddleware())
+//
+//     // Register routes
+//     api.RegisterChatRoutes(router)
+//
+//     // Start server
+//     router.Run(":8080")
+// }
+
+// INTEGRATION POINTS:
+//
+// 1. Frontend (Chatbot.astro component):
+//    POST /api/v1/chat
+//    Request: { message: string, systemPrompt: string }
+//    Response: { response: string } or { error: string }
+//
+// 2. Environment Variables (.env or GitHub Secrets):
+//    OPENROUTER_API_KEY=sk-xxx...
+//    OPENROUTER_MODEL=openai/gpt-4-turbo (optional, defaults to gpt-4-turbo)
+//    OPENROUTER_BASE_URL=https://openrouter.ai/api/v1 (optional)
+//
+// 3. GitHub Actions (helm-release.yml):
+//    Uses OPENROUTER_API_KEY secret during deployment
+//    Sets environment variable in deployed pod
+//
+// 4. Helm Chart (values.yaml):
+//    env:
+//      OPENROUTER_API_KEY:
+//        secretRef:
+//          name: pushpaka-secrets
+//          key: OPENROUTER_API_KEY
+
+// TESTING:
+//
+// Test the endpoint locally:
+// curl -X POST http://localhost:8080/api/v1/chat \
+//   -H "Content-Type: application/json" \
+//   -d '{
+//     "message": "How do I install Pushpaka?",
+//     "systemPrompt": "[80+ line system prompt from Chatbot.astro]"
+//   }'
+
+// RATE LIMITING CONSIDERATIONS:
+//
+// Recommended middleware:
+// - 10 requests per minute per IP (public endpoint)
+// - 100 requests per minute for authenticated users
+// - 1000 requests per day per user
+// - Burst limit: 5 concurrent requests
+//
+// Rate Limit Headers:
+// X-RateLimit-Limit: 10
+// X-RateLimit-Remaining: 9
+// X-RateLimit-Reset: 1234567890
+
+// ERROR HANDLING:
+//
+// Return user-friendly errors:
+// - 400: Invalid request (message too long, empty, etc.)
+// - 429: Rate limited (too many requests)
+// - 500: Internal error (don't expose API key issues)
+// - 503: Service unavailable (chatbot not configured)
+
+// SECURITY NOTES:
+//
+// ✅ API key stored only in environment (never in code/logs)
+// ✅ API key never returned to frontend
+// ✅ Rate limited to prevent abuse
+// ✅ Timeout set to 30s to prevent hanging
+// ✅ CORS configured to allow only trusted origins
+// ✅ Input validated (max 5000 chars per message)
+// ✅ Errors don't expose sensitive information

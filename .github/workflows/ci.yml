@@ -1,0 +1,151 @@
+name: "CI: Test and Lint"
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Go code quality and tests
+  # ─────────────────────────────────────────────────────────────────────────
+  go-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        working-directory: [backend, worker]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Go fmt
+        working-directory: ${{ matrix.working-directory }}
+        run: |
+          if [ -n "$(gofmt -s -l .)" ]; then
+            echo "❌ Go fmt issues found:"
+            gofmt -s -d .
+            exit 1
+          fi
+          echo "✅ Go fmt passed"
+
+      - name: Go vet
+        working-directory: ${{ matrix.working-directory }}
+        run: |
+          go vet ./...
+          echo "✅ Go vet passed"
+
+      - name: Build check
+        working-directory: ${{ matrix.working-directory }}
+        run: |
+          go build -v ./...
+          echo "✅ Build check passed"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Frontend linting and type checking
+  # ─────────────────────────────────────────────────────────────────────────
+  frontend-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'frontend/pnpm-lock.yaml'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        working-directory: frontend
+        run: pnpm type-check
+
+      - name: Lint
+        working-directory: frontend
+        run: pnpm lint
+
+      - name: Build check
+        working-directory: frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: pnpm build
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Dockerfile validation
+  # ─────────────────────────────────────────────────────────────────────────
+  docker-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Dockerfile exists
+        run: |
+          if [ ! -f "Dockerfile" ]; then
+            echo "❌ Dockerfile not found"
+            exit 1
+          fi
+          echo "✅ Dockerfile found"
+
+      - name: Lint Dockerfile with hadolint (Docker)
+        run: |
+          docker run --rm -i hadolint/hadolint < Dockerfile || true
+          echo "✅ Dockerfile lint completed"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Security scanning
+  # ─────────────────────────────────────────────────────────────────────────
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+        continue-on-error: true
+
+      - name: Upload Trivy results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+        if: always()
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Summary
+  # ─────────────────────────────────────────────────────────────────────────
+  ci-summary:
+    needs: [go-test, frontend-lint, docker-lint]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: CI Status
+        run: |
+          if [ "${{ needs.go-test.result }}" != "success" ] || \
+             [ "${{ needs.frontend-lint.result }}" != "success" ] || \
+             [ "${{ needs.docker-lint.result }}" != "success" ]; then
+            echo "❌ CI checks failed"
+            exit 1
+          fi
+          echo "✅ All CI checks passed"

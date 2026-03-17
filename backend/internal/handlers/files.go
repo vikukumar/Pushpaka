@@ -1,11 +1,15 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"io/fs"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vikukumar/Pushpaka/internal/config"
@@ -251,4 +255,83 @@ func (h *FileHandler) SaveFile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"saved": true, "path": rel})
+}
+
+// SyncFiles   POST /api/v1/projects/:id/files/sync
+// Re-clones the project repo into deployDir/<projectID[:8]> so the in-browser
+// editor can access the latest source code without needing a full deployment.
+// If the directory already exists it is removed and re-cloned (fresh sync).
+func (h *FileHandler) SyncFiles(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	projectID := c.Param("id")
+
+	proj, err := h.projectRepo.FindByID(projectID, userID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "project not found"})
+		return
+	}
+
+	if proj.RepoURL == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "project has no repository URL"})
+		return
+	}
+
+	destDir := filepath.Join(h.deployDir, proj.ID[:8])
+
+	// Remove stale copy if present.
+	if _, statErr := os.Stat(destDir); statErr == nil {
+		if err := os.RemoveAll(destDir); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to remove old directory: " + err.Error()})
+			return
+		}
+	}
+
+	// Ensure parent directory exists.
+	if err := os.MkdirAll(filepath.Dir(destDir), fs.ModePerm); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot create parent directory: " + err.Error()})
+		return
+	}
+
+	branch := proj.Branch
+	if branch == "" {
+		branch = "main"
+	}
+
+	// Build the clone URL — inject token for private repos.
+	cloneURL := proj.RepoURL
+	if proj.IsPrivate && proj.GitToken != "" {
+		// e.g. https://token@github.com/user/repo.git
+		cloneURL = injectToken(cloneURL, proj.GitToken)
+	}
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Minute)
+	defer cancel()
+
+	args := []string{"clone", "--depth=1", "--branch", branch, cloneURL, destDir}
+	cmd := exec.CommandContext(ctx, "git", args...)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":  "git clone failed: " + err.Error(),
+			"output": string(out),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "synced",
+		"branch":  branch,
+	})
+}
+
+// injectToken embeds a personal access token into an HTTPS clone URL.
+// e.g. https://github.com/user/repo → https://TOKEN@github.com/user/repo
+func injectToken(repoURL, token string) string {
+	// Only modify HTTPS URLs.
+	for _, prefix := range []string{"https://", "http://"} {
+		if strings.HasPrefix(repoURL, prefix) {
+			return fmt.Sprintf("%s%s@%s", prefix, token, strings.TrimPrefix(repoURL, prefix))
+		}
+	}
+	return repoURL
 }

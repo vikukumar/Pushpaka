@@ -1,0 +1,182 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="Pushpaka - Cloud Deployment Platform">
+  <Header />
+  
+  <!-- Hero Section -->
+  <section class="pt-40 pb-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <!-- Gradient Background Elements -->
+    <div class="absolute inset-0 -z-10">
+      <div class="absolute top-20 left-1/4 w-96 h-96 bg-brand-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
+      <div class="absolute top-40 right-1/4 w-96 h-96 bg-accent-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
+    </div>
+
+    <div class="max-w-7xl mx-auto text-center">
+      <div class="mb-8 inline-block">
+        <span class="inline-block px-4 py-2 bg-brand-950 border border-brand-700 rounded-full text-brand-300 text-sm font-medium">
+          🚀 Production Ready · Open Source · Enterprise Grade
+        </span>
+      </div>
+
+      <h1 class="text-5xl md:text-7xl font-bold mb-6 gradient-text leading-tight">
+        Carry Your Code<br />to the Cloud
+      </h1>
+
+      <p class="text-xl md:text-2xl text-gray-300 mb-12 max-w-2xl mx-auto">
+        Self-hosted cloud deployment platform. Deploy applications from Git with automated builds, real-time logs, and Traefik-powered routing.
+      </p>
+
+      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+        <a href="https://github.com/vikukumar/Pushpaka#quick-start" target="_blank" rel="noopener noreferrer" class="btn-primary">
+          Get Started
+        </a>
+        <a href="/Pushpaka/features/" class="btn-secondary">
+          Explore Features
+        </a>
+      </div>
+
+      <!-- Stats -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mt-20 border-t border-surface-border pt-12">
+        <div>
+          <div class="gradient-text text-3xl font-bold mb-2">100%</div>
+          <div class="text-gray-400 text-sm">Open Source</div>
+        </div>
+        <div>
+          <div class="gradient-text text-3xl font-bold mb-2">MIT</div>
+          <div class="text-gray-400 text-sm">Licensed</div>
+        </div>
+        <div>
+          <div class="gradient-text text-3xl font-bold mb-2">Go 1.25</div>
+          <div class="text-gray-400 text-sm">Built With</div>
+        </div>
+        <div>
+          <div class="gradient-text text-3xl font-bold mb-2">Deployed</div>
+          <div class="text-gray-400 text-sm">Instantly</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Key Features Section -->
+  <section class="py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent to-brand-950 to-10%">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="section-title gradient-text">Why Pushpaka?</h2>
+        <p class="section-subtitle text-gray-400">Everything you need for professional cloud deployments</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <!-- Feature 1 -->
+        <div class="metallic-card p-8">
+          <div class="w-12 h-12 bg-gradient-to-br from-brand-600 to-brand-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
+            <span class="text-2xl">🚀</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">One-Click Deployments</h3>
+          <p class="text-gray-400">Connect your Git repository and deploy with a single click. Automatic builds and updates.</p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="metallic-card p-8">
+          <div class="w-12 h-12 bg-gradient-to-br from-accent-600 to-accent-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
+            <span class="text-2xl">🐳</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Auto Dockerization</h3>
+          <p class="text-gray-400">Framework detection for Next.js, React, Go, Python, and more. Generates optimized Dockerfiles.</p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="metallic-card p-8">
+          <div class="w-12 h-12 bg-gradient-to-br from-cyan-600 to-cyan-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
+            <span class="text-2xl">🔐</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Private Repositories</h3>
+          <p class="text-gray-400">Full support for private repos with secure PAT storage and automatic git authentication.</p>
+        </div>
+
+        <!-- Feature 4 -->
+        <div class="metallic-card p-8">
+          <div class="w-12 h-12 bg-gradient-to-br from-brand-600 to-accent-500 rounded-lg flex items-center justify-center mb-4 shadow-lg">
+            <span class="text-2xl">📊</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Real-Time Logs</h3>
+          <p class="text-gray-400">WebSocket streaming during builds with live system status and performance metrics.</p>
+        </div>
+
+        <!-- Feature 5 -->
+        <div class="metallic-card p-8">
+          <div class="w-12 h-12 bg-gradient-to-br from-cyan-600 to-blue-500 rounded-lg flex items-center justify-center mb-4 shadow-lg">
+            <span class="text-2xl">🔀</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Traefik Routing</h3>
+          <p class="text-gray-400">Advanced reverse proxy with automatic TLS, Let's Encrypt SSL, and custom domains.</p>
+        </div>
+
+        <!-- Feature 6 -->
+        <div class="metallic-card p-8">
+          <div class="w-12 h-12 bg-gradient-to-br from-brand-600 to-cyan-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
+            <span class="text-2xl">♻️</span>
+          </div>
+          <h3 class="text-xl font-bold text-white mb-3">Easy Rollbacks</h3>
+          <p class="text-gray-400">Instantly rollback to any previous deployment with a single click.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tech Stack Section -->
+  <section class="py-32 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto text-center">
+      <h2 class="section-title gradient-text">Built With Modern Tech</h2>
+      <p class="section-subtitle text-gray-400 mb-16">Leveraging the best tools in the industry</p>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
+        <div class="metallic-card p-6">
+          <div class="font-bold text-brand-300 mb-2">Go 1.25</div>
+          <p class="text-sm text-gray-400">High performance backend</p>
+        </div>
+        <div class="metallic-card p-6">
+          <div class="font-bold text-accent-300 mb-2">Next.js 16</div>
+          <p class="text-sm text-gray-400">Modern frontend framework</p>
+        </div>
+        <div class="metallic-card p-6">
+          <div class="font-bold text-blue-300 mb-2">React 19</div>
+          <p class="text-sm text-gray-400">Rich UI components</p>
+        </div>
+        <div class="metallic-card p-6">
+          <div class="font-bold text-cyan-300 mb-2">Tailwind CSS</div>
+          <p class="text-sm text-gray-400">Utility-first styling</p>
+        </div>
+        <div class="metallic-card p-6">
+          <div class="font-bold text-purple-300 mb-2">Docker</div>
+          <p class="text-sm text-gray-400">Container orchestration</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <div class="absolute inset-0 -z-10">
+      <div class="absolute inset-0 bg-gradient-radial-brand opacity-50"></div>
+    </div>
+
+    <div class="max-w-4xl mx-auto text-center metallic-card p-12 md:p-16">
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Deploy?</h2>
+      <p class="text-gray-300 mb-8 text-lg">Start deploying your applications in minutes. No credit card required.</p>
+      <div class="flex flex-col sm:flex-row gap-4 justify-center">
+        <a href="https://github.com/vikukumar/Pushpaka" target="_blank" rel="noopener noreferrer" class="btn-primary">
+          View on GitHub
+        </a>
+        <a href="/Pushpaka/install/" class="btn-secondary">
+          Installation Guide
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <Footer />
+</Layout>

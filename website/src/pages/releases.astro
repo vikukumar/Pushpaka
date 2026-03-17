@@ -1,0 +1,255 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="Releases - Pushpaka">
+  <Header />
+  
+  <div class="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Page Header -->
+      <div class="text-center mb-16">
+        <h1 class="text-5xl md:text-6xl font-bold gradient-text mb-6">Release Tracker</h1>
+        <p class="text-xl text-gray-400">Latest versions and release history</p>
+      </div>
+
+      <!-- Latest Release -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-8">📦 Latest Release</h2>
+        
+        <div class="metallic-card p-8">
+          <div class="flex items-start justify-between mb-6">
+            <div>
+              <h3 class="text-2xl font-bold text-white mb-2">Version 1.0.0</h3>
+              <p class="text-gray-400 text-sm">Released on March 17, 2026</p>
+            </div>
+            <span class="px-4 py-2 bg-accent-500/20 text-accent-400 rounded-full text-sm font-semibold">Latest</span>
+          </div>
+
+          <div class="prose prose-invert max-w-none mb-8">
+            <h4 class="text-lg font-bold text-white mb-4">🎉 Initial Release</h4>
+            <ul class="space-y-3 text-gray-300">
+              <li><strong class="text-white">✨ Features:</strong> Complete deployment platform with Git integration, auto-dockerization, and real-time logs</li>
+              <li><strong class="text-white">🚀 Performance:</strong> Sub-second deployment triggers with streaming build logs</li>
+              <li><strong class="text-white">🔒 Security:</strong> Secure private repo support with PAT authentication</li>
+              <li><strong class="text-white">📊 Monitoring:</strong> Prometheus metrics, health checks, and detailed logging</li>
+              <li><strong class="text-white">🌐 Routing:</strong> Traefik v3 with automatic SSL/TLS and custom domain support</li>
+              <li><strong class="text-white">🛠️ Management:</strong> Full project and deployment lifecycle management</li>
+            </ul>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div>
+              <h4 class="text-white font-semibold text-sm uppercase text-gray-400 mb-2">Platform Support</h4>
+              <div class="space-y-2 text-sm text-gray-300">
+                <div>✓ Linux (amd64, arm64)</div>
+                <div>✓ macOS (amd64, arm64)</div>
+                <div>✓ Windows (amd64)</div>
+                <div>✓ Docker</div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="text-white font-semibold text-sm uppercase text-gray-400 mb-2">What's Included</h4>
+              <div class="space-y-2 text-sm text-gray-300">
+                <div>✓ Backend (Go)</div>
+                <div>✓ Frontend (Next.js)</div>
+                <div>✓ Worker (Go)</div>
+                <div>✓ Docker Image</div>
+              </div>
+            </div>
+
+            <div>
+              <h4 class="text-white font-semibold text-sm uppercase text-gray-400 mb-2">Download</h4>
+              <div class="space-y-2">
+                <a href="https://github.com/vikukumar/Pushpaka/releases/tag/v1.0.0" target="_blank" rel="noopener noreferrer" class="block text-accent-400 hover:text-accent-300 text-sm">
+                  GitHub Releases →
+                </a>
+                <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/checksums.txt" target="_blank" rel="noopener noreferrer" class="block text-accent-400 hover:text-accent-300 text-sm">
+                  Checksums →
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="pt-6 border-t border-surface-border">
+            <h4 class="text-lg font-bold text-white mb-4">📥 Installation</h4>
+            <div class="code-block mb-6">
+              <pre>
+# Linux/macOS
+curl -L https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-linux-amd64 -o pushpaka
+chmod +x pushpaka
+./pushpaka -dev
+
+# Windows 
+$url = "https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-windows-amd64.exe"
+Invoke-WebRequest -Uri $url -OutFile .\pushpaka.exe
+.\pushpaka.exe -dev
+
+# Docker
+docker pull ghcr.io/vikukumar/pushpaka:v1.0.0
+docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Release History -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-8">📋 Release History</h2>
+
+        <div class="space-y-6">
+          <!-- v1.0.0 -->
+          <div class="metallic-card p-8">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-bold text-white">v1.0.0</h3>
+                <p class="text-gray-400 text-sm">March 17, 2026</p>
+              </div>
+              <span class="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-semibold">Latest</span>
+            </div>
+            <ul class="space-y-2 text-gray-300 text-sm">
+              <li>✨ Initial production release</li>
+              <li>🚀 Full deployment platform with Git integration</li>
+              <li>🐳 Auto-dockerization for 15+ frameworks</li>
+              <li>🔒 Secure private repository support</li>
+              <li>📊 Real-time monitoring and logging</li>
+            </ul>
+          </div>
+
+          <!-- Upcoming -->
+          <div class="metallic-card p-8 opacity-60">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-bold text-white">v1.1.0</h3>
+                <p class="text-gray-400 text-sm">Coming Soon</p>
+              </div>
+              <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-semibold">Planned</span>
+            </div>
+            <ul class="space-y-2 text-gray-300 text-sm">
+              <li>🔄 Scheduled deployments</li>
+              <li>📧 Email notifications</li>
+              <li>🔑 API key management</li>
+              <li>📱 Mobile dashboard (PWA)</li>
+              <li>🎯 Advanced deployment strategies</li>
+            </ul>
+          </div>
+
+          <!-- v1.2.0 -->
+          <div class="metallic-card p-8 opacity-60">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-bold text-white">v1.2.0</h3>
+                <p class="text-gray-400 text-sm">Coming Later</p>
+              </div>
+              <span class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-semibold">Roadmap</span>
+            </div>
+            <ul class="space-y-2 text-gray-300 text-sm">
+              <li>🤖 AI-powered deployment optimization</li>
+              <li>📦 Package registry integration</li>
+              <li>🌍 Multi-region deployments</li>
+              <li>⚖️ Load balancing improvements</li>
+              <li>🔐 Enhanced security features</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Version Support Matrix -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-8">🛠️ Version Support</h2>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-surface-border">
+                <th class="text-left py-3 px-4 text-gray-400 font-semibold">Version</th>
+                <th class="text-left py-3 px-4 text-gray-400 font-semibold">Release Date</th>
+                <th class="text-left py-3 px-4 text-gray-400 font-semibold">Support Status</th>
+                <th class="text-left py-3 px-4 text-gray-400 font-semibold">End Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="border-b border-surface-border hover:bg-surface-elevated/50">
+                <td class="py-3 px-4 text-white">1.0.x</td>
+                <td class="py-3 px-4 text-gray-300">Mar 17, 2026</td>
+                <td class="py-3 px-4">
+                  <span class="inline-block px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-xs font-semibold">Active</span>
+                </td>
+                <td class="py-3 px-4 text-gray-300">Mar 17, 2027</td>
+              </tr>
+              <tr class="border-b border-surface-border hover:bg-surface-elevated/50">
+                <td class="py-3 px-4 text-white">1.1.x (RC)</td>
+                <td class="py-3 px-4 text-gray-300">Coming Soon</td>
+                <td class="py-3 px-4">
+                  <span class="inline-block px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-semibold">Beta</span>
+                </td>
+                <td class="py-3 px-4 text-gray-300">TBD</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Download Binaries -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-8">⬇️ Download Binaries</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-4">🐧 Linux</h3>
+            <div class="space-y-3">
+              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-linux-amd64" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+                → x86-64 (amd64) 64-bit
+              </a>
+              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-linux-arm64" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+                → ARM 64-bit (arm64)
+              </a>
+            </div>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-4">🍎 macOS</h3>
+            <div class="space-y-3">
+              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-darwin-amd64" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+                → Intel (amd64) 64-bit
+              </a>
+              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-darwin-arm64" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+                → Apple Silicon (arm64)
+              </a>
+            </div>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-4">🪟 Windows</h3>
+            <div class="space-y-3">
+              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-windows-amd64.exe" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+                → x86-64 (amd64) 64-bit
+              </a>
+            </div>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-4">🐳 Docker</h3>
+            <div class="space-y-3">
+              <div class="px-4 py-2 bg-surface-bg rounded text-accent-400 text-sm font-mono">
+                ghcr.io/vikukumar/pushpaka:v1.0.0
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="text-center">
+        <a href="https://github.com/vikukumar/Pushpaka/releases" target="_blank" rel="noopener noreferrer" class="btn-primary">
+          View All Releases on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>

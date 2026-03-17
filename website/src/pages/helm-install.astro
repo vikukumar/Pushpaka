@@ -1,0 +1,423 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="Helm Installation - Pushpaka">
+  <Header />
+  
+  <div class="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Page Header -->
+      <div class="text-center mb-16">
+        <h1 class="text-5xl md:text-6xl font-bold gradient-text mb-6">Helm Installation</h1>
+        <p class="text-xl text-gray-400">Deploy Pushpaka on Kubernetes with Helm - Enterprise-ready charts</p>
+      </div>
+
+      <!-- Prerequisites -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>📋</span> Prerequisites
+        </h2>
+        <div class="metallic-card p-8">
+          <ul class="space-y-4 text-gray-300">
+            <li class="flex gap-3">
+              <span class="text-accent-400 font-bold">✓</span>
+              <div>
+                <strong class="text-white">Kubernetes 1.20+</strong>
+                <p class="text-sm mt-1">kubectl cluster up and running</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="text-accent-400 font-bold">✓</span>
+              <div>
+                <strong class="text-white">Helm 3.0+</strong>
+                <p class="text-sm mt-1">Helm CLI installed and configured</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="text-accent-400 font-bold">✓</span>
+              <div>
+                <strong class="text-white">kubectl configured</strong>
+                <p class="text-sm mt-1">Access to your Kubernetes cluster</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="text-accent-400 font-bold">✓</span>
+              <div>
+                <strong class="text-white">Storage provisioner</strong>
+                <p class="text-sm mt-1">For PostgreSQL and Redis persistence</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="text-accent-400 font-bold">✓</span>
+              <div>
+                <strong class="text-white">2+ CPU, 4GB RAM minimum</strong>
+                <p class="text-sm mt-1">Per node for production deployments</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Quick Start -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>🚀</span> Quick Start
+        </h2>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">1. Add Helm Repository</h3>
+          <div class="code-block mb-6">
+            <pre>
+helm repo add pushpaka https://vikukumar.github.io/Pushpaka/helm
+helm repo update</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">2. Create Namespace</h3>
+          <div class="code-block mb-6">
+            <pre>
+kubectl create namespace pushpaka</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">3. Create values.yaml</h3>
+          <div class="code-block mb-6">
+            <pre>
+# Save as values.yaml
+global:
+  domain: "pushpaka.example.com"
+  tls:
+    enabled: true
+
+api:
+  replicaCount: 2
+  
+worker:
+  replicaCount: 3
+
+postgresql:
+  auth:
+    password: "your-secure-password"
+
+redis:
+  auth:
+    password: "your-secure-password"</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">4. Install</h3>
+          <div class="code-block">
+            <pre>
+helm install pushpaka pushpaka/pushpaka \
+  -n pushpaka \
+  -f values.yaml</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configuration -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>⚙️</span> Configuration Options
+        </h2>
+
+        <div class="space-y-6">
+          <div class="metallic-card p-8">
+            <h3 class="text-xl font-bold text-white mb-4">Domain & SSL</h3>
+            <div class="code-block mb-4">
+              <pre>
+global:
+  domain: "pushpaka.example.com"
+  tls:
+    enabled: true
+    certManager:
+      enabled: true
+      issuer: letsencrypt-prod</pre>
+            </div>
+            <p class="text-gray-300 text-sm">Automatic SSL/TLS with Let's Encrypt</p>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-xl font-bold text-white mb-4">Component Replicas</h3>
+            <div class="code-block mb-4">
+              <pre>
+api:
+  replicaCount: 2
+  
+dashboard:
+  replicaCount: 2
+  
+worker:
+  replicaCount: 3</pre>
+            </div>
+            <p class="text-gray-300 text-sm">High availability with multiple replicas</p>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-xl font-bold text-white mb-4">Auto Scaling</h3>
+            <div class="code-block mb-4">
+              <pre>
+api:
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80
+    targetMemoryUtilizationPercentage: 80</pre>
+            </div>
+            <p class="text-gray-300 text-sm">Automatically scale based on resource usage</p>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-xl font-bold text-white mb-4">Resource Limits</h3>
+            <div class="code-block mb-4">
+              <pre>
+api:
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"</pre>
+            </div>
+            <p class="text-gray-300 text-sm">Set resource requests and limits</p>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h3 class="text-xl font-bold text-white mb-4">Database</h3>
+            <div class="code-block mb-4">
+              <pre>
+postgresql:
+  enabled: true
+  auth:
+    username: pushpaka
+    password: "changeme"
+    database: pushpaka
+  primary:
+    persistence:
+      size: 20Gi</pre>
+            </div>
+            <p class="text-gray-300 text-sm">PostgreSQL with persistent storage</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Setup -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>🔧</span> Advanced Setup
+        </h2>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Custom Storage Class</h3>
+          <div class="code-block mb-4">
+            <pre>
+postgresql:
+  primary:
+    persistence:
+      storageClassName: "fast-ssd"
+
+redis:
+  primary:
+    persistence:
+      storageClassName: "fast-ssd"</pre>
+          </div>
+        </div>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Custom Domain (No CNAME)</h3>
+          <div class="code-block mb-4">
+            <pre>
+# Use LoadBalancer instead of NodePort
+traefik:
+  service:
+    type: LoadBalancer
+    spec:
+      loadBalancerSourceRanges:
+        - "0.0.0.0/0"</pre>
+          </div>
+        </div>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Monitoring Stack</h3>
+          <div class="code-block mb-4">
+            <pre>
+monitoring:
+  enabled: true
+  prometheus:
+    enabled: true
+    retention: 15d
+  grafana:
+    enabled: true
+    adminPassword: "your-password"</pre>
+          </div>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Network Security</h3>
+          <div class="code-block mb-4">
+            <pre>
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verification -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>✅</span> Verify Installation
+        </h2>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Check Helm Release</h3>
+          <div class="code-block mb-6">
+            <pre>
+helm status pushpaka -n pushpaka
+helm get values pushpaka -n pushpaka</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">Check Pods</h3>
+          <div class="code-block mb-6">
+            <pre>
+kubectl get pods -n pushpaka
+kubectl wait --for=condition=ready pod -l app.kubernetes.io/instance=pushpaka -n pushpaka --timeout=300s</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">Check Services</h3>
+          <div class="code-block mb-6">
+            <pre>
+kubectl get svc -n pushpaka
+kubectl get ingress -n pushpaka</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">View Logs</h3>
+          <div class="code-block">
+            <pre>
+kubectl logs -f deployment/pushpaka-api -n pushpaka
+kubectl logs -f deployment/pushpaka-dashboard -n pushpaka</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Upgrade -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>⬆️</span> Upgrade Pushpaka
+        </h2>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Update Repository</h3>
+          <div class="code-block mb-6">
+            <pre>
+helm repo update pushpaka</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">Upgrade Release</h3>
+          <div class="code-block mb-6">
+            <pre>
+# Without changing values
+helm upgrade pushpaka pushpaka/pushpaka -n pushpaka
+
+# With updated values
+helm upgrade pushpaka pushpaka/pushpaka -n pushpaka -f values.yaml
+
+# Dry-run to preview changes
+helm upgrade pushpaka pushpaka/pushpaka -n pushpaka --dry-run --debug</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">Rollback if Needed</h3>
+          <div class="code-block">
+            <pre>
+# List release history
+helm history pushpaka -n pushpaka
+
+# Rollback to previous version
+helm rollback pushpaka -n pushpaka</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Troubleshooting -->
+      <div className="mb-12">
+        <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>🔧</span> Troubleshooting
+        </h2>
+
+        <div className="space-y-6">
+          <div className="metallic-card p-8">
+            <h3 className="text-lg font-bold text-white mb-3">Pods Not Starting</h3>
+            <div className="code-block mb-4">
+              <pre>
+kubectl describe pod POD_NAME -n pushpaka
+kubectl logs POD_NAME -n pushpaka
+kubectl get events -n pushpaka --sort-by='.lastTimestamp'</pre>
+            </div>
+            <p className="text-sm text-gray-400">Check pod status, logs, and events</p>
+          </div>
+
+          <div className="metallic-card p-8">
+            <h3 className="text-lg font-bold text-white mb-3">Persistent Volume Issues</h3>
+            <div className="code-block mb-4">
+              <pre>
+kubectl get pv
+kubectl get pvc -n pushpaka
+kubectl describe pvc -n pushpaka</pre>
+            </div>
+            <p className="text-sm text-gray-400">Verify PVC and PV provisioning</p>
+          </div>
+
+          <div className="metallic-card p-8">
+            <h3 className="text-lg font-bold text-white mb-3">Reset/Reinstall</h3>
+            <div className="code-block mb-4">
+              <pre>
+# Uninstall
+helm uninstall pushpaka -n pushpaka
+
+# Delete namespace (with data)
+kubectl delete namespace pushpaka
+
+# Reinstall
+helm install pushpaka pushpaka/pushpaka -n pushpaka --create-namespace -f values.yaml</pre>
+            </div>
+            <p className="text-sm text-gray-400">Clean reinstall (removes all data)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Values Reference -->
+      <div className="mb-12">
+        <h2 className="text-3xl font-bold text-white mb-6">📚 Full Values Reference</h2>
+        <div className="metallic-card p-8">
+          <p className="text-gray-300 mb-4">View the complete values configuration:</p>
+          <a href="https://github.com/vikukumar/Pushpaka/blob/main/helm/pushpaka/values.yaml" target="_blank" rel="noopener noreferrer" className="btn-primary inline-block">
+            View values.yaml on GitHub
+          </a>
+        </div>
+      </div>
+
+      <!-- Support -->
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-white mb-6">Need Help?</h2>
+        <p className="text-gray-400 mb-8">Get support from the community:</p>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="https://github.com/vikukumar/Pushpaka/issues" target="_blank" rel="noopener noreferrer" className="btn-primary">
+            Report Issues
+          </a>
+          <a href="https://github.com/vikukumar/Pushpaka/discussions" target="_blank" rel="noopener noreferrer" className="btn-secondary">
+            Discussions
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>

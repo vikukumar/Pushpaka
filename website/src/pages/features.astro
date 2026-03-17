@@ -1,0 +1,255 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="Features - Pushpaka">
+  <Header />
+  
+  <div class="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <!-- Page Header -->
+      <div class="text-center mb-20">
+        <h1 class="text-5xl md:text-6xl font-bold gradient-text mb-6">Complete Feature Set</h1>
+        <p class="text-xl text-gray-400">Everything you need for professional cloud deployments</p>
+      </div>
+
+      <!-- Features Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-20">
+        <!-- Platform Features -->
+        <div class="col-span-1 md:col-span-2">
+          <h2 class="text-3xl font-bold text-white mb-8 gradient-text">🎯 Platform Features</h2>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🚀</span> One-Click Deployments
+          </h3>
+          <p class="text-gray-400 mb-4">Connect your Git repository and trigger automatic deployments with just one click. Supports public and private repositories.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Public repository support</li>
+            <li>✓ Private repos with PAT authentication</li>
+            <li>✓ Automatic webhook triggers (coming soon)</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🔒</span> Secure Private Repos
+          </h3>
+          <p class="text-gray-400 mb-4">Safely deploy from private repositories with automatic PAT authentication and secure token management.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Secure PAT storage</li>
+            <li>✓ Redacted from logs</li>
+            <li>✓ Never returned via API</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🐳</span> Auto Dockerization
+          </h3>
+          <p class="text-gray-400 mb-4">Intelligent framework detection for Next.js, React, Vue, Go, Python, and more. Generates optimized Dockerfiles automatically.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ 15+ framework support</li>
+            <li>✓ Optimized Dockerfile generation</li>
+            <li>✓ Custom Dockerfile override</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🚫</span> Docker-Free Deploy
+          </h3>
+          <p class="text-gray-400 mb-4">Fallback to in-place process deployment when Docker is unavailable. No requirement for containerization.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Direct process execution</li>
+            <li>✓ Environment management</li>
+            <li>✓ Process monitoring</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>♻️</span> Rollback Support
+          </h3>
+          <p class="text-gray-400 mb-4">Instantly rollback to any previous deployment. Maintain deployment history for easy version management.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ One-click rollbacks</li>
+            <li>✓ Full deployment history</li>
+            <li>✓ Commit tracking</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🔀</span> Multi-Project
+          </h3>
+          <p class="text-gray-400 mb-4">Manage unlimited projects in a single Pushpaka instance. Organize and track multiple deployments effortlessly.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Unlimited projects</li>
+            <li>✓ Project grouping</li>
+            <li>✓ Bulk operations</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>👥</span> Multi-User & Roles
+          </h3>
+          <p class="text-gray-400 mb-4">Team collaboration with role-based access control. Manage permissions for admin and regular users.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Admin & user roles</li>
+            <li>✓ Permission management</li>
+            <li>✓ Team workspace</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🗑️</span> Project Management
+          </h3>
+          <p class="text-gray-400 mb-4">Full lifecycle management for your projects. Create, update settings, and delete projects easily.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Create projects</li>
+            <li>✓ Update settings</li>
+            <li>✓ Delete projects</li>
+          </ul>
+        </div>
+
+        <!-- Infrastructure Features -->
+        <div class="col-span-1 md:col-span-2 mt-12">
+          <h2 class="text-3xl font-bold text-white mb-8 gradient-text">⚙️ Infrastructure Features</h2>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🔀</span> Traefik v3 Reverse Proxy
+          </h3>
+          <p class="text-gray-400 mb-4">Enterprise-grade reverse proxy with automatic TLS, routing, and load balancing capabilities.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Advanced routing rules</li>
+            <li>✓ Load balancing</li>
+            <li>✓ Traffic management</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🔐</span> Let's Encrypt SSL
+          </h3>
+          <p class="text-gray-400 mb-4">Automatic TLS certificate management with free Let's Encrypt and auto-renewal.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Free certificates</li>
+            <li>✓ Auto-renewal</li>
+            <li>✓ Custom domains</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>📊</span> Prometheus Metrics
+          </h3>
+          <p class="text-gray-400 mb-4">Export metrics to Prometheus and visualize in Grafana. Monitor system performance and application metrics.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ /api/v1/metrics endpoint</li>
+            <li>✓ Grafana integration</li>
+            <li>✓ Custom metrics</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>❤️</span> Health Checks
+          </h3>
+          <p class="text-gray-400 mb-4">Comprehensive health check endpoints for monitoring system status and readiness.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ /health endpoint</li>
+            <li>✓ /ready probe</li>
+            <li>✓ Live /system status</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🔧</span> Worker Statistics
+          </h3>
+          <p class="text-gray-400 mb-4">Real-time worker statistics including active jobs, idle count, and queue mode information.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Live worker count</li>
+            <li>✓ Active jobs tracking</li>
+            <li>✓ Queue statistics</li>
+          </ul>
+        </div>
+
+        <!-- Developer Experience -->
+        <div class="col-span-1 md:col-span-2 mt-12">
+          <h2 class="text-3xl font-bold text-white mb-8 gradient-text">👨‍💻 Developer Experience</h2>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>📡</span> Real-Time Logs
+          </h3>
+          <p class="text-gray-400 mb-4">WebSocket streaming during builds with live system status and detailed log output.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Live log streaming</li>
+            <li>✓ Level filtering</li>
+            <li>✓ Stream filtering</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🌓</span> Dark/Light Theme
+          </h3>
+          <p class="text-gray-400 mb-4">User-preference based theming with smooth transitions between dark and light modes.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Dark mode</li>
+            <li>✓ Light mode</li>
+            <li>✓ Auto-detection</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>📱</span> Responsive Dashboard
+          </h3>
+          <p class="text-gray-400 mb-4">Beautiful, responsive dashboard that works seamlessly across all devices and screen sizes.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Mobile friendly</li>
+            <li>✓ Tablet support</li>
+            <li>✓ Desktop optimized</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>🔗</span> REST API
+          </h3>
+          <p class="text-gray-400 mb-4">Comprehensive REST API for programmatic access and integration with external systems.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ Full API coverage</li>
+            <li>✓ JSON responses</li>
+            <li>✓ API documentation</li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3 flex items-center gap-2">
+            <span>⚡</span> Single Binary Distribution
+          </h3>
+          <p class="text-gray-400 mb-4">Deploy as a single binary in dev mode with no external dependencies required.</p>
+          <ul class="space-y-2 text-sm text-gray-300">
+            <li>✓ No Redis/Postgres needed</li>
+            <li>✓ Fast startup</li>
+            <li>✓ Easy deployment</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>

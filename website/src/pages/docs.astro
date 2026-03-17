@@ -1,0 +1,256 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout title="Documentation - Pushpaka">
+  <Header />
+  
+  <div class="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+      <!-- Page Header -->
+      <div class="text-center mb-16">
+        <h1 class="text-5xl md:text-6xl font-bold gradient-text mb-6">Documentation</h1>
+        <p class="text-xl text-gray-400">Learn how to use Pushpaka for your deployments</p>
+      </div>
+
+      <!-- Getting Started Section -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6">Getting Started</h2>
+        
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Core Concepts</h3>
+          <div class="space-y-4 text-gray-300">
+            <div>
+              <h4 class="font-semibold text-white mb-2">Projects</h4>
+              <p>A project in Pushpaka represents a single application. Each project contains deployments, configurations, and environment variables.</p>
+            </div>
+            <div>
+              <h4 class="font-semibold text-white mb-2">Deployments</h4>
+              <p>A deployment is a version of your application. Each deployment is built from a specific Git commit and can be independently managed.</p>
+            </div>
+            <div>
+              <h4 class="font-semibold text-white mb-2">Builds</h4>
+              <p>The build process takes your source code, detects the framework, generates (or uses your) Dockerfile, and creates a runnable image.</p>
+            </div>
+            <div>
+              <h4 class="font-semibold text-white mb-2">Domains</h4>
+              <p>Route traffic to your deployments using custom domains with automatic SSL/TLS certificates from Let's Encrypt.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Quick Start</h3>
+          <ol class="space-y-4 text-gray-300">
+            <li class="flex gap-3">
+              <span class="text-brand-400 font-bold">1.</span>
+              <div>
+                <strong class="text-white">Create a Project</strong>
+                <p className="text-sm mt-1">Click "New Project" and provide a name for your application.</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="text-brand-400 font-bold">2.</span>
+              <div>
+                <strong class="text-white">Connect Git Repository</strong>
+                <p class="text-sm mt-1">Provide a public repository URL or use a Personal Access Token for private repos.</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="text-brand-400 font-bold">3.</span>
+              <div>
+                <strong class="text-white">Configure & Deploy</strong>
+                <p class="text-sm mt-1">Set environment variables if needed and click "Deploy" to start the build process.</p>
+              </div>
+            </li>
+            <li class="flex gap-3">
+              <span class="text-brand-400 font-bold">4.</span>
+              <div>
+                <strong class="text-white">Monitor & Manage</strong>
+                <p class="text-sm mt-1">Watch real-time logs and manage your deployment through the dashboard.</p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- Using Pushpaka Section -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6">Using Pushpaka</h2>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Environment Variables</h3>
+          <p class="text-gray-300 mb-4">Set environment variables for your deployments in the project settings.</p>
+          <div class="bg-surface-bg rounded p-4">
+            <p class="text-sm text-gray-400 mb-3">Each deployment inherits project-level environment variables. You can also override them per-deployment.</p>
+          </div>
+        </div>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Custom Dockerfile</h3>
+          <p class="text-gray-300 mb-4">Pushpaka auto-detects frameworks and generates Dockerfiles. You can also provide a custom Dockerfile:</p>
+          <div class="code-block">
+            <pre>
+# Create a Dockerfile in your repository root
+FROM node:20-alpine
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+EXPOSE 3000
+
+CMD ["npm", "start"]</pre>
+          </div>
+        </div>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Custom Domains</h3>
+          <p class="text-gray-300 mb-4">Point your custom domain to Pushpaka and deploy:</p>
+          <ol class="space-y-3 text-gray-300 text-sm">
+            <li><strong class="text-white">1.</strong> Add your domain in project settings</li>
+            <li><strong class="text-white">2.</strong> Update DNS CNAME to point to your Pushpaka instance</li>
+            <li><strong class="text-white">3.</strong> Wait for DNS propagation (typically 5-30 minutes)</li>
+            <li><strong class="text-white">4.</strong> Automatic SSL certificate will be provisioned</li>
+          </ol>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Monitoring & Logs</h3>
+          <p class="text-gray-300 mb-4">Access detailed logs through the dashboard:</p>
+          <ul class="space-y-2 text-gray-300 text-sm">
+            <li>✓ Real-time log streaming during builds</li>
+            <li>✓ Filter by log level (debug, info, warn, error)</li>
+            <li>✓ Download complete build logs</li>
+            <li>✓ View runtime application logs</li>
+            <li>✓ Performance metrics and system status</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- API Documentation Section -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6">API Documentation</h2>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Base URL</h3>
+          <div class="code-block">
+            <pre>https://your-pushpaka-instance.com/api/v1</pre>
+          </div>
+        </div>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Authentication</h3>
+          <p class="text-gray-300 mb-4">All API requests require authentication using a bearer token:</p>
+          <div class="code-block">
+            <pre>
+curl -X GET https://your-instance.com/api/v1/projects \
+  -H "Authorization: Bearer YOUR_API_TOKEN"</pre>
+          </div>
+        </div>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Common Endpoints</h3>
+          <div class="space-y-4 text-sm text-gray-300">
+            <div>
+              <code class="text-accent-400">GET /projects</code>
+              <p class="mt-1">List all projects</p>
+            </div>
+            <div>
+              <code class="text-accent-400">POST /projects</code>
+              <p class="mt-1">Create a new project</p>
+            </div>
+            <div>
+              <code class="text-accent-400">GET /projects/:id</code>
+              <p class="mt-1">Get project details</p>
+            </div>
+            <div>
+              <code class="text-accent-400">POST /projects/:id/deploy</code>
+              <p class="mt-1">Trigger a deployment</p>
+            </div>
+            <div>
+              <code class="text-accent-400">GET /projects/:id/deployments</code>
+              <p class="mt-1">List deployments for a project</p>
+            </div>
+            <div>
+              <code class="text-accent-400">POST /projects/:id/deployments/:did/rollback</code>
+              <p class="mt-1">Rollback to a previous deployment</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6">
+          <p class="text-blue-300">
+            <strong>Full API Documentation:</strong> Visit the API docs endpoint at <code class="text-accent-400">/api/v1/docs</code> for interactive API exploration.
+          </p>
+        </div>
+      </div>
+
+      <!-- Advanced Section -->
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6">Advanced Topics</h2>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Horizontal Scaling</h3>
+          <p class="text-gray-300 mb-4">Deploy multiple Pushpaka instances with separate API and worker components:</p>
+          <div class="code-block">
+            <pre>
+# Run API server only
+PUSHPAKA_COMPONENT=api ./pushpaka
+
+# Run worker only (scales horizontally)
+PUSHPAKA_COMPONENT=worker ./pushpaka
+
+# Or run both in one instance (default)
+./pushpaka</pre>
+          </div>
+        </div>
+
+        <div class="metallic-card p-8 mb-6">
+          <h3 class="text-xl font-bold text-white mb-4">Database Options</h3>
+          <p class="text-gray-300 mb-4">Choose your database backend:</p>
+          <ul class="space-y-3 text-gray-300 text-sm">
+            <li>
+              <strong class="text-white">SQLite (Dev)</strong> - Perfect for development and single-instance deployments
+            </li>
+            <li>
+              <strong class="text-white">PostgreSQL</strong> - Enterprise option with full ACID compliance for production
+            </li>
+          </ul>
+        </div>
+
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Backup & Restore</h3>
+          <p class="text-gray-300 mb-4">Regular backups are crucial for production deployments:</p>
+          <div class="code-block">
+            <pre>
+# PostgreSQL backup
+pg_dump -U pushpaka_user pushpaka_db > backup.sql
+
+# SQLite backup
+cp pushpaka.db pushpaka.db.backup</pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Support Section -->
+      <div class="text-center">
+        <h2 class="text-3xl font-bold text-white mb-6">Need Help?</h2>
+        <p class="text-gray-400 mb-8">Check out the GitHub repository for more resources:</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="https://github.com/vikukumar/Pushpaka/issues" target="_blank" rel="noopener noreferrer" class="btn-primary">
+            Report Issues
+          </a>
+          <a href="https://github.com/vikukumar/Pushpaka/discussions" target="_blank" rel="noopener noreferrer" class="btn-secondary">
+            Discussions
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <Footer />
+</Layout>

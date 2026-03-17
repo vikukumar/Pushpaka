@@ -150,3 +150,43 @@ func (r *AIConfigRepository) ListUsersWithMonitoring() ([]string, error) {
 		`SELECT user_id FROM ai_configs WHERE monitoring_enabled=1`)
 	return ids, err
 }
+
+// ─── AI Token Usage / Rate Limiting ──────────────────────────────────────────
+
+// GetOrCreateTodayUsage returns (or creates) the token_usage row for userID for today (UTC).
+func (r *AIConfigRepository) GetOrCreateTodayUsage(userID string) (*models.AITokenUsage, error) {
+	today := time.Now().UTC().Format("2006-01-02")
+	var usage models.AITokenUsage
+	err := r.db.Get(&usage, `SELECT * FROM ai_token_usage WHERE user_id=? AND date=?`, userID, today)
+	if err == nil {
+		return &usage, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+	// Create new row
+	now := time.Now().UTC().Format(time.RFC3339)
+	id := uuid.New().String()
+	_, err = r.db.Exec(
+		`INSERT OR IGNORE INTO ai_token_usage (id,user_id,date,calls,tokens,updated_at) VALUES (?,?,?,0,0,?)`,
+		id, userID, today, now)
+	if err != nil {
+		return nil, err
+	}
+	// Re-fetch (handles race where another goroutine inserted first)
+	err = r.db.Get(&usage, `SELECT * FROM ai_token_usage WHERE user_id=? AND date=?`, userID, today)
+	return &usage, err
+}
+
+// IncrementTodayUsage adds deltaCalls and deltaTokens to the user's usage row for today.
+func (r *AIConfigRepository) IncrementTodayUsage(userID string, deltaCalls int) error {
+	today := time.Now().UTC().Format("2006-01-02")
+	now := time.Now().UTC().Format(time.RFC3339)
+	id := uuid.New().String()
+	_, err := r.db.Exec(
+		`INSERT INTO ai_token_usage (id,user_id,date,calls,tokens,updated_at)
+		 VALUES (?,?,?,?,0,?)
+		 ON CONFLICT(user_id,date) DO UPDATE SET calls=calls+?, updated_at=?`,
+		id, userID, today, deltaCalls, now, deltaCalls, now)
+	return err
+}

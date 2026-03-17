@@ -1,0 +1,448 @@
+name: Build & Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'worker/**'
+      - 'frontend/**'
+      - 'cmd/**'
+      - 'go.work'
+      - 'Dockerfile'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+    inputs:
+      force_version:
+        description: 'Force version (e.g., 1.0.1 to reset build counter)'
+        required: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Calculate version and build counter
+  # ─────────────────────────────────────────────────────────────────────────
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      build-counter: ${{ steps.version.outputs.build-counter }}
+      full-version: ${{ steps.version.outputs.full-version }}
+      image-tags: ${{ steps.version.outputs.image-tags }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate version
+        id: version
+        run: |
+          # Read current version from VERSION file
+          BASE_VERSION=$(cat VERSION)
+          
+          # If forced version provided, use it and reset counter
+          if [ "${{ github.event.inputs.force_version }}" != "" ]; then
+            BASE_VERSION="${{ github.event.inputs.force_version }}"
+            BUILD_COUNTER=0
+          else
+            # Check if last tag matches current version
+            LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+            
+            if [ "$LAST_TAG" != "" ]; then
+              # Extract version and counter from tag (format: v1.0.0.0)
+              TAG_VERSION=$(echo "$LAST_TAG" | sed 's/v//' | rev | cut -d. -f2- | rev)
+              TAG_COUNTER=$(echo "$LAST_TAG" | rev | cut -d. -f1 | rev)
+              
+              if [ "$TAG_VERSION" = "$BASE_VERSION" ]; then
+                # Same version, increment counter
+                BUILD_COUNTER=$((TAG_COUNTER + 1))
+              else
+                # Version changed, reset counter
+                BUILD_COUNTER=0
+              fi
+            else
+              # No tags yet
+              BUILD_COUNTER=0
+            fi
+          fi
+          
+          # Output version info
+          FULL_VERSION="${BASE_VERSION}.${BUILD_COUNTER}"
+          IMAGE_TAG="v${FULL_VERSION}"
+          
+          echo "version=${BASE_VERSION}" >> $GITHUB_OUTPUT
+          echo "build-counter=${BUILD_COUNTER}" >> $GITHUB_OUTPUT
+          echo "full-version=${FULL_VERSION}" >> $GITHUB_OUTPUT
+          echo "image-tags=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG},${REGISTRY}/${IMAGE_NAME}:latest" >> $GITHUB_OUTPUT
+          
+          echo "📦 Version: ${BASE_VERSION}"
+          echo "🔢 Build Counter: ${BUILD_COUNTER}"
+          echo "📌 Full Version: ${FULL_VERSION}"
+          echo "🐳 Image Tags: ${IMAGE_TAG}, latest"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Build backend for all platforms (Linux, macOS, Windows)
+  # ─────────────────────────────────────────────────────────────────────────
+  backend:
+    needs: version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Build backend
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          OUTPUT_NAME="pushpaka-backend-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            OUTPUT_NAME="${OUTPUT_NAME}.exe"
+          fi
+          
+          go build -C cmd/pushpaka \
+            -ldflags="-w -s -X main.version=v${{ needs.version.outputs.full-version }}" \
+            -o "../../${OUTPUT_NAME}" .
+          
+          ls -lh ../${OUTPUT_NAME}
+          
+          echo "BINARY=${OUTPUT_NAME}" >> $GITHUB_ENV
+          echo "✅ Backend built: ${OUTPUT_NAME}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: pushpaka-backend-*
+          retention-days: 5
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Build worker for all platforms
+  # ─────────────────────────────────────────────────────────────────────────
+  worker:
+    needs: version
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [linux, darwin, windows]
+        goarch: [amd64, arm64]
+        exclude:
+          - goos: windows
+            goarch: arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Build worker
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: 0
+        run: |
+          cd worker
+          OUTPUT_NAME="pushpaka-worker-${{ matrix.goos }}-${{ matrix.goarch }}"
+          if [ "${{ matrix.goos }}" = "windows" ]; then
+            OUTPUT_NAME="${OUTPUT_NAME}.exe"
+          fi
+          
+          go build \
+            -ldflags="-w -s -X main.version=v${{ needs.version.outputs.full-version }}" \
+            -o "../${OUTPUT_NAME}" ./cmd/worker
+          
+          ls -lh ../${OUTPUT_NAME}
+          
+          echo "✅ Worker built: ${OUTPUT_NAME}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: worker-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: pushpaka-worker-*
+          retention-days: 5
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Build frontend
+  # ─────────────────────────────────────────────────────────────────────────
+  frontend:
+    needs: version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: 'frontend/pnpm-lock.yaml'
+
+      - name: Install pnpm
+        run: npm install -g pnpm
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        working-directory: frontend
+        run: pnpm type-check
+
+      - name: Build
+        working-directory: frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+        run: pnpm build
+
+      - name: Create artifact archive
+        run: |
+          cd frontend
+          tar -czf ../pushpaka-frontend-${{ needs.version.outputs.full-version }}.tar.gz \
+            .next/ public/ package.json pnpm-lock.yaml
+          cd ..
+          ls -lh pushpaka-frontend-*.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend
+          path: pushpaka-frontend-*.tar.gz
+          retention-days: 5
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Build Docker image and push to GHCR
+  # ─────────────────────────────────────────────────────────────────────────
+  docker:
+    needs: [version, backend, worker, frontend]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}},value=v${{ needs.version.outputs.full-version }}
+            type=semver,pattern={{major}}.{{minor}},value=v${{ needs.version.outputs.full-version }}
+            type=raw,value=latest
+            type=raw,value=v${{ needs.version.outputs.full-version }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=v${{ needs.version.outputs.full-version }}
+            BUILD_DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+            VCS_REF=${{ github.sha }}
+
+      - name: Docker build summary
+        run: |
+          echo "🐳 Docker image pushed to:"
+          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ needs.version.outputs.full-version }}"
+          echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Create combined release package
+  # ─────────────────────────────────────────────────────────────────────────
+  package:
+    needs: [version, backend, worker, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create combined packages
+        run: |
+          mkdir -p releases
+          
+          # Create separate platform packages (backend + worker + frontend)
+          for platform in linux darwin windows; do
+            mkdir -p "package-${platform}/bin" "package-${platform}/frontend"
+            
+            # Copy binaries
+            for arch in amd64 arm64; do
+              if [ "$platform" = "windows" ] && [ "$arch" = "arm64" ]; then
+                continue
+              fi
+              
+              BACKEND="artifacts/backend-${platform}-${arch}/pushpaka-backend-${platform}-${arch}"
+              WORKER="artifacts/worker-${platform}-${arch}/pushpaka-worker-${platform}-${arch}"
+              
+              if [ "$platform" = "windows" ]; then
+                BACKEND="${BACKEND}.exe"
+                WORKER="${WORKER}.exe"
+              fi
+              
+              if [ -f "$BACKEND" ]; then
+                cp "$BACKEND" "package-${platform}/bin/"
+                chmod +x "package-${platform}/bin/"* 2>/dev/null || true
+              fi
+              
+              if [ -f "$WORKER" ]; then
+                cp "$WORKER" "package-${platform}/bin/"
+                chmod +x "package-${platform}/bin/"* 2>/dev/null || true
+              fi
+            done
+            
+            # Copy frontend artifacts
+            FRONTEND=$(find artifacts/frontend -name "*.tar.gz" | head -1)
+            if [ -f "$FRONTEND" ]; then
+              cd "package-${platform}/frontend"
+              tar -xzf "$FRONTEND"
+              cd ../../
+            fi
+            
+            # Create archive
+            if [ "$platform" = "windows" ]; then
+              cd "package-${platform}"
+              zip -r "../releases/pushpaka-${platform}-${{ needs.version.outputs.full-version }}.zip" .
+              cd ..
+            else
+              tar -czf "releases/pushpaka-${platform}-${{ needs.version.outputs.full-version }}.tar.gz" "package-${platform}/"
+            fi
+            
+            rm -rf "package-${platform}"
+          done
+          
+          ls -lh releases/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-packages
+          path: releases/
+          retention-days: 5
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Create GitHub Release and upload all artifacts
+  # ─────────────────────────────────────────────────────────────────────────
+  release:
+    needs: [version, backend, worker, frontend, docker, package]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          
+          # Collect individual binaries
+          find all-artifacts/backend-* -type f -exec cp {} release-assets/ \;
+          find all-artifacts/worker-* -type f -exec cp {} release-assets/ \;
+          find all-artifacts/frontend -type f -exec cp {} release-assets/ \;
+          find all-artifacts/release-packages -type f -exec cp {} release-assets/ \;
+          
+          # Create checksums
+          cd release-assets
+          sha256sum * > SHA256SUMS
+          cd ..
+          
+          ls -lh release-assets/
+
+      - name: Generate release notes
+        id: notes
+        run: |
+          NOTES="## 📦 Release v${{ needs.version.outputs.full-version }}"
+          NOTES="${NOTES}\n\n### 📋 Artifacts"
+          NOTES="${NOTES}\n\n**Binaries:**"
+          NOTES="${NOTES}\n- \`pushpaka-backend\` (Linux, macOS, Windows - amd64 & arm64)"
+          NOTES="${NOTES}\n- \`pushpaka-worker\` (Linux, macOS, Windows - amd64 & arm64)"
+          NOTES="${NOTES}\n\n**Frontend:**"
+          NOTES="${NOTES}\n- \`pushpaka-frontend-${{ needs.version.outputs.full-version }}.tar.gz\` (Next.js build artifacts)"
+          NOTES="${NOTES}\n\n**Combined Packages:**"
+          NOTES="${NOTES}\n- \`pushpaka-linux-${{ needs.version.outputs.full-version }}.tar.gz\` (Backend + Worker + Frontend)"
+          NOTES="${NOTES}\n- \`pushpaka-darwin-${{ needs.version.outputs.full-version }}.tar.gz\` (Backend + Worker + Frontend)"
+          NOTES="${NOTES}\n- \`pushpaka-windows-${{ needs.version.outputs.full-version }}.zip\` (Backend + Worker + Frontend)"
+          NOTES="${NOTES}\n\n### 🐳 Docker Image"
+          NOTES="${NOTES}\n\`\`\`bash"
+          NOTES="${NOTES}\ndocker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ needs.version.outputs.full-version }}"
+          NOTES="${NOTES}\ndocker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+          NOTES="${NOTES}\n\`\`\`"
+          NOTES="${NOTES}\n\n### 🔐 Checksums"
+          NOTES="${NOTES}\nSee \`SHA256SUMS\` file for verification."
+          
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo -e "$NOTES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.version.outputs.full-version }}
+          name: Release v${{ needs.version.outputs.full-version }}
+          body: ${{ env.RELEASE_NOTES }}
+          files: release-assets/**/*
+          draft: false
+          prerelease: ${{ contains(needs.version.outputs.full-version, 'rc') || contains(needs.version.outputs.full-version, 'beta') }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Final status check
+  # ─────────────────────────────────────────────────────────────────────────
+  status:
+    needs: [version, backend, worker, frontend, docker, release]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Build Status
+        run: |
+          echo "✅ Build Summary"
+          echo "🔖 Version: v${{ needs.version.outputs.full-version }}"
+          echo "📦 Backend: ✓"
+          echo "📦 Worker: ✓"
+          echo "📦 Frontend: ✓"
+          echo "🐳 Docker: ✓"
+          echo "🚀 Release: ✓"
+          echo ""
+          echo "Docker Images:"
+          echo "  • ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ needs.version.outputs.full-version }}"
+          echo "  • ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"

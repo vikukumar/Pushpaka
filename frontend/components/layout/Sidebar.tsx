@@ -12,21 +12,127 @@ import {
   LogOut,
   Shield,
   X,
+  Sparkles,
+  BotMessageSquare,
+  Database,
+  AlertTriangle,
+  Container,
+  Server,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import { useSidebar } from '@/components/providers/AuthProvider'
+import { useState } from 'react'
 
-const navItems = [
+interface NavItem {
+  href: string
+  label: string
+  icon: React.ElementType
+}
+
+interface NavGroup {
+  label: string
+  icon: React.ElementType
+  items: NavItem[]
+}
+
+const mainNavItems: NavItem[] = [
   { href: '/dashboard',             label: 'Overview',     icon: LayoutDashboard },
   { href: '/dashboard/projects',    label: 'Projects',     icon: FolderGit2 },
   { href: '/dashboard/deployments', label: 'Deployments',  icon: Rocket },
   { href: '/dashboard/domains',     label: 'Domains',      icon: Globe },
   { href: '/dashboard/activity',    label: 'Activity',     icon: Activity },
   { href: '/dashboard/audit',       label: 'Audit Log',    icon: Shield },
-  { href: '/dashboard/settings',    label: 'Settings',     icon: Settings },
 ]
+
+const navGroups: NavGroup[] = [
+  {
+    label: 'AI Assistant',
+    icon: Sparkles,
+    items: [
+      { href: '/dashboard/ai/chat',       label: 'Support Agent',  icon: BotMessageSquare },
+      { href: '/dashboard/ai/monitoring', label: 'AI Monitoring',  icon: AlertTriangle },
+      { href: '/dashboard/ai/rag',        label: 'Knowledge Base', icon: Database },
+    ],
+  },
+  {
+    label: 'Infrastructure',
+    icon: Server,
+    items: [
+      { href: '/dashboard/infra/docker',  label: 'Docker',         icon: Container },
+      { href: '/dashboard/infra/k8s',     label: 'Kubernetes',     icon: Server },
+    ],
+  },
+]
+
+function NavGroupSection({ group, close }: { group: NavGroup; close: () => void }) {
+  const pathname = usePathname()
+  const isAnyActive = group.items.some(
+    (i) => pathname === i.href || pathname.startsWith(i.href + '/')
+  )
+  const [open, setOpen] = useState(isAnyActive)
+
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-semibold uppercase tracking-widest text-slate-600 hover:text-slate-400 transition-colors"
+      >
+        <group.icon size={11} />
+        <span className="flex-1 text-left">{group.label}</span>
+        {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
+      </button>
+      {open && (
+        <div className="pl-1">
+          {group.items.map(({ href, label, icon: Icon }) => {
+            const isActive = pathname === href || pathname.startsWith(href + '/')
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={close}
+                className={cn(
+                  'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
+                  'transition-all duration-200 group overflow-hidden',
+                  isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+                )}
+                style={
+                  isActive
+                    ? {
+                        background: 'linear-gradient(90deg, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0.07) 55%, transparent 100%)',
+                        boxShadow: 'inset 3px 0 0 #818cf8, inset 0 1px 0 rgba(255,255,255,0.04)',
+                      }
+                    : undefined
+                }
+              >
+                {!isActive && (
+                  <span className="absolute inset-0 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200"
+                    style={{ background: 'rgba(255,255,255,0.025)' }} />
+                )}
+                <Icon
+                  size={15}
+                  className={cn(
+                    'shrink-0 transition-colors',
+                    isActive ? 'text-brand-400' : 'text-slate-600 group-hover:text-slate-400'
+                  )}
+                  style={isActive ? { filter: 'drop-shadow(0 0 5px rgba(129,140,248,0.75))' } : undefined}
+                />
+                <span className="truncate flex-1">{label}</span>
+                {isActive && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0"
+                    style={{ boxShadow: '0 0 8px rgba(129,140,248,0.9)' }} />
+                )}
+              </Link>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -43,9 +149,7 @@ export function Sidebar() {
     <aside
       className={cn(
         'w-64 h-screen flex flex-col z-50 overflow-hidden transition-all duration-300',
-        // Desktop: always visible fixed sidebar
         'md:fixed md:left-0 md:top-0 md:translate-x-0',
-        // Mobile: slide in/out from left
         'fixed left-0 top-0',
         open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
       )}
@@ -55,13 +159,13 @@ export function Sidebar() {
         boxShadow: '4px 0 32px rgba(0,0,0,0.4), 1px 0 0 rgba(99,102,241,0.05)',
       }}
     >
-      {/* Ambient top-left glow orb */}
+      {/* Ambient glow */}
       <div
         className="absolute -top-16 -left-16 w-56 h-56 rounded-full pointer-events-none"
         style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.09) 0%, transparent 70%)' }}
       />
 
-      {/* """ Logo """ */}
+      {/* Logo */}
       <div
         className="px-5 py-4 relative shrink-0 flex items-center justify-between"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
@@ -81,8 +185,7 @@ export function Sidebar() {
               <circle cx="24" cy="14" r="4" fill="white" fillOpacity="0.95"/>
               <path d="M3 18 Q0 16 1 20 Q0 23 3 22"   fill="#22d3ee"/>
               <path d="M29 18 Q32 16 31 20 Q32 23 29 22" fill="#22d3ee"/>
-              <line x1="16" y1="4" x2="16" y2="9"
-                stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round"/>
+              <line x1="16" y1="4" x2="16" y2="9" stroke="rgba(255,255,255,0.6)" strokeWidth="1.5" strokeLinecap="round"/>
               <circle cx="16" cy="3.5" r="1.5" fill="#22d3ee"/>
             </svg>
           </div>
@@ -103,19 +206,15 @@ export function Sidebar() {
             </div>
           </div>
         </Link>
-        {/* Mobile close button */}
-        <button
-          onClick={close}
-          className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/10 transition-colors"
-        >
+        <button onClick={close} className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/10 transition-colors">
           <X size={16} />
         </button>
       </div>
 
-      {/* """ Navigation """ */}
+      {/* Navigation */}
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          // /dashboard exact match to avoid marking Overview active on sub-routes
+        {/* Main nav */}
+        {mainNavItems.map(({ href, label, icon: Icon }) => {
           const isActive =
             href === '/dashboard'
               ? pathname === href
@@ -133,21 +232,16 @@ export function Sidebar() {
               style={
                 isActive
                   ? {
-                      background:
-                        'linear-gradient(90deg, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0.07) 55%, transparent 100%)',
-                      boxShadow:
-                        'inset 3px 0 0 #818cf8, inset 0 1px 0 rgba(255,255,255,0.04)',
+                      background: 'linear-gradient(90deg, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0.07) 55%, transparent 100%)',
+                      boxShadow: 'inset 3px 0 0 #818cf8, inset 0 1px 0 rgba(255,255,255,0.04)',
                     }
                   : undefined
               }
             >
-              {/* Hover fill */}
               {!isActive && (
                 <span className="absolute inset-0 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity duration-200"
-                  style={{ background: 'rgba(255,255,255,0.025)' }}
-                />
+                  style={{ background: 'rgba(255,255,255,0.025)' }} />
               )}
-
               <Icon
                 size={15}
                 className={cn(
@@ -157,34 +251,75 @@ export function Sidebar() {
                 style={isActive ? { filter: 'drop-shadow(0 0 5px rgba(129,140,248,0.75))' } : undefined}
               />
               <span className="truncate flex-1">{label}</span>
-
-              {/* Active indicator dot */}
               {isActive && (
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0"
-                  style={{ boxShadow: '0 0 8px rgba(129,140,248,0.9)' }}
-                />
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0"
+                  style={{ boxShadow: '0 0 8px rgba(129,140,248,0.9)' }} />
               )}
             </Link>
           )
         })}
+
+        {/* Divider */}
+        <div className="my-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+
+        {/* Groups */}
+        {navGroups.map((group) => (
+          <NavGroupSection key={group.label} group={group} close={close} />
+        ))}
+
+        {/* Divider */}
+        <div className="my-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+
+        {/* Settings */}
+        {(() => {
+          const href = '/dashboard/settings'
+          const isActive = pathname === href || pathname.startsWith(href + '/')
+          return (
+            <Link
+              href={href}
+              onClick={close}
+              className={cn(
+                'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium',
+                'transition-all duration-200 group overflow-hidden',
+                isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+              )}
+              style={
+                isActive
+                  ? {
+                      background: 'linear-gradient(90deg, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0.07) 55%, transparent 100%)',
+                      boxShadow: 'inset 3px 0 0 #818cf8, inset 0 1px 0 rgba(255,255,255,0.04)',
+                    }
+                  : undefined
+              }
+            >
+              {!isActive && (
+                <span className="absolute inset-0 opacity-0 group-hover:opacity-100 rounded-lg transition-opacity"
+                  style={{ background: 'rgba(255,255,255,0.025)' }} />
+              )}
+              <Settings
+                size={15}
+                className={cn('shrink-0 transition-colors', isActive ? 'text-brand-400' : 'text-slate-600 group-hover:text-slate-400')}
+                style={isActive ? { filter: 'drop-shadow(0 0 5px rgba(129,140,248,0.75))' } : undefined}
+              />
+              <span className="truncate flex-1">Settings</span>
+              {isActive && (
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-400 shrink-0"
+                  style={{ boxShadow: '0 0 8px rgba(129,140,248,0.9)' }} />
+              )}
+            </Link>
+          )
+        })()}
       </nav>
 
-      {/* """ User section """ */}
-      <div
-        className="p-3 relative shrink-0"
-        style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
-      >
+      {/* User section */}
+      <div className="p-3 relative shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
         <div
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-default"
           style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(99,102,241,0.07)' }}
         >
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
-            style={{
-              background: 'linear-gradient(135deg, #4338ca, #6366f1)',
-              boxShadow: '0 2px 8px rgba(99,102,241,0.4)',
-            }}
+            style={{ background: 'linear-gradient(135deg, #4338ca, #6366f1)', boxShadow: '0 2px 8px rgba(99,102,241,0.4)' }}
           >
             {user?.name?.[0]?.toUpperCase() || 'U'}
           </div>
@@ -192,11 +327,7 @@ export function Sidebar() {
             <div className="text-sm font-medium text-slate-200 truncate">{user?.name}</div>
             <div className="text-[11px] text-slate-600 truncate">{user?.email}</div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded shrink-0"
-            title="Sign out"
-          >
+          <button onClick={handleLogout} className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded shrink-0" title="Sign out">
             <LogOut size={14} />
           </button>
         </div>
@@ -204,4 +335,3 @@ export function Sidebar() {
     </aside>
   )
 }
-

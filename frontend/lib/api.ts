@@ -172,6 +172,40 @@ export const aiApi = {
     monitoring_enabled?: boolean
     monitoring_interval?: number
   }) => apiClient.put('/ai/config', data),
+  getUsage: () => apiClient.get('/ai/usage'),
+}
+
+// RAG knowledge base
+export const ragApi = {
+  list: () => apiClient.get('/ai/rag'),
+  create: (data: { title: string; content: string }) => apiClient.post('/ai/rag', data),
+  delete: (id: string) => apiClient.delete(`/ai/rag/${id}`),
+}
+
+// AI monitoring alerts
+export const alertsApi = {
+  list: (onlyUnresolved = false) =>
+    apiClient.get(`/ai/alerts${onlyUnresolved ? '?unresolved=true' : ''}`),
+  resolve: (id: string) => apiClient.put(`/ai/alerts/${id}/resolve`, {}),
+}
+
+// Container management
+export const containerApi = {
+  list: () => apiClient.get('/containers'),
+  start: (id: string) => apiClient.post(`/containers/${id}/start`, {}),
+  stop: (id: string) => apiClient.post(`/containers/${id}/stop`, {}),
+  restart: (id: string) => apiClient.post(`/containers/${id}/restart`, {}),
+  logs: (id: string, lines = 100) => apiClient.get(`/containers/${id}/logs?lines=${lines}`),
+}
+
+// Kubernetes management
+export const k8sApi = {
+  namespaces: () => apiClient.get('/k8s/namespaces'),
+  pods: (namespace = 'default') => apiClient.get(`/k8s/pods?namespace=${namespace}`),
+  deployments: (namespace = 'default') => apiClient.get(`/k8s/deployments?namespace=${namespace}`),
+  services: (namespace = 'default') => apiClient.get(`/k8s/services?namespace=${namespace}`),
+  rollout: (namespace: string, name: string) =>
+    apiClient.post(`/k8s/deployments/${namespace}/${name}/rollout`, {}),
 }
 
 // In-browser code editor
@@ -182,5 +216,7 @@ export const filesApi = {
     apiClient.get(`/projects/${projectId}/files${path}`),
   save: (projectId: string, path: string, content: string) =>
     apiClient.put(`/projects/${projectId}/files${path}`, { content }),
+  sync: (projectId: string) =>
+    apiClient.post(`/projects/${projectId}/files/sync`, {}),
 }
 

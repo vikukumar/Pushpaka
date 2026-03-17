@@ -209,6 +209,19 @@ CREATE INDEX IF NOT EXISTS idx_monitor_alerts_user_id      ON ai_monitor_alerts(
 CREATE INDEX IF NOT EXISTS idx_monitor_alerts_deployment_id ON ai_monitor_alerts(deployment_id);
 CREATE INDEX IF NOT EXISTS idx_monitor_alerts_created_at   ON ai_monitor_alerts(created_at DESC);
 
+-- ─── AI Token Usage Tracking ─────────────────────────────────────────────────
+-- Daily usage counter per user, used for global key rate limiting.
+CREATE TABLE IF NOT EXISTS ai_token_usage (
+    id         TEXT PRIMARY KEY,
+    user_id    TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    date       TEXT NOT NULL,  -- YYYY-MM-DD UTC
+    calls      INTEGER NOT NULL DEFAULT 0,
+    tokens     INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    CONSTRAINT uq_ai_usage_user_date UNIQUE (user_id, date)
+);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_user_date ON ai_token_usage(user_id, date);
+
 -- ─── Kubernetes Integration ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS k8s_configs (
     id           TEXT PRIMARY KEY,

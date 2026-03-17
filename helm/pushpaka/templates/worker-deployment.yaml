@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pushpaka.fullname" . }}-worker
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "pushpaka.labels" . | nindent 4 }}
+    component: worker
+spec:
+  {{- if not .Values.worker.autoscaling.enabled }}
+  replicas: {{ .Values.worker.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "pushpaka.selectorLabels" . | nindent 6 }}
+      component: worker
+  template:
+    metadata:
+      labels:
+        {{- include "pushpaka.selectorLabels" . | nindent 8 }}
+        component: worker
+    spec:
+      serviceAccountName: {{ include "pushpaka.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.worker.securityContext | nindent 8 }}
+      containers:
+      - name: worker
+        image: "{{ .Values.worker.image.registry }}/{{ .Values.worker.image.repository }}:{{ coalesce .Values.worker.image.tag .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.worker.image.pullPolicy }}
+        ports:
+        - name: metrics
+          containerPort: {{ .Values.worker.service.targetPort }}
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: {{ include "pushpaka.fullname" . }}-config
+        - secretRef:
+            name: {{ include "pushpaka.fullname" . }}-secret
+        env:
+        - name: PUSHPAKA_COMPONENT
+          value: "worker"
+        resources:
+          {{- toYaml .Values.worker.resources | nindent 10 }}
+        volumeMounts:
+        {{- toYaml .Values.worker.volumeMounts | nindent 10 }}
+      volumes:
+      - name: docker-socket
+        hostPath:
+          path: /var/run/docker.sock
+          type: Socket
+      affinity:
+        {{- toYaml .Values.affinity | nindent 8 }}

@@ -40,6 +40,9 @@ type Config struct {
 	AIAPIKey   string
 	AIModel    string // e.g. "gpt-4o-mini", "claude-3-haiku", "gemini-pro"
 	AIBaseURL  string // override endpoint for OpenRouter / Ollama / self-hosted
+	// AIRateLimitPerUserPerDay caps daily AI calls per user when they are using the
+	// global platform key (not their own). 0 = unlimited.
+	AIRateLimitPerUserPerDay int
 
 	// Default notification channels (can be overridden per-user in DB)
 	SMTPHost     string
@@ -83,6 +86,10 @@ func Load() *Config {
 		AIAPIKey:           getEnv("AI_API_KEY", ""),
 		AIModel:            getEnv("AI_MODEL", "gpt-4o-mini"),
 		AIBaseURL:          getEnv("AI_BASE_URL", ""),
+		AIRateLimitPerUserPerDay: func() int {
+			v, _ := strconv.Atoi(getEnv("AI_RATE_LIMIT_PER_USER_PER_DAY", "0"))
+			return v
+		}(),
 		SMTPHost:           getEnv("SMTP_HOST", ""),
 		SMTPPort:           smtpPort,
 		SMTPUsername:       getEnv("SMTP_USERNAME", ""),

@@ -80,9 +80,10 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	notifHandler := handlers.NewNotificationHandler(notifSvc)
 	oauthHandler := handlers.NewOAuthHandler(oauthSvc)
 	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
-	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo, aiConfigRepo)
+	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo, aiConfigRepo, cfg)
 	terminalHandler := handlers.NewTerminalHandler(deploymentRepo, cfg)
 	fileHandler := handlers.NewFileHandler(projectRepo, deploymentRepo, cfg)
+	infraHandler := handlers.NewInfraHandler()
 	// Avoid the nil-interface trap: a nil *queue.InProcess assigned directly to
 	// WorkerStatsProvider creates a non-nil interface with a nil concrete value,
 	// which passes the != nil check but panics on method calls.
@@ -197,6 +198,32 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 			protected.GET("/ai/config", aiHandler.GetAIConfig)
 			protected.PUT("/ai/config", aiHandler.SaveAIConfig)
 
+			// RAG knowledge base
+			protected.GET("/ai/rag", aiHandler.ListRAG)
+			protected.POST("/ai/rag", aiHandler.CreateRAG)
+			protected.DELETE("/ai/rag/:id", aiHandler.DeleteRAG)
+
+			// AI monitoring alerts
+			protected.GET("/ai/alerts", aiHandler.ListAlerts)
+			protected.PUT("/ai/alerts/:id/resolve", aiHandler.ResolveAlert)
+
+			// AI usage stats (how many calls used today vs limit)
+			protected.GET("/ai/usage", aiHandler.GetUsage)
+
+			// Docker container management
+			protected.GET("/containers", infraHandler.ListContainers)
+			protected.POST("/containers/:id/start", infraHandler.StartContainer)
+			protected.POST("/containers/:id/stop", infraHandler.StopContainer)
+			protected.POST("/containers/:id/restart", infraHandler.RestartContainer)
+			protected.GET("/containers/:id/logs", infraHandler.ContainerLogs)
+
+			// Kubernetes management
+			protected.GET("/k8s/namespaces", infraHandler.K8sNamespaces)
+			protected.GET("/k8s/pods", infraHandler.K8sPods)
+			protected.GET("/k8s/deployments", infraHandler.K8sDeployments)
+			protected.GET("/k8s/services", infraHandler.K8sServices)
+			protected.POST("/k8s/deployments/:namespace/:name/rollout", infraHandler.K8sRollout)
+
 			// Deployment delete
 			protected.DELETE("/deployments/:id", deploymentHandler.Delete)
 
@@ -204,6 +231,8 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 			protected.GET("/projects/:id/files", fileHandler.ListFiles)
 			protected.GET("/projects/:id/files/*path", fileHandler.ReadFile)
 			protected.PUT("/projects/:id/files/*path", fileHandler.SaveFile)
+			// Sync (re-clone) project source to the editor working directory
+			protected.POST("/projects/:id/files/sync", fileHandler.SyncFiles)
 		}
 	}
 
