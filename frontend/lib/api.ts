@@ -72,6 +72,9 @@ export const projectsApi = {
     framework?: string
     is_private?: boolean
     git_token?: string
+    cpu_limit?: string
+    memory_limit?: string
+    restart_policy?: string
   }) => apiClient.put(`/projects/${id}`, data),
   delete: (id: string) => apiClient.delete(`/projects/${id}`),
 }

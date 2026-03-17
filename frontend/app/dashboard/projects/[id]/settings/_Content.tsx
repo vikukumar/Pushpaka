@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { projectsApi } from '@/lib/api'
-import { Project } from '@/types'
+import { projectsApi, webhooksApi } from '@/lib/api'
+import { Project, WebhookConfig } from '@/types'
 import { Header } from '@/components/layout/Header'
 import toast from 'react-hot-toast'
-import { Trash2, AlertTriangle, Lock, Eye, EyeOff, Save } from 'lucide-react'
+import { Trash2, AlertTriangle, Lock, Eye, EyeOff, Save, Cpu, Link2, Plus, X, Copy, Check } from 'lucide-react'
 
 export default function ProjectSettingsPage() {
   const pathname = usePathname()
@@ -19,6 +19,19 @@ export default function ProjectSettingsPage() {
   const [isPrivate, setIsPrivate] = useState<boolean | null>(null)
   const [savingToken, setSavingToken] = useState(false)
 
+  // Resource limits
+  const [cpuLimit, setCpuLimit] = useState('')
+  const [memoryLimit, setMemoryLimit] = useState('')
+  const [restartPolicy, setRestartPolicy] = useState('unless-stopped')
+  const [savingLimits, setSavingLimits] = useState(false)
+
+  // Webhooks
+  const [webhooks, setWebhooks] = useState<WebhookConfig[]>([])
+  const [webhookProvider, setWebhookProvider] = useState('github')
+  const [webhookBranch, setWebhookBranch] = useState('')
+  const [creatingWebhook, setCreatingWebhook] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
   const { data: project } = useQuery<Project>({
     queryKey: ['project', id],
     queryFn: () => projectsApi.get(id).then((r) => r.data),
@@ -28,8 +41,70 @@ export default function ProjectSettingsPage() {
   useEffect(() => {
     if (project && isPrivate === null) {
       setIsPrivate(project.is_private ?? false)
+      setCpuLimit(project.cpu_limit ?? '')
+      setMemoryLimit(project.memory_limit ?? '')
+      setRestartPolicy(project.restart_policy || 'unless-stopped')
     }
   }, [project, isPrivate])
+
+  // Load webhooks for this project
+  useEffect(() => {
+    if (!id) return
+    webhooksApi.list().then((r) => {
+      const all: WebhookConfig[] = r.data?.data ?? []
+      setWebhooks(all.filter((w) => w.project_id === id))
+    }).catch(() => {})
+  }, [id])
+
+  const handleSaveLimits = async () => {
+    setSavingLimits(true)
+    try {
+      await projectsApi.update(id, {
+        cpu_limit: cpuLimit,
+        memory_limit: memoryLimit,
+        restart_policy: restartPolicy,
+      })
+      toast.success('Resource limits saved')
+      queryClient.invalidateQueries({ queryKey: ['project', id] })
+    } catch {
+      toast.error('Failed to save resource limits')
+    } finally {
+      setSavingLimits(false)
+    }
+  }
+
+  const handleCreateWebhook = async () => {
+    setCreatingWebhook(true)
+    try {
+      const res = await webhooksApi.create({
+        project_id: id,
+        provider: webhookProvider,
+        branch: webhookBranch || undefined,
+      })
+      setWebhooks((prev) => [...prev, res.data])
+      toast.success('Webhook created')
+    } catch {
+      toast.error('Failed to create webhook')
+    } finally {
+      setCreatingWebhook(false)
+    }
+  }
+
+  const handleDeleteWebhook = async (webhookId: string) => {
+    try {
+      await webhooksApi.delete(webhookId)
+      setWebhooks((prev) => prev.filter((w) => w.id !== webhookId))
+      toast.success('Webhook deleted')
+    } catch {
+      toast.error('Failed to delete webhook')
+    }
+  }
+
+  const copyWebhookUrl = (webhookId: string, url: string) => {
+    navigator.clipboard.writeText(url)
+    setCopiedId(webhookId)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   const effectiveIsPrivate = isPrivate !== null ? isPrivate : (project?.is_private ?? false)
 
@@ -149,6 +224,133 @@ export default function ProjectSettingsPage() {
               {savingToken ? 'Saving...' : (
                 <><Save size={13} /> Save Access Settings</>
               )}
+            </button>
+          </div>
+        </div>
+
+        {/* Resource Limits */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Cpu size={16} className="text-brand-400" />
+            <h3 className="text-sm font-semibold text-slate-300">Resource Limits</h3>
+          </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label text-xs">CPU Limit</label>
+                <input
+                  type="text"
+                  className="input w-full text-sm"
+                  placeholder="e.g. 0.5  (half a core)"
+                  value={cpuLimit}
+                  onChange={(e) => setCpuLimit(e.target.value)}
+                />
+                <p className="text-xs text-slate-600 mt-1">Docker --cpus value. Leave blank for unlimited.</p>
+              </div>
+              <div>
+                <label className="label text-xs">Memory Limit</label>
+                <input
+                  type="text"
+                  className="input w-full text-sm"
+                  placeholder="e.g. 512m or 2g"
+                  value={memoryLimit}
+                  onChange={(e) => setMemoryLimit(e.target.value)}
+                />
+                <p className="text-xs text-slate-600 mt-1">Docker --memory value. Leave blank for unlimited.</p>
+              </div>
+            </div>
+            <div>
+              <label className="label text-xs">Restart Policy</label>
+              <select
+                className="input w-full text-sm"
+                value={restartPolicy}
+                onChange={(e) => setRestartPolicy(e.target.value)}
+              >
+                <option value="unless-stopped">unless-stopped (default)</option>
+                <option value="always">always</option>
+                <option value="on-failure">on-failure</option>
+                <option value="no">no</option>
+              </select>
+            </div>
+            <button
+              onClick={handleSaveLimits}
+              disabled={savingLimits}
+              className="btn-primary text-xs py-1.5"
+            >
+              {savingLimits ? 'Saving...' : <><Save size={13} /> Save Resource Limits</>}
+            </button>
+          </div>
+        </div>
+
+        {/* Webhooks */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <Link2 size={16} className="text-brand-400" />
+            <h3 className="text-sm font-semibold text-slate-300">Webhooks</h3>
+          </div>
+          <p className="text-xs text-slate-500 mb-4">
+            Configure a webhook URL to give to GitHub or GitLab so pushes trigger auto-deployments.
+          </p>
+
+          {/* Existing webhooks */}
+          {webhooks.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {webhooks.map((wh) => (
+                <div
+                  key={wh.id}
+                  className="flex items-center gap-2 p-3 rounded-lg text-xs"
+                  style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+                >
+                  <span className="text-slate-400 font-medium capitalize w-14">{wh.provider}</span>
+                  <span className="text-slate-500">{wh.branch || 'any branch'}</span>
+                  <span className="flex-1 font-mono text-slate-600 truncate">{wh.webhook_url}</span>
+                  <button
+                    onClick={() => copyWebhookUrl(wh.id, wh.webhook_url)}
+                    className="btn-secondary py-0.5 px-1.5 text-xs"
+                    title="Copy webhook URL"
+                  >
+                    {copiedId === wh.id ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                  </button>
+                  <button
+                    onClick={() => handleDeleteWebhook(wh.id)}
+                    className="btn-danger py-0.5 px-1.5 text-xs"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Create webhook */}
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="label text-xs">Provider</label>
+              <select
+                className="input text-sm"
+                value={webhookProvider}
+                onChange={(e) => setWebhookProvider(e.target.value)}
+              >
+                <option value="github">GitHub</option>
+                <option value="gitlab">GitLab</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="label text-xs">Branch filter (optional)</label>
+              <input
+                type="text"
+                className="input w-full text-sm"
+                placeholder="main"
+                value={webhookBranch}
+                onChange={(e) => setWebhookBranch(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={handleCreateWebhook}
+              disabled={creatingWebhook}
+              className="btn-primary text-xs py-1.5 px-3"
+            >
+              {creatingWebhook ? '...' : <><Plus size={13} /> Add Webhook</>}
             </button>
           </div>
         </div>

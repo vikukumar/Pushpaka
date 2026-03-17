@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { authApi } from '@/lib/api'
@@ -11,7 +11,7 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { setAuth } = useAuthStore()
@@ -31,22 +31,19 @@ export default function LoginPage() {
     }
 
     if (token && isOAuth) {
-      // Decode the JWT to get user info
+      // Decode the JWT to extract user claims embedded by the backend
       try {
         const parts = token.split('.')
         const payload = JSON.parse(atob(parts[1]))
-        // We only have the user ID from the JWT; fetch profile
-        authApi.me ? authApi.me().then(({ data }: { data: AuthResponse['user'] }) => {
-          setAuth(data, token)
-          router.push('/dashboard')
-        }).catch(() => {
-          // If /me doesn't exist yet, store what we have
-          setAuth({ id: payload.sub, email: '', name: 'User', role: 'user', api_key: '' }, token)
-          router.push('/dashboard')
-        }) : (() => {
-          setAuth({ id: payload.sub, email: '', name: 'User', role: 'user', api_key: '' }, token)
-          router.push('/dashboard')
-        })()
+        const user = {
+          id:         payload.sub   || '',
+          email:      payload.email || '',
+          name:       payload.name  || 'User',
+          role:       payload.role  || 'user',
+          created_at: '',
+        }
+        setAuth(user, token)
+        router.push('/dashboard')
       } catch {
         toast.error('Failed to process OAuth token')
       }
@@ -190,116 +187,11 @@ export default function LoginPage() {
   )
 }
 
-
 export default function LoginPage() {
-  const router = useRouter()
-  const { setAuth } = useAuthStore()
-  const [form, setForm] = useState({ email: '', password: '' })
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    try {
-      const { data } = await authApi.login(form)
-      const auth: AuthResponse = data
-      setAuth(auth.user, auth.token)
-      router.push('/dashboard')
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { error?: string } } }
-      toast.error(error?.response?.data?.error || 'Login failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-surface flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-brand-600 rounded-xl flex items-center justify-center">
-              <svg viewBox="0 0 32 32" className="w-6 h-6" fill="none">
-                <rect x="3" y="15" width="26" height="10" rx="5" fill="white" fillOpacity="0.9"/>
-                <circle cx="8" cy="15" r="4" fill="white" fillOpacity="0.9"/>
-                <circle cx="16" cy="12" r="5" fill="white" fillOpacity="0.9"/>
-                <circle cx="24" cy="14" r="4" fill="white" fillOpacity="0.9"/>
-                <path d="M3 18 Q0 16 1 20 Q0 23 3 22" fill="#22d3ee" opacity="0.9"/>
-                <path d="M29 18 Q32 16 31 20 Q32 23 29 22" fill="#22d3ee" opacity="0.9"/>
-              </svg>
-            </div>
-            <span className="text-2xl font-bold text-white">Pushpaka</span>
-          </div>
-          <p className="text-slate-400 text-sm">Welcome back -- sign into your account</p>
-        </div>
-
-        <div className="card">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="label">Email</label>
-              <input
-                type="email"
-                className="input"
-                placeholder="you@example.com"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required
-                autoComplete="email"
-              />
-            </div>
-
-            <div>
-              <label className="label">Password</label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className="input pr-10"
-                  placeholder=""
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  required
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full justify-center py-2.5"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                'Sign in'
-              )}
-            </button>
-          </form>
-
-          <p className="text-center text-sm text-slate-500 mt-4">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-brand-400 hover:text-brand-300 font-medium">
-              Create one
-            </Link>
-          </p>
-        </div>
-
-        <p className="text-center text-xs text-slate-600 mt-6">
-          Pushpaka v1.0.0 -- Self-hosted deployment platform
-        </p>
-      </div>
-    </div>
+    <Suspense>
+      <LoginContent />
+    </Suspense>
   )
 }
+

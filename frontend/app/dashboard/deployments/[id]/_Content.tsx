@@ -1,14 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { deploymentsApi, logsApi } from '@/lib/api'
+import { deploymentsApi, logsApi, aiApi } from '@/lib/api'
 import { Header } from '@/components/layout/Header'
 import { StatusBadge } from '@/components/dashboard/StatusBadge'
 import { LogViewer } from '@/components/dashboard/LogViewer'
 import { Deployment, DeploymentLog } from '@/types'
 import { timeAgo, formatDate } from '@/lib/utils'
-import { ExternalLink, GitBranch, GitCommit, Clock, Loader2, RotateCcw } from 'lucide-react'
+import { ExternalLink, GitBranch, GitCommit, Clock, Loader2, RotateCcw, Sparkles, Terminal } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useQueryClient } from '@tanstack/react-query'
 
@@ -16,6 +17,8 @@ export default function DeploymentDetailPage() {
   const pathname = usePathname()
   const id = pathname.split('/')[3] || ''
   const queryClient = useQueryClient()
+  const [analyzing, setAnalyzing] = useState(false)
+  const [analysis, setAnalysis] = useState<string | null>(null)
 
   const { data: deployment, isLoading: deployLoading } = useQuery<Deployment>({
     queryKey: ['deployment', id],
@@ -56,6 +59,19 @@ export default function DeploymentDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['deployments'] })
     } catch {
       toast.error('Rollback failed')
+    }
+  }
+
+  const handleAnalyze = async () => {
+    setAnalyzing(true)
+    setAnalysis(null)
+    try {
+      const res = await aiApi.analyzeLogs(id)
+      setAnalysis(res.data?.analysis ?? 'No analysis returned.')
+    } catch {
+      toast.error('AI analysis failed. Check AI_PROVIDER / AI_API_KEY env vars.')
+    } finally {
+      setAnalyzing(false)
     }
   }
 
@@ -140,6 +156,25 @@ export default function DeploymentDetailPage() {
                 <RotateCcw size={14} />
                 Rollback
               </button>
+              <button
+                className="btn-secondary text-sm"
+                onClick={handleAnalyze}
+                disabled={analyzing}
+                title="Analyze logs with AI"
+              >
+                {analyzing
+                  ? <Loader2 size={14} className="animate-spin" />
+                  : <Sparkles size={14} />}
+                Analyze
+              </button>
+              <a
+                href={`/dashboard/deployments/${id}/terminal`}
+                className="btn-secondary text-sm"
+                title="Open web terminal"
+              >
+                <Terminal size={14} />
+                Terminal
+              </a>
             </div>
           </div>
 
@@ -157,6 +192,22 @@ export default function DeploymentDetailPage() {
             ))}
           </div>
         </div>
+
+        {/* AI Analysis panel */}
+        {analysis && (
+          <div
+            className="card"
+            style={{ borderColor: 'rgba(99,102,241,0.3)', background: 'rgba(99,102,241,0.05)' }}
+          >
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles size={14} className="text-brand-400" />
+              <span className="text-sm font-semibold text-slate-200">AI Log Analysis</span>
+            </div>
+            <pre className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed font-sans">
+              {analysis}
+            </pre>
+          </div>
+        )}
 
         {/* Logs */}
         <LogViewer
