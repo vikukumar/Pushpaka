@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -13,6 +16,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 
+	"github.com/vikukumar/Pushpaka/internal/config"
 	"github.com/vikukumar/Pushpaka/internal/middleware"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
@@ -25,13 +29,17 @@ var termUpgrader = websocket.Upgrader{
 
 type TerminalHandler struct {
 	deploymentRepo *repositories.DeploymentRepository
+	deployDir      string
 }
 
-func NewTerminalHandler(deploymentRepo *repositories.DeploymentRepository) *TerminalHandler {
-	return &TerminalHandler{deploymentRepo: deploymentRepo}
+func NewTerminalHandler(deploymentRepo *repositories.DeploymentRepository, cfg *config.Config) *TerminalHandler {
+	return &TerminalHandler{deploymentRepo: deploymentRepo, deployDir: cfg.DeployDir}
 }
 
-// Connect opens an interactive terminal into a running deployment's container.
+// Connect opens an interactive terminal into a running deployment's container,
+// or falls back to a shell in the deployment's local working directory if
+// Docker is not available for this deployment.
+//
 // GET /api/v1/deployments/:id/terminal  (WebSocket upgrade)
 //
 // Authentication: JWT via ?token= query parameter (WebSocket cannot send headers).
@@ -45,11 +53,6 @@ func (h *TerminalHandler) Connect(c *gin.Context) {
 		return
 	}
 
-	if deployment.ContainerID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "no container running for this deployment"})
-		return
-	}
-
 	conn, err := termUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("terminal websocket upgrade failed")
@@ -57,7 +60,17 @@ func (h *TerminalHandler) Connect(c *gin.Context) {
 	}
 	defer conn.Close()
 
-	containerID := deployment.ContainerID
+	if deployment.ContainerID != "" {
+		// ── Docker path ──────────────────────────────────────────────────────
+		h.dockerTerminal(conn, deployment.ContainerID)
+	} else {
+		// ── Local fallback ────────────────────────────────────────────────────
+		h.localTerminal(conn, deployment.ProjectID)
+	}
+}
+
+// dockerTerminal connects the WebSocket to a running Docker container.
+func (h *TerminalHandler) dockerTerminal(conn *websocket.Conn, containerID string) {
 	shell := detectShell(containerID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
@@ -65,7 +78,42 @@ func (h *TerminalHandler) Connect(c *gin.Context) {
 
 	args := []string{"exec", "-it", containerID, shell}
 	cmd := exec.CommandContext(ctx, "docker", args...)
+	h.pipeCmd(conn, cmd)
+}
 
+// localTerminal falls back to a shell in the project's running directory.
+// This is used when Docker is not available (e.g. direct Node/Python/Go deployments).
+func (h *TerminalHandler) localTerminal(conn *websocket.Conn, projectID string) {
+	// The worker copies files to deployDir/<projectID[:8]>
+	workDir := filepath.Join(h.deployDir, projectID[:8])
+	if _, err := os.Stat(workDir); err != nil {
+		writeWSError(conn, "no deployed directory found — deploy the project first")
+		return
+	}
+
+	// Announce the fallback mode to the user
+	banner := fmt.Sprintf(
+		"\r\n\x1b[33m⚠  No container — connected to local deploy directory: %s\x1b[0m\r\n\r\n",
+		workDir,
+	)
+	conn.WriteMessage(websocket.BinaryMessage, []byte(banner)) //nolint:errcheck
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Minute)
+	defer cancel()
+
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.CommandContext(ctx, "cmd.exe")
+	} else {
+		shell := localShell()
+		cmd = exec.CommandContext(ctx, shell)
+	}
+	cmd.Dir = workDir
+	h.pipeCmd(conn, cmd)
+}
+
+// pipeCmd wires a command's stdin/stdout to the WebSocket.
+func (h *TerminalHandler) pipeCmd(conn *websocket.Conn, cmd *exec.Cmd) {
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		writeWSError(conn, "failed to create stdin pipe: "+err.Error())
@@ -79,12 +127,12 @@ func (h *TerminalHandler) Connect(c *gin.Context) {
 	cmd.Stderr = cmd.Stdout // merge stderr into stdout
 
 	if err := cmd.Start(); err != nil {
-		writeWSError(conn, fmt.Sprintf("docker exec failed: %v", err))
+		writeWSError(conn, fmt.Sprintf("shell start failed: %v", err))
 		return
 	}
 	defer cmd.Process.Kill() //nolint:errcheck
 
-	// Forward container stdout -> WebSocket
+	// Forward stdout -> WebSocket
 	go func() {
 		buf := make([]byte, 4096)
 		for {
@@ -103,7 +151,7 @@ func (h *TerminalHandler) Connect(c *gin.Context) {
 		}
 	}()
 
-	// Forward WebSocket input -> container stdin
+	// Forward WebSocket input -> stdin
 	for {
 		_, msg, err := conn.ReadMessage()
 		if err != nil {
@@ -118,7 +166,7 @@ func (h *TerminalHandler) Connect(c *gin.Context) {
 	cmd.Wait() //nolint:errcheck
 }
 
-// detectShell tries /bin/bash then /bin/sh to find an available shell.
+// detectShell tries /bin/bash then /bin/sh inside a container.
 func detectShell(containerID string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -129,6 +177,17 @@ func detectShell(containerID string) string {
 	return "/bin/sh"
 }
 
+// localShell returns the best available interactive shell on the host.
+func localShell() string {
+	for _, sh := range []string{"/bin/bash", "/bin/sh", "/usr/bin/bash", "/usr/bin/sh"} {
+		if _, err := os.Stat(sh); err == nil {
+			return sh
+		}
+	}
+	return "/bin/sh"
+}
+
 func writeWSError(conn *websocket.Conn, msg string) {
 	conn.WriteMessage(websocket.TextMessage, []byte("\r\n\x1b[31mError: "+msg+"\x1b[0m\r\n")) //nolint:errcheck
 }
+

@@ -54,13 +54,24 @@ func main() {
 		// Redis is NOT used for job routing in this mode — the in-process channel
 		// handles all dispatch and gives the API live worker/job counts.
 		// For horizontal worker scaling, use PUSHPAKA_COMPONENT=api + PUSHPAKA_COMPONENT=worker.
+		//
+		// IMPORTANT: open ONE shared database pool and hand it to BOTH components.
+		// This prevents SQLITE_BUSY_SNAPSHOT (error 261) in WAL mode: that error
+		// occurs when two separate connection pools hold overlapping read snapshots
+		// and one tries to write.  A single pool serialises all access.
+		sharedDB, err := backendApp.OpenDB(os.Getenv("DATABASE_DRIVER"), os.Getenv("DATABASE_URL"))
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to open shared database")
+		}
+		defer sharedDB.Close()
+
 		q := queue.New(100)
 		log.Info().Bool("dev", *dev).Msg("all-in-one mode: in-process queue active, embedded workers starting")
 
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			opts := backendApp.RunOptions{InProcessQueue: q}
+			opts := backendApp.RunOptions{InProcessQueue: q, DB: sharedDB}
 			if err := backendApp.RunWithOptions(ctx, opts); err != nil {
 				log.Error().Err(err).Msg("API server error")
 			}
@@ -69,7 +80,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := workerApp.RunInProcess(ctx, q.Chan(), q); err != nil {
+			if err := workerApp.RunInProcessWithDB(ctx, q.Chan(), q, sharedDB); err != nil {
 				log.Error().Err(err).Msg("embedded worker error")
 			}
 		}()

@@ -234,6 +234,11 @@
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s, background 0.25s, color 0.25s;
   }
+  /* Native <select> ignores gradient backgrounds — use a flat colour fallback */
+  select.input {
+    background: var(--surface-elevated);
+    background-image: none;
+  }
   .input::placeholder { color: var(--input-placeholder); }
   .input:focus {
     border-color: rgba(99, 102, 241, 0.6);

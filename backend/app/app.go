@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
@@ -19,11 +20,24 @@ import (
 	"github.com/vikukumar/Pushpaka/ui"
 )
 
+// OpenDB opens the database using the given driver and DSN.
+// Exposed so that callers embedding multiple components (e.g. the combined
+// binary) can open ONE shared connection pool and pass it to both the API
+// and the worker, preventing SQLite BUSY_SNAPSHOT errors in WAL mode.
+func OpenDB(driver, dsn string) (*sqlx.DB, error) {
+	return database.New(driver, dsn)
+}
+
 // RunOptions configures optional behaviour for Run.
 type RunOptions struct {
 	// InProcessQueue, when non-nil, is used instead of Redis for deployment jobs.
 	// Intended for dev mode where the embedded worker reads from the same queue.
 	InProcessQueue *queue.InProcess
+
+	// DB, when non-nil, is used instead of opening a new database connection.
+	// The caller is responsible for closing the DB after RunWithOptions returns.
+	// Used in all-in-one mode to share one SQLite pool between API and worker.
+	DB *sqlx.DB
 }
 
 // Run starts the Pushpaka API server with default options and blocks until ctx is cancelled.
@@ -35,20 +49,28 @@ func Run(ctx context.Context) error {
 func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	cfg := config.Load()
 
-	db, err := database.New(cfg.DatabaseDriver, cfg.DatabaseURL)
-	if err != nil {
-		return fmt.Errorf("database: %w", err)
+	var db *sqlx.DB
+	if opts.DB != nil {
+		// Caller already opened a shared pool; we must not close it here.
+		db = opts.DB
+	} else {
+		var err error
+		db, err = database.New(cfg.DatabaseDriver, cfg.DatabaseURL)
+		if err != nil {
+			return fmt.Errorf("database: %w", err)
+		}
+		defer db.Close()
 	}
-	defer db.Close()
 
 	// Redis is optional: skipped when REDIS_URL is empty or an in-process queue is used.
 	var rdb *redis.Client
 	if opts.InProcessQueue != nil {
 		log.Info().Msg("using in-process job queue (dev mode)")
 	} else if cfg.RedisURL != "" {
-		rdb, err = database.NewRedis(cfg.RedisURL)
-		if err != nil {
-			log.Warn().Err(err).Msg("redis unavailable - deployment triggers disabled")
+		var redisErr error
+		rdb, redisErr = database.NewRedis(cfg.RedisURL)
+		if redisErr != nil {
+			log.Warn().Err(redisErr).Msg("redis unavailable - deployment triggers disabled")
 		} else {
 			defer rdb.Close()
 		}

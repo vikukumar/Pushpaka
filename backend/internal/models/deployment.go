@@ -37,17 +37,19 @@ type DeployRequest struct {
 }
 
 type DeploymentJob struct {
-	DeploymentID string            `json:"deployment_id"`
-	ProjectID    string            `json:"project_id"`
-	UserID       string            `json:"user_id"`
-	RepoURL      string            `json:"repo_url"`
-	Branch       string            `json:"branch"`
-	CommitSHA    string            `json:"commit_sha"`
-	BuildCommand string            `json:"build_command"`
-	StartCommand string            `json:"start_command"`
-	Port         int               `json:"port"`
-	EnvVars      map[string]string `json:"env_vars"`
-	ImageTag     string            `json:"image_tag"`
+	DeploymentID   string            `json:"deployment_id"`
+	ProjectID      string            `json:"project_id"`
+	UserID         string            `json:"user_id"`
+	RepoURL        string            `json:"repo_url"`
+	Branch         string            `json:"branch"`
+	CommitSHA      string            `json:"commit_sha"`
+	InstallCommand string            `json:"install_command,omitempty"`
+	BuildCommand   string            `json:"build_command"`
+	StartCommand   string            `json:"start_command"`
+	RunDir         string            `json:"run_dir,omitempty"`
+	Port           int               `json:"port"`
+	EnvVars        map[string]string `json:"env_vars"`
+	ImageTag       string            `json:"image_tag"`
 	// GitToken is the PAT for private-repo cloning. Never logged or stored in deployment records.
 	GitToken string `json:"git_token,omitempty"`
 	// Resource limits for the Docker container (empty = Docker defaults)

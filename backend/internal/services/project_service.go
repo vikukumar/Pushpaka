@@ -30,25 +30,33 @@ func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest)
 		port = 3000
 	}
 
+	restart := req.RestartPolicy
+	if restart == "" {
+		restart = "unless-stopped"
+	}
 	now := models.NowUTC()
 	p := &models.Project{
-		ID:            uuid.New().String(),
-		UserID:        userID,
-		Name:          req.Name,
-		RepoURL:       req.RepoURL,
-		Branch:        branch,
-		BuildCommand:  req.BuildCommand,
-		StartCommand:  req.StartCommand,
-		Port:          port,
-		Framework:     req.Framework,
-		Status:        "inactive",
-		IsPrivate:     req.IsPrivate,
-		GitToken:      req.GitToken,
-		CPULimit:      req.CPULimit,
-		MemoryLimit:   req.MemoryLimit,
-		RestartPolicy: req.RestartPolicy,
-		CreatedAt:     now,
-		UpdatedAt:     now,
+		ID:             uuid.New().String(),
+		UserID:         userID,
+		Name:           req.Name,
+		RepoURL:        req.RepoURL,
+		Branch:         branch,
+		InstallCommand: req.InstallCommand,
+		BuildCommand:   req.BuildCommand,
+		StartCommand:   req.StartCommand,
+		RunDir:         req.RunDir,
+		Port:           port,
+		Framework:      req.Framework,
+		Status:         "inactive",
+		IsPrivate:      req.IsPrivate,
+		GitToken:       req.GitToken,
+		CPULimit:       req.CPULimit,
+		MemoryLimit:    req.MemoryLimit,
+		RestartPolicy:  restart,
+		DeployTarget:   req.DeployTarget,
+		K8sNamespace:   req.K8sNamespace,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
 	if err := s.projectRepo.Create(p); err != nil {
@@ -77,15 +85,17 @@ func (s *ProjectService) Update(id, userID string, req *models.UpdateProjectRequ
 	if req.Name != "" {
 		p.Name = req.Name
 	}
+	if req.RepoURL != "" {
+		p.RepoURL = req.RepoURL
+	}
 	if req.Branch != "" {
 		p.Branch = req.Branch
 	}
-	if req.BuildCommand != "" {
-		p.BuildCommand = req.BuildCommand
-	}
-	if req.StartCommand != "" {
-		p.StartCommand = req.StartCommand
-	}
+	// Allow clearing install/build/start command by setting to empty
+	p.InstallCommand = req.InstallCommand
+	p.BuildCommand = req.BuildCommand
+	p.StartCommand = req.StartCommand
+	p.RunDir = req.RunDir
 	if req.Port > 0 {
 		p.Port = req.Port
 	}

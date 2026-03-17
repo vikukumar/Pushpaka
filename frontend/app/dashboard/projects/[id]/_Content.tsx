@@ -11,7 +11,7 @@ import { timeAgo } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
   Rocket, GitBranch, Globe, Key, Settings, Trash2,
-  ExternalLink, RefreshCw, Loader2, ChevronRight, GitCommit
+  ExternalLink, RefreshCw, Loader2, ChevronRight, GitCommit, Code2
 } from 'lucide-react'
 
 export default function ProjectDetailPage() {
@@ -30,13 +30,11 @@ export default function ProjectDetailPage() {
 
   const { data: deploymentsData } = useQuery({
     queryKey: ['deployments', 'project', id],
-    queryFn: () => deploymentsApi.list(5).then((r) => r.data),
+    queryFn: () => deploymentsApi.list(5, 0, id).then((r) => r.data),
   })
 
   const project = projectData
-  const deployments = (deploymentsData?.data || []).filter(
-    (d: { project_id: string }) => d.project_id === id
-  )
+  const deployments = deploymentsData?.data || []
 
   const handleDeploy = async () => {
     setDeployLoading(true)
@@ -107,6 +105,10 @@ export default function ProjectDetailPage() {
           <Link href={`/dashboard/projects/${id}/domains`} className="btn-secondary">
             <Globe size={14} />
             Domains
+          </Link>
+          <Link href={`/dashboard/projects/${id}/editor`} className="btn-secondary">
+            <Code2 size={14} />
+            Editor
           </Link>
           <Link href={`/dashboard/projects/${id}/settings`} className="btn-secondary ml-auto">
             <Settings size={14} />

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/vikukumar/Pushpaka/internal/config"
+	"github.com/vikukumar/Pushpaka/internal/models"
 )
 
 // AIService provides a provider-agnostic interface to large-language models.
@@ -24,43 +25,128 @@ func NewAIService(cfg *config.Config) *AIService {
 	return &AIService{cfg: cfg}
 }
 
-// Available reports whether an AI API key is configured.
+// Available reports whether an AI API key is configured (server-wide or user-specific).
 func (s *AIService) Available() bool {
 	return s.cfg.AIAPIKey != ""
+}
+
+// AvailableWithUserConfig reports whether the user or global config has an API key.
+func (s *AIService) AvailableWithUserConfig(userCfg *models.AIConfig) bool {
+	if userCfg != nil && userCfg.APIKey != "" {
+		return true
+	}
+	return s.cfg.AIAPIKey != ""
+}
+
+// resolvedProvider returns the effective provider for a user (user config takes precedence).
+func (s *AIService) resolvedProvider(userCfg *models.AIConfig) string {
+	if userCfg != nil && userCfg.Provider != "" {
+		return userCfg.Provider
+	}
+	if s.cfg.AIProvider != "" {
+		return s.cfg.AIProvider
+	}
+	return "openai"
+}
+
+func (s *AIService) resolvedAPIKey(userCfg *models.AIConfig) string {
+	if userCfg != nil && userCfg.APIKey != "" {
+		return userCfg.APIKey
+	}
+	return s.cfg.AIAPIKey
+}
+
+func (s *AIService) resolvedModel(userCfg *models.AIConfig) string {
+	if userCfg != nil && userCfg.Model != "" {
+		return userCfg.Model
+	}
+	if s.cfg.AIModel != "" {
+		return s.cfg.AIModel
+	}
+	return "gpt-4o-mini"
+}
+
+func (s *AIService) resolvedBaseURL(userCfg *models.AIConfig) string {
+	if userCfg != nil && userCfg.BaseURL != "" {
+		return userCfg.BaseURL
+	}
+	return s.cfg.AIBaseURL
+}
+
+// buildRAGContext prepends RAG documents as context to the system prompt.
+func buildRAGContext(ragDocs []models.RAGDocument, systemPrompt string) string {
+	if len(ragDocs) == 0 {
+		return systemPrompt
+	}
+	var sb strings.Builder
+	sb.WriteString("## Custom Knowledge Base (use this reference information to inform your answers)\n\n")
+	for i, doc := range ragDocs {
+		sb.WriteString(fmt.Sprintf("### Document %d: %s\n%s\n\n", i+1, doc.Title, doc.Content))
+	}
+	sb.WriteString("---\n\n")
+	sb.WriteString(systemPrompt)
+	return sb.String()
 }
 
 // AnalyzeLogs sends deployment logs to the configured AI provider and returns
 // a natural-language root-cause analysis with suggested fixes.
 func (s *AIService) AnalyzeLogs(logs string) (string, error) {
-	if !s.Available() {
-		return "", errors.New("AI integration not configured: set AI_API_KEY")
+	return s.AnalyzeLogsWithConfig(nil, nil, logs)
+}
+
+// AnalyzeLogsWithConfig is the user-config-aware version of AnalyzeLogs.
+func (s *AIService) AnalyzeLogsWithConfig(userCfg *models.AIConfig, ragDocs []models.RAGDocument, logs string) (string, error) {
+	if !s.AvailableWithUserConfig(userCfg) {
+		return "", errors.New("AI integration not configured: set AI_API_KEY or configure your AI settings")
 	}
 
-	systemPrompt := `You are an expert DevOps engineer. The user will give you deployment build logs.
+	baseSystem := `You are an expert DevOps engineer. The user will give you deployment build logs.
 Analyze them, identify the root cause of any failures, and provide a concise explanation with
 actionable fix suggestions. Format your response in plain text with clear sections:
 1. Root Cause  2. Explanation  3. Suggested Fix`
 
+	// Use user's custom system prompt if set
+	if userCfg != nil && userCfg.SystemPrompt != "" {
+		baseSystem = userCfg.SystemPrompt
+	}
+
+	systemPrompt := buildRAGContext(ragDocs, baseSystem)
 	userPrompt := fmt.Sprintf("Analyze the following deployment logs and identify any errors:\n\n---\n%s\n---", truncateLogs(logs, 8000))
 
-	return s.complete(systemPrompt, userPrompt)
+	return s.completeWithConfig(userCfg, systemPrompt, userPrompt)
 }
 
 // Ask sends an arbitrary prompt to the AI and returns the response.
 func (s *AIService) Ask(systemPrompt, userPrompt string) (string, error) {
-	if !s.Available() {
-		return "", errors.New("AI integration not configured: set AI_API_KEY")
+	return s.AskWithConfig(nil, nil, systemPrompt, userPrompt)
+}
+
+// AskWithConfig is the user-config-aware version of Ask.
+func (s *AIService) AskWithConfig(userCfg *models.AIConfig, ragDocs []models.RAGDocument, systemPrompt, userPrompt string) (string, error) {
+	if !s.AvailableWithUserConfig(userCfg) {
+		return "", errors.New("AI integration not configured: set AI_API_KEY or configure your AI settings")
 	}
-	return s.complete(systemPrompt, userPrompt)
+
+	// Merge custom system prompt + RAG
+	if userCfg != nil && userCfg.SystemPrompt != "" {
+		systemPrompt = userCfg.SystemPrompt + "\n\n" + systemPrompt
+	}
+	fullSystem := buildRAGContext(ragDocs, systemPrompt)
+
+	return s.completeWithConfig(userCfg, fullSystem, userPrompt)
 }
 
 func (s *AIService) complete(system, user string) (string, error) {
-	switch strings.ToLower(s.cfg.AIProvider) {
+	return s.completeWithConfig(nil, system, user)
+}
+
+func (s *AIService) completeWithConfig(userCfg *models.AIConfig, system, user string) (string, error) {
+	provider := s.resolvedProvider(userCfg)
+	switch strings.ToLower(provider) {
 	case "anthropic":
-		return s.anthropicComplete(system, user)
+		return s.anthropicCompleteWithConfig(userCfg, system, user)
 	default:
-		// OpenAI-compatible: openai, openrouter, gemini (via compatibility endpoint), ollama
-		return s.openAIComplete(system, user)
+		return s.openAICompleteWithConfig(userCfg, system, user)
 	}
 }
 
@@ -84,12 +170,10 @@ type openAIResponse struct {
 	} `json:"error"`
 }
 
-func (s *AIService) openAIComplete(system, user string) (string, error) {
-	endpoint := s.resolveEndpoint()
-	model := s.cfg.AIModel
-	if model == "" {
-		model = "gpt-4o-mini"
-	}
+func (s *AIService) openAICompleteWithConfig(userCfg *models.AIConfig, system, user string) (string, error) {
+	endpoint := s.resolveEndpointWithConfig(userCfg)
+	model := s.resolvedModel(userCfg)
+	apiKey := s.resolvedAPIKey(userCfg)
 
 	body := openAIRequest{
 		Model: model,
@@ -103,8 +187,7 @@ func (s *AIService) openAIComplete(system, user string) (string, error) {
 
 	req, _ := http.NewRequest("POST", endpoint+"/chat/completions", bytes.NewReader(data))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+s.cfg.AIAPIKey)
-	// OpenRouter requires a site header for tracking
+	req.Header.Set("Authorization", "Bearer "+apiKey)
 	if strings.Contains(endpoint, "openrouter") {
 		req.Header.Set("HTTP-Referer", "https://pushpaka")
 		req.Header.Set("X-Title", "Pushpaka")
@@ -131,20 +214,27 @@ func (s *AIService) openAIComplete(system, user string) (string, error) {
 	return result.Choices[0].Message.Content, nil
 }
 
-func (s *AIService) resolveEndpoint() string {
-	if s.cfg.AIBaseURL != "" {
-		return strings.TrimRight(s.cfg.AIBaseURL, "/")
+func (s *AIService) resolveEndpointWithConfig(userCfg *models.AIConfig) string {
+	baseURL := s.resolvedBaseURL(userCfg)
+	if baseURL != "" {
+		return strings.TrimRight(baseURL, "/")
 	}
-	switch strings.ToLower(s.cfg.AIProvider) {
+	provider := s.resolvedProvider(userCfg)
+	switch strings.ToLower(provider) {
 	case "openrouter":
 		return "https://openrouter.ai/api/v1"
 	case "gemini":
 		return "https://generativelanguage.googleapis.com/v1beta/openai"
 	case "ollama":
 		return "http://localhost:11434/v1"
-	default: // openai
+	default:
 		return "https://api.openai.com/v1"
 	}
+}
+
+// Keep legacy wrappers for backward compat
+func (s *AIService) openAIComplete(system, user string) (string, error) {
+	return s.openAICompleteWithConfig(nil, system, user)
 }
 
 // ─── Anthropic ────────────────────────────────────────────────────────────────
@@ -168,11 +258,12 @@ type anthropicResponse struct {
 	} `json:"error"`
 }
 
-func (s *AIService) anthropicComplete(system, user string) (string, error) {
-	model := s.cfg.AIModel
+func (s *AIService) anthropicCompleteWithConfig(userCfg *models.AIConfig, system, user string) (string, error) {
+	model := s.resolvedModel(userCfg)
 	if model == "" {
 		model = "claude-3-haiku-20240307"
 	}
+	apiKey := s.resolvedAPIKey(userCfg)
 
 	body := anthropicRequest{
 		Model:     model,
@@ -184,7 +275,7 @@ func (s *AIService) anthropicComplete(system, user string) (string, error) {
 
 	req, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(data))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("x-api-key", s.cfg.AIAPIKey)
+	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
 	client := &http.Client{Timeout: 60 * time.Second}

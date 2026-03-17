@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useAuthStore } from '@/lib/auth'
 import { Header } from '@/components/layout/Header'
-import { User, Shield, Key, Bell, Loader2, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
-import { notificationsApi } from '@/lib/api'
+import { User, Shield, Key, Bell, Loader2, CheckCircle, ChevronDown, ChevronUp, Sparkles, Eye, EyeOff } from 'lucide-react'
+import { Select } from '@/components/ui/Select'
+import { notificationsApi, aiApi } from '@/lib/api'
 import toast from 'react-hot-toast'
 
 interface NotifConfig {
@@ -233,6 +234,194 @@ function NotificationsSection() {
   )
 }
 
+// ── AI Provider settings section ─────────────────────────────────────────────
+const AI_PROVIDERS = [
+  { value: 'openai',      label: 'OpenAI' },
+  { value: 'openrouter',  label: 'OpenRouter' },
+  { value: 'gemini',      label: 'Google Gemini' },
+  { value: 'anthropic',   label: 'Anthropic' },
+  { value: 'ollama',      label: 'Ollama (local)' },
+]
+
+function AIProviderSection() {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [showKey, setShowKey] = useState(false)
+  const [form, setForm] = useState({
+    provider: 'openai',
+    api_key: '',
+    model: '',
+    base_url: '',
+    system_prompt: '',
+    monitoring_enabled: false,
+    monitoring_interval: 300,
+  })
+  const [maskedKey, setMaskedKey] = useState('')
+
+  useEffect(() => {
+    aiApi.getConfig()
+      .then((res) => {
+        const d = res.data
+        if (d) {
+          setForm((prev) => ({
+            ...prev,
+            provider: d.provider || 'openai',
+            model: d.model || '',
+            base_url: d.base_url || '',
+            system_prompt: d.system_prompt || '',
+            monitoring_enabled: !!d.monitoring_enabled,
+            monitoring_interval: d.monitoring_interval || 300,
+          }))
+          setMaskedKey(d.api_key_masked || '')
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await aiApi.saveConfig(form)
+      toast.success('AI settings saved')
+      // Re-fetch to get the masked key
+      const res = await aiApi.getConfig()
+      setMaskedKey(res.data?.api_key_masked || '')
+      if (form.api_key) {
+        setForm((f) => ({ ...f, api_key: '' })) // clear plaintext after save
+      }
+    } catch {
+      toast.error('Failed to save AI settings')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const modelPlaceholder: Record<string, string> = {
+    openai:     'gpt-4o-mini',
+    openrouter: 'openai/gpt-4o-mini',
+    gemini:     'gemini-1.5-flash',
+    anthropic:  'claude-3-haiku-20240307',
+    ollama:     'llama3',
+  }
+
+  if (loading) return (
+    <div className="card flex items-center gap-2 text-slate-400 text-sm">
+      <Loader2 size={14} className="animate-spin" /> Loading AI settings…
+    </div>
+  )
+
+  return (
+    <div className="card">
+      <div className="flex items-center gap-3 mb-5">
+        <Sparkles size={16} className="text-brand-400" />
+        <h3 className="text-sm font-semibold text-white">AI Provider</h3>
+        <span className="text-xs text-slate-500 ml-auto">Powers log analysis &amp; chat assistant</span>
+      </div>
+
+      <div className="space-y-4">
+        {/* Provider */}
+        <div>
+          <label className="block text-xs text-slate-500 mb-1.5">Provider</label>
+          <Select
+            value={form.provider}
+            onChange={(v) => setForm((f) => ({ ...f, provider: v }))}
+            options={AI_PROVIDERS}
+          />
+        </div>
+
+        {/* API Key */}
+        <div>
+          <label className="block text-xs text-slate-500 mb-1.5">API Key</label>
+          <div className="relative">
+            <input
+              type={showKey ? 'text' : 'password'}
+              className="input pr-10 font-mono text-sm"
+              placeholder={maskedKey || 'sk-…  (leave blank to keep existing)'}
+              value={form.api_key}
+              onChange={(e) => setForm((f) => ({ ...f, api_key: e.target.value }))}
+              autoComplete="new-password"
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+              onClick={() => setShowKey((v) => !v)}
+            >
+              {showKey ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
+          {maskedKey && (
+            <p className="text-xs text-slate-600 mt-1">Current: {maskedKey}</p>
+          )}
+        </div>
+
+        {/* Model */}
+        <div>
+          <label className="block text-xs text-slate-500 mb-1.5">Model</label>
+          <input
+            className="input font-mono text-sm"
+            placeholder={modelPlaceholder[form.provider] || 'model-name'}
+            value={form.model}
+            onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+          />
+        </div>
+
+        {/* Base URL (optional — for Ollama / OpenRouter / self-hosted) */}
+        {['ollama', 'openrouter', 'openai'].includes(form.provider) && (
+          <div>
+            <label className="block text-xs text-slate-500 mb-1.5">
+              Base URL <span className="text-slate-600">(optional override)</span>
+            </label>
+            <input
+              className="input font-mono text-sm"
+              placeholder={form.provider === 'ollama' ? 'http://localhost:11434' : 'https://openrouter.ai/api/v1'}
+              value={form.base_url}
+              onChange={(e) => setForm((f) => ({ ...f, base_url: e.target.value }))}
+            />
+          </div>
+        )}
+
+        {/* System prompt */}
+        <div>
+          <label className="block text-xs text-slate-500 mb-1.5">
+            Custom System Prompt <span className="text-slate-600">(optional)</span>
+          </label>
+          <textarea
+            className="input resize-none text-sm"
+            rows={3}
+            placeholder="You are a helpful deployment assistant…"
+            value={form.system_prompt}
+            onChange={(e) => setForm((f) => ({ ...f, system_prompt: e.target.value }))}
+          />
+        </div>
+
+        {/* Monitoring toggle */}
+        <div className="flex items-center gap-3">
+          <input
+            id="ai-monitor"
+            type="checkbox"
+            className="accent-brand-500 w-4 h-4"
+            checked={form.monitoring_enabled}
+            onChange={(e) => setForm((f) => ({ ...f, monitoring_enabled: e.target.checked }))}
+          />
+          <label htmlFor="ai-monitor" className="text-sm text-slate-300 select-none cursor-pointer">
+            Enable background AI monitoring (auto-analyse failed deployments)
+          </label>
+        </div>
+      </div>
+
+      <button
+        className="btn-primary mt-5 text-sm"
+        onClick={handleSave}
+        disabled={saving}
+      >
+        {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+        Save AI Settings
+      </button>
+    </div>
+  )
+}
+
 export default function SettingsPage() {
   const { user } = useAuthStore()
 
@@ -294,6 +483,9 @@ export default function SettingsPage() {
             <button className="btn-secondary text-sm">Regenerate</button>
           </div>
         </div>
+
+        {/* AI Provider — live */}
+        <AIProviderSection />
 
         {/* Notifications — live */}
         <NotificationsSection />

@@ -1,20 +1,24 @@
 'use client'
 
-import { Bell, Sun, Moon } from 'lucide-react'
+import { Bell, Sun, Moon, Menu } from 'lucide-react'
+import React from 'react'
 import { useTheme } from '@/lib/theme'
+import { useSidebar } from '@/components/providers/AuthProvider'
 
 interface HeaderProps {
   title: string
   subtitle?: string
+  actions?: React.ReactNode
 }
 
-export function Header({ title, subtitle }: HeaderProps) {
+export function Header({ title, subtitle, actions }: HeaderProps) {
   const { theme, toggle, mounted } = useTheme()
   const isDark = !mounted || theme === 'dark'
+  const { toggle: toggleSidebar } = useSidebar()
 
   return (
     <header
-      className="h-16 flex items-center justify-between px-6 sticky top-0 z-20 transition-all duration-300"
+      className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 transition-all duration-300"
       style={{
         background: 'var(--header-bg)',
         borderBottom: '1px solid var(--header-border)',
@@ -25,31 +29,41 @@ export function Header({ title, subtitle }: HeaderProps) {
           : '0 1px 0 rgba(99,102,241,0.08), 0 4px 16px -4px rgba(99,102,241,0.08)',
       }}
     >
-      {/* Title */}
-      <div>
-        <h1
-          className="text-[17px] font-semibold tracking-tight leading-tight"
-          style={{
-            background: 'var(--header-title)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}
+      {/* Hamburger (mobile only) + Title */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={toggleSidebar}
+          className="md:hidden p-2 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/10 transition-colors"
+          aria-label="Open menu"
         >
-          {title}
-        </h1>
-        {subtitle && (
-          <p
-            className="text-[11px] mt-0.5 tracking-wide"
-            style={{ color: 'var(--text-muted)' }}
+          <Menu size={18} />
+        </button>
+        <div>
+          <h1
+            className="text-[15px] md:text-[17px] font-semibold tracking-tight leading-tight"
+            style={{
+              background: 'var(--header-title)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
           >
-            {subtitle}
-          </p>
-        )}
+            {title}
+          </h1>
+          {subtitle && (
+            <p
+              className="text-[11px] mt-0.5 tracking-wide"
+              style={{ color: 'var(--text-muted)' }}
+            >
+              {subtitle}
+            </p>
+          )}
+        </div>
       </div>
 
       {/* Actions */}
       <div className="flex items-center gap-2">
+        {actions && <div className="flex items-center gap-2 mr-1">{actions}</div>}
         {/* Animated theme toggle pill */}
         <button
           onClick={toggle}
@@ -116,9 +130,9 @@ export function Header({ title, subtitle }: HeaderProps) {
           />
         </button>
 
-        {/* Notifications */}
+        {/* Notifications - hidden on small mobile */}
         <button
-          className="relative p-2 rounded-lg transition-all duration-200"
+          className="relative p-2 rounded-lg transition-all duration-200 hidden sm:flex"
           style={{
             color: 'var(--text-muted)',
             background: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(99,102,241,0.05)',

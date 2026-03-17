@@ -11,10 +11,12 @@ import {
   Activity,
   LogOut,
   Shield,
+  X,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import { useSidebar } from '@/components/providers/AuthProvider'
 
 const navItems = [
   { href: '/dashboard',             label: 'Overview',     icon: LayoutDashboard },
@@ -30,6 +32,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const { user, clearAuth } = useAuthStore()
   const router = useRouter()
+  const { open, close } = useSidebar()
 
   const handleLogout = () => {
     clearAuth()
@@ -38,7 +41,14 @@ export function Sidebar() {
 
   return (
     <aside
-      className="w-64 h-screen flex flex-col fixed left-0 top-0 z-30 overflow-hidden transition-all duration-300"
+      className={cn(
+        'w-64 h-screen flex flex-col z-50 overflow-hidden transition-all duration-300',
+        // Desktop: always visible fixed sidebar
+        'md:fixed md:left-0 md:top-0 md:translate-x-0',
+        // Mobile: slide in/out from left
+        'fixed left-0 top-0',
+        open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+      )}
       style={{
         background: 'var(--sidebar-bg)',
         borderRight: '1px solid var(--sidebar-border)',
@@ -53,10 +63,10 @@ export function Sidebar() {
 
       {/* """ Logo """ */}
       <div
-        className="px-5 py-4 relative shrink-0"
+        className="px-5 py-4 relative shrink-0 flex items-center justify-between"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
       >
-        <Link href="/dashboard" className="flex items-center gap-3 group">
+        <Link href="/dashboard" onClick={close} className="flex items-center gap-3 group">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
             style={{
@@ -93,6 +103,13 @@ export function Sidebar() {
             </div>
           </div>
         </Link>
+        {/* Mobile close button */}
+        <button
+          onClick={close}
+          className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/10 transition-colors"
+        >
+          <X size={16} />
+        </button>
       </div>
 
       {/* """ Navigation """ */}
@@ -107,6 +124,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={close}
               className={cn(
                 'relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium',
                 'transition-all duration-200 group overflow-hidden',

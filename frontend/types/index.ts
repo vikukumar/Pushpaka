@@ -12,8 +12,10 @@ export interface Project {
   name: string
   repo_url: string
   branch: string
+  install_command: string
   build_command: string
   start_command: string
+  run_dir: string
   port: number
   framework: string
   status: 'active' | 'inactive' | 'building'
@@ -21,6 +23,8 @@ export interface Project {
   cpu_limit: string
   memory_limit: string
   restart_policy: string
+  deploy_target: string
+  k8s_namespace: string
   created_at: string
   updated_at: string
 }

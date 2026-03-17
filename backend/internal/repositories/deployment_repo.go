@@ -90,6 +90,11 @@ func (r *DeploymentRepository) FindLatestByProjectID(projectID string) (*models.
 
 // FailStaleQueued marks all deployments that are still "queued" as "failed".
 // Called at startup when no Redis/worker is available, to clear stuck records.
+func (r *DeploymentRepository) Delete(id string) error {
+	_, err := r.db.Exec(r.db.Rebind(`DELETE FROM deployments WHERE id = ?`), id)
+	return err
+}
+
 func (r *DeploymentRepository) FailStaleQueued(errorMsg string) error {
 	// Use models.NowUTC() so Value() emits RFC3339Nano text, which scans correctly
 	// back into *models.Time via Scan() without format ambiguity.

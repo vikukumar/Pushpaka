@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
@@ -7,7 +7,27 @@ import { projectsApi, webhooksApi } from '@/lib/api'
 import { Project, WebhookConfig } from '@/types'
 import { Header } from '@/components/layout/Header'
 import toast from 'react-hot-toast'
-import { Trash2, AlertTriangle, Lock, Eye, EyeOff, Save, Cpu, Link2, Plus, X, Copy, Check } from 'lucide-react'
+import { Trash2, AlertTriangle, Lock, Eye, EyeOff, Save, Cpu, Link2, Plus, X, Copy, Check, GitBranch, FolderOpen } from 'lucide-react'
+import { Select } from '@/components/ui/Select'
+
+const FRAMEWORKS = [
+  { value: '', label: 'Auto-detect' },
+  { value: 'nextjs', label: 'Next.js' },
+  { value: 'react', label: 'React (CRA / Vite)' },
+  { value: 'vue', label: 'Vue.js' },
+  { value: 'nuxt', label: 'Nuxt.js' },
+  { value: 'svelte', label: 'SvelteKit' },
+  { value: 'angular', label: 'Angular' },
+  { value: 'remix', label: 'Remix' },
+  { value: 'astro', label: 'Astro' },
+  { value: 'nodejs', label: 'Node.js (Express/Fastify)' },
+  { value: 'python', label: 'Python (Flask/FastAPI/Django)' },
+  { value: 'ruby', label: 'Ruby on Rails' },
+  { value: 'go', label: 'Go' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'static', label: 'Static HTML' },
+  { value: 'docker', label: 'Dockerfile' },
+]
 
 export default function ProjectSettingsPage() {
   const pathname = usePathname()
@@ -18,6 +38,17 @@ export default function ProjectSettingsPage() {
   const [newToken, setNewToken] = useState('')
   const [isPrivate, setIsPrivate] = useState<boolean | null>(null)
   const [savingToken, setSavingToken] = useState(false)
+
+  // Build configuration
+  const [repoURL, setRepoURL] = useState('')
+  const [branch, setBranch] = useState('')
+  const [framework, setFramework] = useState('')
+  const [port, setPort] = useState('')
+  const [installCmd, setInstallCmd] = useState('')
+  const [buildCmd, setBuildCmd] = useState('')
+  const [startCmd, setStartCmd] = useState('')
+  const [runDir, setRunDir] = useState('')
+  const [savingBuild, setSavingBuild] = useState(false)
 
   // Resource limits
   const [cpuLimit, setCpuLimit] = useState('')
@@ -37,13 +68,21 @@ export default function ProjectSettingsPage() {
     queryFn: () => projectsApi.get(id).then((r) => r.data),
   })
 
-  // Initialise toggle from fetched project (once only)
+  // Initialise from fetched project (once only)
   useEffect(() => {
     if (project && isPrivate === null) {
       setIsPrivate(project.is_private ?? false)
       setCpuLimit(project.cpu_limit ?? '')
       setMemoryLimit(project.memory_limit ?? '')
       setRestartPolicy(project.restart_policy || 'unless-stopped')
+      setRepoURL(project.repo_url ?? '')
+      setBranch(project.branch ?? '')
+      setFramework(project.framework ?? '')
+      setPort(project.port ? String(project.port) : '')
+      setInstallCmd(project.install_command ?? '')
+      setBuildCmd(project.build_command ?? '')
+      setStartCmd(project.start_command ?? '')
+      setRunDir(project.run_dir ?? '')
     }
   }, [project, isPrivate])
 
@@ -55,6 +94,28 @@ export default function ProjectSettingsPage() {
       setWebhooks(all.filter((w) => w.project_id === id))
     }).catch(() => {})
   }, [id])
+
+  const handleSaveBuild = async () => {
+    setSavingBuild(true)
+    try {
+      await projectsApi.update(id, {
+        repo_url: repoURL,
+        branch: branch,
+        framework: framework,
+        port: port ? parseInt(port, 10) : undefined,
+        install_command: installCmd,
+        build_command: buildCmd,
+        start_command: startCmd,
+        run_dir: runDir,
+      })
+      toast.success('Build configuration saved')
+      queryClient.invalidateQueries({ queryKey: ['project', id] })
+    } catch {
+      toast.error('Failed to save build configuration')
+    } finally {
+      setSavingBuild(false)
+    }
+  }
 
   const handleSaveLimits = async () => {
     setSavingLimits(true)
@@ -165,6 +226,112 @@ export default function ProjectSettingsPage() {
           </dl>
         </div>
 
+        {/* Build Configuration */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <GitBranch size={16} className="text-brand-400" />
+            <h3 className="text-sm font-semibold text-slate-300">Build Configuration</h3>
+          </div>
+          <div className="space-y-4">
+            <div>
+              <label className="label text-xs">Repository URL</label>
+              <input
+                type="text"
+                className="input w-full text-sm"
+                placeholder="https://github.com/user/repo"
+                value={repoURL}
+                onChange={(e) => setRepoURL(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label text-xs">Branch</label>
+                <input
+                  type="text"
+                  className="input w-full text-sm"
+                  placeholder="main"
+                  value={branch}
+                  onChange={(e) => setBranch(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label text-xs">Framework</label>
+                <Select
+                  className="w-full"
+                  value={framework}
+                  onChange={setFramework}
+                  options={FRAMEWORKS}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="label text-xs">Install Command</label>
+              <input
+                type="text"
+                className="input w-full text-sm font-mono"
+                placeholder="npm install"
+                value={installCmd}
+                onChange={(e) => setInstallCmd(e.target.value)}
+              />
+              <p className="text-xs text-slate-600 mt-1">Run before the build step. Leave blank to skip.</p>
+            </div>
+            <div>
+              <label className="label text-xs">Build Command</label>
+              <input
+                type="text"
+                className="input w-full text-sm font-mono"
+                placeholder="npm run build"
+                value={buildCmd}
+                onChange={(e) => setBuildCmd(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="label text-xs">Start / Run Command</label>
+              <input
+                type="text"
+                className="input w-full text-sm font-mono"
+                placeholder="npm start"
+                value={startCmd}
+                onChange={(e) => setStartCmd(e.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="label text-xs">Port</label>
+                <input
+                  type="number"
+                  className="input w-full text-sm"
+                  placeholder="3000"
+                  value={port}
+                  onChange={(e) => setPort(e.target.value)}
+                  min={1}
+                  max={65535}
+                />
+              </div>
+              <div>
+                <label className="label text-xs flex items-center gap-1.5">
+                  <FolderOpen size={12} /> Root Directory
+                </label>
+                <input
+                  type="text"
+                  className="input w-full text-sm font-mono"
+                  placeholder="./ (repo root)"
+                  value={runDir}
+                  onChange={(e) => setRunDir(e.target.value)}
+                />
+                <p className="text-xs text-slate-600 mt-1">Subdirectory where commands run.</p>
+              </div>
+            </div>
+            <button
+              onClick={handleSaveBuild}
+              disabled={savingBuild}
+              className="btn-primary text-xs py-1.5"
+            >
+              {savingBuild ? 'Saving...' : <><Save size={13} /> Save Build Configuration</>}
+            </button>
+          </div>
+        </div>
+
         {/* Private repository access */}
         <div className="card">
           <div className="flex items-center gap-2 mb-4">
@@ -212,7 +379,7 @@ export default function ProjectSettingsPage() {
                 </button>
               </div>
               <p className="text-xs text-slate-600 mt-1">
-                GitHub: Settings  Developer settings  Personal access tokens  Grant <code className="text-slate-400">repo</code> scope.
+                GitHub: Settings â†’ Developer settings â†’ Personal access tokens â†’ Grant <code className="text-slate-400">repo</code> scope.
               </p>
             </div>
 
@@ -261,16 +428,17 @@ export default function ProjectSettingsPage() {
             </div>
             <div>
               <label className="label text-xs">Restart Policy</label>
-              <select
-                className="input w-full text-sm"
+              <Select
+                className="w-full"
                 value={restartPolicy}
-                onChange={(e) => setRestartPolicy(e.target.value)}
-              >
-                <option value="unless-stopped">unless-stopped (default)</option>
-                <option value="always">always</option>
-                <option value="on-failure">on-failure</option>
-                <option value="no">no</option>
-              </select>
+                onChange={setRestartPolicy}
+                options={[
+                  { value: 'unless-stopped', label: 'unless-stopped (default)' },
+                  { value: 'always', label: 'always' },
+                  { value: 'on-failure', label: 'on-failure' },
+                  { value: 'no', label: 'no' },
+                ]}
+              />
             </div>
             <button
               onClick={handleSaveLimits}
@@ -326,14 +494,14 @@ export default function ProjectSettingsPage() {
           <div className="flex items-end gap-2">
             <div>
               <label className="label text-xs">Provider</label>
-              <select
-                className="input text-sm"
+              <Select
                 value={webhookProvider}
-                onChange={(e) => setWebhookProvider(e.target.value)}
-              >
-                <option value="github">GitHub</option>
-                <option value="gitlab">GitLab</option>
-              </select>
+                onChange={setWebhookProvider}
+                options={[
+                  { value: 'github', label: 'GitHub' },
+                  { value: 'gitlab', label: 'GitLab' },
+                ]}
+              />
             </div>
             <div className="flex-1">
               <label className="label text-xs">Branch filter (optional)</label>
@@ -390,4 +558,3 @@ export default function ProjectSettingsPage() {
 export function generateStaticParams() {
   return []
 }
-

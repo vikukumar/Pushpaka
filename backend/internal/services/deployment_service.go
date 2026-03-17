@@ -134,8 +134,10 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		RepoURL:         project.RepoURL,
 		Branch:          branch,
 		CommitSHA:       req.CommitSHA,
+		InstallCommand:  project.InstallCommand,
 		BuildCommand:    project.BuildCommand,
 		StartCommand:    project.StartCommand,
+		RunDir:          project.RunDir,
 		Port:            project.Port,
 		EnvVars:         envVars,
 		ImageTag:        imageTag,
@@ -185,6 +187,17 @@ func (s *DeploymentService) Get(id string) (*models.Deployment, error) {
 		return nil, ErrDeploymentNotFound
 	}
 	return d, nil
+}
+
+func (s *DeploymentService) Delete(id, userID string) error {
+	d, err := s.deploymentRepo.FindByID(id)
+	if err != nil {
+		return ErrDeploymentNotFound
+	}
+	if d.UserID != userID {
+		return errors.New("forbidden")
+	}
+	return s.deploymentRepo.Delete(id)
 }
 
 func (s *DeploymentService) Rollback(deploymentID, userID string) (*models.Deployment, error) {

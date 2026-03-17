@@ -13,10 +13,11 @@ import (
 
 type ProjectHandler struct {
 	projectSvc *services.ProjectService
+	auditSvc   *services.AuditService
 }
 
-func NewProjectHandler(projectSvc *services.ProjectService) *ProjectHandler {
-	return &ProjectHandler{projectSvc: projectSvc}
+func NewProjectHandler(projectSvc *services.ProjectService, auditSvc *services.AuditService) *ProjectHandler {
+	return &ProjectHandler{projectSvc: projectSvc, auditSvc: auditSvc}
 }
 
 func (h *ProjectHandler) Create(c *gin.Context) {
@@ -32,6 +33,7 @@ func (h *ProjectHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create project"})
 		return
 	}
+	h.auditSvc.Log(userID, "create", "project", project.ID, map[string]any{"name": project.Name, "repo_url": project.RepoURL}, c.ClientIP(), c.Request.UserAgent())
 	c.JSON(http.StatusCreated, project)
 }
 
@@ -69,6 +71,7 @@ func (h *ProjectHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete project"})
 		return
 	}
+	h.auditSvc.Log(userID, "delete", "project", id, nil, c.ClientIP(), c.Request.UserAgent())
 	c.JSON(http.StatusOK, gin.H{"message": "project deleted"})
 }
 
@@ -89,5 +92,6 @@ func (h *ProjectHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update project"})
 		return
 	}
+	h.auditSvc.Log(userID, "update", "project", id, map[string]any{"name": project.Name}, c.ClientIP(), c.Request.UserAgent())
 	c.JSON(http.StatusOK, project)
 }

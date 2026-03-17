@@ -15,8 +15,8 @@ func NewProjectRepository(db *sqlx.DB) *ProjectRepository {
 
 func (r *ProjectRepository) Create(p *models.Project) error {
 	query := `
-		INSERT INTO projects (id, user_id, name, repo_url, branch, build_command, start_command, port, framework, status, is_private, git_token, cpu_limit, memory_limit, restart_policy, created_at, updated_at)
-		VALUES (:id, :user_id, :name, :repo_url, :branch, :build_command, :start_command, :port, :framework, :status, :is_private, :git_token, :cpu_limit, :memory_limit, :restart_policy, :created_at, :updated_at)`
+		INSERT INTO projects (id, user_id, name, repo_url, branch, install_command, build_command, start_command, run_dir, port, framework, status, is_private, git_token, cpu_limit, memory_limit, restart_policy, created_at, updated_at)
+		VALUES (:id, :user_id, :name, :repo_url, :branch, :install_command, :build_command, :start_command, :run_dir, :port, :framework, :status, :is_private, :git_token, :cpu_limit, :memory_limit, :restart_policy, :created_at, :updated_at)`
 	_, err := r.db.NamedExec(query, p)
 	return err
 }
@@ -40,7 +40,8 @@ func (r *ProjectRepository) Update(p *models.Project) error {
 	query := `
 		UPDATE projects
 		SET name = :name, repo_url = :repo_url, branch = :branch,
-		    build_command = :build_command, start_command = :start_command,
+		    install_command = :install_command, build_command = :build_command,
+		    start_command = :start_command, run_dir = :run_dir,
 		    port = :port, framework = :framework, status = :status,
 		    is_private = :is_private, git_token = :git_token,
 		    cpu_limit = :cpu_limit, memory_limit = :memory_limit,

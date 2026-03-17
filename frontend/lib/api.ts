@@ -56,8 +56,10 @@ export const projectsApi = {
     name: string
     repo_url: string
     branch?: string
+    install_command?: string
     build_command?: string
     start_command?: string
+    run_dir?: string
     port?: number
     framework?: string
     is_private?: boolean
@@ -65,9 +67,12 @@ export const projectsApi = {
   }) => apiClient.post('/projects', data),
   update: (id: string, data: {
     name?: string
+    repo_url?: string
     branch?: string
+    install_command?: string
     build_command?: string
     start_command?: string
+    run_dir?: string
     port?: number
     framework?: string
     is_private?: boolean
@@ -81,12 +86,16 @@ export const projectsApi = {
 
 // Deployments
 export const deploymentsApi = {
-  list: (limit = 20, offset = 0) =>
-    apiClient.get(`/deployments?limit=${limit}&offset=${offset}`),
+  list: (limit = 20, offset = 0, projectId?: string) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset) })
+    if (projectId) params.set('project_id', projectId)
+    return apiClient.get(`/deployments?${params}`)
+  },
   get: (id: string) => apiClient.get(`/deployments/${id}`),
   trigger: (data: { project_id: string; branch?: string; commit_sha?: string }) =>
     apiClient.post('/deployments', data),
   rollback: (id: string) => apiClient.post(`/deployments/${id}/rollback`),
+  delete: (id: string) => apiClient.delete(`/deployments/${id}`),
 }
 
 // Logs
@@ -151,5 +160,27 @@ export const auditApi = {
 export const aiApi = {
   analyzeLogs: (deploymentId: string) =>
     apiClient.post(`/deployments/${deploymentId}/analyze`),
+  chat: (message: string, deploymentId?: string) =>
+    apiClient.post('/ai/chat', { message, deployment_id: deploymentId }),
+  getConfig: () => apiClient.get('/ai/config'),
+  saveConfig: (data: {
+    provider?: string
+    api_key?: string
+    model?: string
+    base_url?: string
+    system_prompt?: string
+    monitoring_enabled?: boolean
+    monitoring_interval?: number
+  }) => apiClient.put('/ai/config', data),
+}
+
+// In-browser code editor
+export const filesApi = {
+  list: (projectId: string) =>
+    apiClient.get(`/projects/${projectId}/files`),
+  read: (projectId: string, path: string) =>
+    apiClient.get(`/projects/${projectId}/files${path}`),
+  save: (projectId: string, path: string, content: string) =>
+    apiClient.put(`/projects/${projectId}/files${path}`, { content }),
 }
 

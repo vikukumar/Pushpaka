@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { projectsApi } from '@/lib/api'
 import { Header } from '@/components/layout/Header'
 import toast from 'react-hot-toast'
-import { Loader2, GitBranch, Terminal, Globe, ChevronDown, Lock, Eye, EyeOff } from 'lucide-react'
+import { Loader2, GitBranch, Terminal, Globe, Lock, Eye, EyeOff, Zap, X } from 'lucide-react'
+import { Select } from '@/components/ui/Select'
 
 const FRAMEWORKS = [
   { value: '', label: 'Auto-detect' },
@@ -15,14 +17,121 @@ const FRAMEWORKS = [
   { value: 'nodejs', label: 'Node.js' },
   { value: 'python', label: 'Python (Flask/FastAPI)' },
   { value: 'go', label: 'Go' },
-  { value: 'static', label: 'Static HTML' },
+  { value: 'rust', label: 'Rust' },
+  { value: 'typescript', label: 'TypeScript (Express/Fastify)' },
+  { value: 'static', label: 'Static HTML/CSS/JS' },
   { value: 'docker', label: 'Docker (custom Dockerfile)' },
+]
+
+interface Template {
+  name: string
+  description: string
+  icon: string
+  framework: string
+  repo_url: string
+  branch: string
+  build_command: string
+  start_command: string
+  port: number
+}
+
+const TEMPLATES: Template[] = [
+  {
+    name: 'Next.js Starter',
+    description: 'Production-ready Next.js 14 app with App Router',
+    icon: '⚡',
+    framework: 'nextjs',
+    repo_url: 'https://github.com/vercel/next-learn',
+    branch: 'main',
+    build_command: 'npm run build',
+    start_command: 'npm start',
+    port: 3000,
+  },
+  {
+    name: 'React Vite App',
+    description: 'Lightning-fast React SPA with Vite bundler',
+    icon: '⚛️',
+    framework: 'react',
+    repo_url: 'https://github.com/vitejs/vite/tree/main/packages/create-vite',
+    branch: 'main',
+    build_command: 'npm run build',
+    start_command: 'npx serve dist -p 3000',
+    port: 3000,
+  },
+  {
+    name: 'Node.js Express API',
+    description: 'REST API starter with Express.js',
+    icon: '🟢',
+    framework: 'nodejs',
+    repo_url: 'https://github.com/expressjs/express',
+    branch: 'master',
+    build_command: '',
+    start_command: 'node examples/hello-world/index.js',
+    port: 3000,
+  },
+  {
+    name: 'Python FastAPI',
+    description: 'Async Python REST API with OpenAPI docs',
+    icon: '🐍',
+    framework: 'python',
+    repo_url: 'https://github.com/tiangolo/full-stack-fastapi-template',
+    branch: 'master',
+    build_command: 'pip install -r requirements.txt',
+    start_command: 'uvicorn app.main:app --host 0.0.0.0 --port 8000',
+    port: 8000,
+  },
+  {
+    name: 'Go Gin API',
+    description: 'High-performance Go REST API with Gin',
+    icon: '🐹',
+    framework: 'go',
+    repo_url: 'https://github.com/gin-gonic/examples',
+    branch: 'master',
+    build_command: 'go build -o server ./basic',
+    start_command: './server',
+    port: 8080,
+  },
+  {
+    name: 'Rust Actix Web',
+    description: 'High-performance Rust REST API with Actix',
+    icon: '🦀',
+    framework: 'rust',
+    repo_url: 'https://github.com/actix/examples',
+    branch: 'master',
+    build_command: 'cargo build --release --example basic',
+    start_command: './target/release/examples/basic',
+    port: 8080,
+  },
+  {
+    name: 'Static Portfolio',
+    description: 'Zero-dependency HTML/CSS/JS portfolio site',
+    icon: '🌐',
+    framework: 'static',
+    repo_url: 'https://github.com/cobiwave/simplefolio',
+    branch: 'master',
+    build_command: '',
+    start_command: 'npx serve . -p 3000',
+    port: 3000,
+  },
+  {
+    name: 'Vue.js SPA',
+    description: 'Single-page Vue 3 app with Vite + Pinia',
+    icon: '💚',
+    framework: 'vue',
+    repo_url: 'https://github.com/piniajs/example-vue-3-vite',
+    branch: 'main',
+    build_command: 'npm run build',
+    start_command: 'npx serve dist -p 3000',
+    port: 3000,
+  },
 ]
 
 export default function NewProjectPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [loading, setLoading] = useState(false)
   const [showToken, setShowToken] = useState(false)
+  const [activeTab, setActiveTab] = useState<'template' | 'manual'>('template')
   const [form, setForm] = useState({
     name: '',
     repo_url: '',
@@ -35,12 +144,27 @@ export default function NewProjectPage() {
     git_token: '',
   })
 
+  const applyTemplate = (t: Template) => {
+    setForm((f) => ({
+      ...f,
+      framework: t.framework,
+      branch: t.branch,
+      build_command: t.build_command,
+      start_command: t.start_command,
+      port: t.port,
+      repo_url: t.repo_url,
+    }))
+    setActiveTab('manual')
+    toast.success(`Template "${t.name}" applied — update the repo URL to your fork`)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     try {
       await projectsApi.create(form)
       toast.success('Project created!')
+      queryClient.invalidateQueries({ queryKey: ['projects'] })
       router.push('/dashboard/projects')
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } }
@@ -54,6 +178,53 @@ export default function NewProjectPage() {
     <div className="flex flex-col min-h-screen">
       <Header title="New Project" subtitle="Connect a Git repository to deploy" />
       <div className="p-6 max-w-2xl">
+        {/* Tabs */}
+        <div className="flex gap-1 mb-4 bg-surface-elevated border border-surface-border rounded-lg p-1">
+          {(['template', 'manual'] as const).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-all ${
+                activeTab === tab
+                  ? 'bg-brand-600 text-white'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {tab === 'template' ? (
+                <span className="flex items-center justify-center gap-2"><Zap size={13} /> Use Template</span>
+              ) : (
+                <span className="flex items-center justify-center gap-2"><GitBranch size={13} /> Manual Setup</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Template picker */}
+        {activeTab === 'template' && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+            {TEMPLATES.map((t) => (
+              <button
+                key={t.name}
+                type="button"
+                onClick={() => applyTemplate(t)}
+                className="card text-left hover:border-brand-500 transition-colors group"
+              >
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl shrink-0">{t.icon}</span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-slate-200 group-hover:text-brand-300 transition-colors">{t.name}</div>
+                    <div className="text-xs text-slate-500 mt-0.5">{t.description}</div>
+                    <span className="inline-block mt-1.5 text-xs px-2 py-0.5 rounded-full bg-brand-600/20 text-brand-300 font-mono">{t.framework || 'auto'}</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Manual form */}
+        {activeTab === 'manual' && (
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Name */}
@@ -152,18 +323,12 @@ export default function NewProjectPage() {
             {/* Framework */}
             <div>
               <label className="label">Framework / Runtime</label>
-              <div className="relative">
-                <select
-                  className="input appearance-none pr-8"
-                  value={form.framework}
-                  onChange={(e) => setForm({ ...form, framework: e.target.value })}
-                >
-                  {FRAMEWORKS.map(({ value, label }) => (
-                    <option key={value} value={value}>{label}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-              </div>
+              <Select
+                value={form.framework}
+                onChange={(v) => setForm({ ...form, framework: v })}
+                options={FRAMEWORKS}
+                placeholder="Auto-detect"
+              />
             </div>
 
             {/* Build & Start commands */}
@@ -232,6 +397,7 @@ export default function NewProjectPage() {
             </div>
           </form>
         </div>
+        )}
       </div>
     </div>
   )

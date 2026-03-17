@@ -16,13 +16,11 @@ export default function ProjectDeploymentsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['deployments', 'project', id],
-    queryFn: () => deploymentsApi.list(50).then((r) => r.data),
+    queryFn: () => deploymentsApi.list(50, 0, id).then((r) => r.data),
     refetchInterval: 5000,
   })
 
-  const deployments: Deployment[] = (data?.data || []).filter(
-    (d: Deployment) => d.project_id === id
-  )
+  const deployments: Deployment[] = data?.data || []
 
   return (
     <div className="flex flex-col min-h-screen">

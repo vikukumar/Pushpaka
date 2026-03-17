@@ -25,6 +25,10 @@ CREATE TABLE IF NOT EXISTS projects (
     port INTEGER NOT NULL DEFAULT 3000, framework TEXT NOT NULL DEFAULT '',
     status TEXT NOT NULL DEFAULT 'inactive',
     is_private INTEGER NOT NULL DEFAULT 0, git_token TEXT NOT NULL DEFAULT '',
+    cpu_limit TEXT NOT NULL DEFAULT '', memory_limit TEXT NOT NULL DEFAULT '',
+    restart_policy TEXT NOT NULL DEFAULT 'unless-stopped',
+    deploy_target TEXT NOT NULL DEFAULT 'docker', k8s_namespace TEXT NOT NULL DEFAULT '',
+    install_command TEXT NOT NULL DEFAULT '', run_dir TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS deployments (
@@ -34,6 +38,7 @@ CREATE TABLE IF NOT EXISTS deployments (
     status TEXT NOT NULL DEFAULT 'queued', image_tag TEXT NOT NULL DEFAULT '',
     container_id TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '',
     error_msg TEXT NOT NULL DEFAULT '', started_at TEXT, finished_at TEXT,
+    external_port INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
 CREATE TABLE IF NOT EXISTS deployment_logs (
@@ -83,6 +88,14 @@ func NewSQLite(path string) (*sqlx.DB, error) {
 	migrations := []string{
 		`ALTER TABLE projects ADD COLUMN is_private INTEGER NOT NULL DEFAULT 0`,
 		`ALTER TABLE projects ADD COLUMN git_token TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE projects ADD COLUMN cpu_limit TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE projects ADD COLUMN memory_limit TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE projects ADD COLUMN restart_policy TEXT NOT NULL DEFAULT 'unless-stopped'`,
+		`ALTER TABLE projects ADD COLUMN deploy_target TEXT NOT NULL DEFAULT 'docker'`,
+		`ALTER TABLE projects ADD COLUMN k8s_namespace TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE projects ADD COLUMN install_command TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE projects ADD COLUMN run_dir TEXT NOT NULL DEFAULT ''`,
+		`ALTER TABLE deployments ADD COLUMN external_port INTEGER NOT NULL DEFAULT 0`,
 	}
 	for _, m := range migrations {
 		if _, err := db.Exec(m); err != nil {

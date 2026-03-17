@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog/log"
 
 	"github.com/vikukumar/Pushpaka-worker/internal/config"
@@ -84,6 +85,29 @@ func RunInProcess(ctx context.Context, ch <-chan []byte, reporter StatsReporter)
 	}
 	defer db.Close()
 
+	return runInProcess(ctx, ch, reporter, db, cfg)
+}
+
+// RunInProcessWithDB is identical to RunInProcess but uses a pre-opened
+// database connection instead of opening a new one.  The caller retains
+// ownership of db and must close it after this function returns.
+// Use this in all-in-one mode to share ONE SQLite pool between the API
+// and the embedded worker, preventing SQLITE_BUSY_SNAPSHOT (error 261).
+func RunInProcessWithDB(ctx context.Context, ch <-chan []byte, reporter StatsReporter, db *sqlx.DB) error {
+	cfg := config.Load()
+
+	if err := cfg.EnsureDirs(); err != nil {
+		return fmt.Errorf("dirs: %w", err)
+	}
+	log.Info().
+		Str("clone_dir", cfg.CloneDir).
+		Str("deploy_dir", cfg.DeployDir).
+		Msg("build directories ready")
+
+	return runInProcess(ctx, ch, reporter, db, cfg)
+}
+
+func runInProcess(ctx context.Context, ch <-chan []byte, reporter StatsReporter, db *sqlx.DB, cfg *config.Config) error {
 	var wg sync.WaitGroup
 
 	// Pre-register all workers synchronously *before* launching goroutines.

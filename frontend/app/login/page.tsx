@@ -180,7 +180,7 @@ function LoginContent() {
         </div>
 
         <p className="text-center text-xs text-slate-600 mt-6">
-          Pushpaka v2.0 -- Self-hosted deployment platform
+          Pushpaka v1.0.0 -- Self-hosted deployment platform
         </p>
       </div>
     </div>

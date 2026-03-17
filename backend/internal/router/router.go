@@ -54,6 +54,7 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	auditRepo := repositories.NewAuditRepository(db)
 	notifRepo := repositories.NewNotificationRepository(db)
 	webhookRepo := repositories.NewWebhookRepository(db)
+	aiConfigRepo := repositories.NewAIConfigRepository(db)
 
 	// Services
 	authSvc := services.NewAuthService(userRepo, cfg)
@@ -70,8 +71,8 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authSvc)
-	projectHandler := handlers.NewProjectHandler(projectSvc)
-	deploymentHandler := handlers.NewDeploymentHandler(deploymentSvc)
+	projectHandler := handlers.NewProjectHandler(projectSvc, auditSvc)
+	deploymentHandler := handlers.NewDeploymentHandler(deploymentSvc, auditSvc)
 	logHandler := handlers.NewLogHandler(logSvc)
 	domainHandler := handlers.NewDomainHandler(domainSvc)
 	envHandler := handlers.NewEnvHandler(envSvc)
@@ -79,8 +80,9 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	notifHandler := handlers.NewNotificationHandler(notifSvc)
 	oauthHandler := handlers.NewOAuthHandler(oauthSvc)
 	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
-	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo)
-	terminalHandler := handlers.NewTerminalHandler(deploymentRepo)
+	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo, aiConfigRepo)
+	terminalHandler := handlers.NewTerminalHandler(deploymentRepo, cfg)
+	fileHandler := handlers.NewFileHandler(projectRepo, deploymentRepo, cfg)
 	// Avoid the nil-interface trap: a nil *queue.InProcess assigned directly to
 	// WorkerStatsProvider creates a non-nil interface with a nil concrete value,
 	// which passes the != nil check but panics on method calls.
@@ -102,8 +104,9 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 		api.GET("/system", healthHandler.System)
 		api.GET("/metrics", handlers.MetricsHandler())
 
-		// Auth (public)
+		// Auth (public) — rate-limited to prevent brute-force
 		auth := api.Group("/auth")
+		auth.Use(middleware.RateLimit("auth"))
 		{
 			auth.POST("/register", authHandler.Register)
 			auth.POST("/login", authHandler.Login)
@@ -123,6 +126,7 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 		// Protected routes
 		protected := api.Group("")
 		protected.Use(authMW)
+		protected.Use(middleware.RateLimit("api"))
 		{
 			// Projects
 			projects := protected.Group("/projects")
@@ -187,8 +191,19 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 			// Web terminal (WebSocket)
 			protected.GET("/deployments/:id/terminal", terminalHandler.Connect)
 
-			// AI log analysis
+			// AI log analysis + chat assistant + config
 			protected.POST("/deployments/:id/analyze", aiHandler.AnalyzeLogs)
+			protected.POST("/ai/chat", aiHandler.Chat)
+			protected.GET("/ai/config", aiHandler.GetAIConfig)
+			protected.PUT("/ai/config", aiHandler.SaveAIConfig)
+
+			// Deployment delete
+			protected.DELETE("/deployments/:id", deploymentHandler.Delete)
+
+			// In-browser code editor (file browser + read + save)
+			protected.GET("/projects/:id/files", fileHandler.ListFiles)
+			protected.GET("/projects/:id/files/*path", fileHandler.ReadFile)
+			protected.PUT("/projects/:id/files/*path", fileHandler.SaveFile)
 		}
 	}
 

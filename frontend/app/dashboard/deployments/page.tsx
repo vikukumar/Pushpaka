@@ -59,13 +59,15 @@ export default function AllDeploymentsPage() {
                       <div className="text-sm text-white font-medium truncate">
                         {project?.name || d.project_id.slice(0, 8)}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
-                        <GitBranch size={10} />
-                        {d.branch}
-                        {d.error_msg && (
-                          <span className="text-red-400 truncate">* {d.error_msg}</span>
-                        )}
+                      <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-0.5">
+                        <GitBranch size={10} className="shrink-0" />
+                        <span className="shrink-0">{d.branch}</span>
                       </div>
+                      {d.error_msg && (
+                        <div className="text-xs text-red-400 mt-0.5 break-words whitespace-pre-wrap line-clamp-2">
+                          {d.error_msg}
+                        </div>
+                      )}
                     </div>
 
                     <div className="text-xs text-slate-500">{timeAgo(d.created_at)}</div>

@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/vikukumar/Pushpaka/internal/middleware"
+	"github.com/vikukumar/Pushpaka/internal/models"
 	"github.com/vikukumar/Pushpaka/internal/services"
 )
 
@@ -33,5 +34,8 @@ func (h *AuditHandler) List(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list audit logs"})
 		return
 	}
-	c.JSON(http.StatusOK, logs)
+	if logs == nil {
+		logs = []models.AuditLog{}
+	}
+	c.JSON(http.StatusOK, gin.H{"data": logs})
 }
