@@ -17,16 +17,18 @@ jobs:
     name: Lint Helm Chart
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
           version: '3.12.0'
 
+      - name: Build chart dependencies
+        run: helm dependency build helm/pushpaka
+
       - name: Lint Helm chart
-        run: |
-          helm lint helm/pushpaka
+        run: helm lint helm/pushpaka
 
   package:
     runs-on: ubuntu-latest
@@ -34,12 +36,15 @@ jobs:
     needs: lint
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
           version: '3.12.0'
+
+      - name: Build chart dependencies
+        run: helm dependency build helm/pushpaka
 
       - name: Read VERSION file
         id: version
@@ -61,7 +66,7 @@ jobs:
           ls -la helm-releases/
 
       - name: Upload chart artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: helm-chart
           path: helm-releases/
@@ -73,16 +78,16 @@ jobs:
     needs: package
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download chart artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: helm-chart
           path: helm-releases/
 
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
 
       - name: Create/Update Helm index
         run: |

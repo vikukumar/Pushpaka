@@ -39,7 +39,7 @@ jobs:
       full-version: ${{ steps.version.outputs.full-version }}
       image-tags: ${{ steps.version.outputs.image-tags }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -103,12 +103,16 @@ jobs:
           - goos: windows
             goarch: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
           cache: true
+          cache-dependency-path: |
+            backend/go.sum
+            worker/go.sum
+            cmd/pushpaka/go.sum
 
       - name: Build backend
         env:
@@ -150,12 +154,16 @@ jobs:
           - goos: windows
             goarch: arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
           go-version: '1.25'
           cache: true
+          cache-dependency-path: |
+            worker/go.sum
+            backend/go.sum
+            cmd/pushpaka/go.sum
 
       - name: Build worker
         env:
@@ -171,7 +179,7 @@ jobs:
           
           go build \
             -ldflags="-w -s -X main.version=v${{ needs.version.outputs.full-version }}" \
-            -o "../${OUTPUT_NAME}" ./cmd/worker
+            -o "../${OUTPUT_NAME}" .
           
           ls -lh ../${OUTPUT_NAME}
           
@@ -190,16 +198,17 @@ jobs:
     needs: version
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v4
         with:
-          node-version: '20'
+          version: 10
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
           cache: 'pnpm'
           cache-dependency-path: 'frontend/pnpm-lock.yaml'
-
-      - name: Install pnpm
-        run: npm install -g pnpm
 
       - name: Install dependencies
         working-directory: frontend
@@ -239,7 +248,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -364,7 +373,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: actions/download-artifact@v4
         with:

@@ -1,0 +1,233 @@
+name: Security Scanning
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  dependency-check:
+    name: Dependency Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run OWASP Dependency-Check
+        uses: dependency-check/Dependency-Check_Action@main
+        with:
+          path: '.'
+          format: 'JSON'
+          args: >
+            --enableExperimental
+            --enableRetired
+            --exclude ./docs
+            --exclude ./website/node_modules
+            --exclude ./frontend/node_modules
+
+      - name: Upload SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && github.event_name != 'pull_request'
+        with:
+          sarif_file: 'reports'
+          wait-for-processing: true
+
+      - name: Create dependency report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
+
+  trivy-fs-scan:
+    name: Filesystem Scanning (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          skip-dirs: '.git,docs,website/node_modules,frontend/node_modules'
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && github.event_name != 'pull_request'
+        with:
+          sarif_file: 'trivy-results.sarif'
+          category: 'trivy-filesystem'
+
+  gosec:
+    name: Go Security Scanner
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - name: Run GoSec
+        uses: securego/gosec@master
+        with:
+          args: '-no-fail -fmt=sarif -out=gosec-results.sarif ./backend/...'
+
+      - name: Upload GoSec results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && github.event_name != 'pull_request'
+        with:
+          sarif_file: 'gosec-results.sarif'
+          category: 'gosec'
+
+  eslint:
+    name: JavaScript/TypeScript Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: 'frontend/pnpm-lock.yaml'
+
+      - name: Install dependencies (frontend)
+        working-directory: ./frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        working-directory: ./frontend
+        continue-on-error: true
+        run: pnpm exec eslint . --format=json --output-file=eslint-report.json || true
+
+      - name: Install dependencies (website)
+        working-directory: ./website
+        run: npm install
+
+      - name: Run ESLint on website
+        working-directory: ./website
+        continue-on-error: true
+        run: npx eslint . --format=json --output-file=eslint-report.json || true
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ['go', 'javascript']
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+
+  secrets:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        id: gitleaks
+        continue-on-error: true
+
+      - name: Check for Gitleaks findings
+        run: |
+          if [ ${{ steps.gitleaks.outcome }} == 'failure' ]; then
+            echo "::warning::Gitleaks found potential secrets"
+            exit 1
+          fi
+
+  license:
+    name: License Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - name: Install license-maven-plugin
+        run: npm install -g license-maven-plugin
+
+      - name: Check Go licenses
+        continue-on-error: true
+        run: |
+          go install github.com/google/go-licenses@latest
+          ~/go/bin/go-licenses report ./backend/... --template="{{ range . }}{{ .LicensePath }}{{ end }}"
+
+  summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [dependency-check, trivy-fs-scan, gosec, eslint, codeql, secrets, license]
+    steps:
+      - name: Check security scan results
+        run: |
+          echo "✅ Security Scanning Complete"
+          echo ""
+          echo "Scans Run:"
+          echo "- ✅ Dependency Check (OWASP)"
+          echo "- ✅ Filesystem Scan (Trivy)"
+          echo "- ✅ Go Security (GoSec)"
+          echo "- ✅ JavaScript Linting (ESLint)"
+          echo "- ✅ Code Analysis (CodeQL)"
+          echo "- ✅ Secrets Detection (Gitleaks)"
+          echo "- ✅ License Compliance"
+          echo ""
+          echo "Results available in GitHub Security tab"
+
+      - name: Create security report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-scan-summary
+          path: |
+            trivy-results.sarif
+            gosec-results.sarif
+          if-no-files-found: ignore

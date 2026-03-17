@@ -12,6 +12,8 @@ import (
 	"github.com/vikukumar/Pushpaka-worker/app"
 )
 
+var version = "dev"
+
 func main() {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	if os.Getenv("APP_ENV") == "development" {

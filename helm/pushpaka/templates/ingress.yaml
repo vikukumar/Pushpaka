@@ -1,3 +1,4 @@
+{{- if or .Values.api.ingress.enabled .Values.dashboard.ingress.enabled -}}
 {{- if .Values.api.ingress.enabled -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -41,7 +42,9 @@ spec:
           {{- end }}
     {{- end }}
 {{- end }}
+{{- if and .Values.api.ingress.enabled .Values.dashboard.ingress.enabled }}
 ---
+{{- end }}
 {{- if .Values.dashboard.ingress.enabled -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -84,4 +87,5 @@ spec:
                   number: {{ $.Values.dashboard.service.port }}
           {{- end }}
     {{- end }}
+{{- end }}
 {{- end }}

@@ -1,0 +1,96 @@
+name: Docker Image Security Scan
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/docker-scan.yml'
+  schedule:
+    - cron: '0 3 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  build-and-scan:
+    name: Build and Scan Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: pushpaka:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          input: 'pushpaka:latest'
+          format: sarif
+          output: trivy-docker-results.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy Docker scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-docker-results.sarif
+          category: trivy-docker
+
+      - name: Scan image with Grype
+        uses: anchore/scan-action@v3
+        id: grype
+        with:
+          image: pushpaka:latest
+          fail-build: false
+
+      - name: Upload Grype scan results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: ${{ steps.grype.outputs.sarif }}
+          category: grype
+
+      - name: Comment on PR with scan results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const fs = require('fs');
+            const trivy = fs.existsSync('trivy-docker-results.sarif');
+            const grype = fs.existsSync('${{ steps.grype.outputs.sarif }}');
+            
+            const comment = `## 🔒 Docker Image Security Scan Results
+            
+            **Trivy Scan:** ${trivy ? '✅ Complete' : '⏭️ Skipped'}
+            **Grype Scan:** ${grype ? '✅ Complete' : '⏭️ Skipped'}
+            
+            View detailed results in the [Security tab](https://github.com/${{ github.repository }}/security/code-scanning).
+            
+            **Severity Levels:**
+            - 🔴 CRITICAL: Immediate action required
+            - 🟠 HIGH: Prioritize for resolution
+            - 🟡 MEDIUM: Schedule for next release
+            - 🔵 LOW: Track and monitor`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

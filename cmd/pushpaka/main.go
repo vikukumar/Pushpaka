@@ -19,6 +19,8 @@ import (
 	"github.com/vikukumar/Pushpaka/queue"
 )
 
+var version = "dev"
+
 func main() {
 	dev := flag.Bool("dev", false, "dev mode: use SQLite + embedded worker (no Postgres/Redis required)")
 	flag.Parse()

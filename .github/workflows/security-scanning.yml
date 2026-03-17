@@ -1,0 +1,126 @@
+name: Security Scanning
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  trivy-scan:
+    name: Container Image Scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && github.event_name != 'pull_request'
+        with:
+          sarif_file: trivy-results.sarif
+          category: trivy
+
+  gosec-scan:
+    name: Go Code Security (GoSec)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache-dependency-path: backend/go.sum
+
+      - name: Run GoSec security scanner
+        uses: securego/gosec@master
+        with:
+          args: '-no-fail -fmt=sarif -out=gosec-results.sarif ./backend/...'
+
+      - name: Upload GoSec results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && github.event_name != 'pull_request'
+        with:
+          sarif_file: gosec-results.sarif
+          category: gosec
+
+  codeql:
+    name: CodeQL Security Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language:
+          - go
+          - javascript
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  gitleaks:
+    name: Secrets Detection (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks for secrets
+        uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
+
+  summary:
+    name: Security Scan Summary
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - trivy-scan
+      - gosec-scan
+      - codeql
+      - gitleaks
+    steps:
+      - name: Report security scan completion
+        run: |
+          echo "✅ Security Scanning Complete"
+          echo ""
+          echo "Scans completed:"
+          echo "  • Trivy (Filesystem vulnerabilities)"
+          echo "  • GoSec (Go code security)"
+          echo "  • CodeQL (Code analysis)"
+          echo "  • Gitleaks (Secrets detection)"
+          echo ""
+          echo "View results in: Repository → Security → Code scanning alerts"

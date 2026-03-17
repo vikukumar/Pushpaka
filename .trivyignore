@@ -1,0 +1,9 @@
+# Ignored vulnerabilities for Pushpaka
+# Format: CVE-ID optional_reason_and_expiry
+# Add vulnerabilities only when absolutely necessary
+
+# Example format (commented out):
+# CVE-2024-0001 Reason: Patch not available for go 1.25, fix planned for v1.2.0, expires: 2026-06-17
+# CVE-2024-0002 Reason: Low impact, requires specific configuration, expires: 2026-04-17
+
+# No ignored vulnerabilities currently - all found issues should be fixed

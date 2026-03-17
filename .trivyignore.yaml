@@ -1,0 +1,43 @@
+# Trivy Configuration
+
+# Database settings
+db:
+  repository: ghcr.io/aquasecurity/trivy-db
+
+# Severity levels to report
+severity:
+  - CRITICAL
+  - HIGH
+  - MEDIUM
+  - LOW
+
+# Skip specific vulnerabilities
+skip-update: false
+
+# Generate SBOM
+sbom: false
+
+# Exit code on findings
+exit-code: 1
+
+# Ignored vulnerabilities file
+ignorefile: .trivyignore
+
+# Custom headers for offline scanning
+headers:
+  X-Custom-Header: ""
+
+# Skip specific resources
+skip-dirs:
+  - ".git"
+  - "docs"
+  - "node_modules"
+  - ".next"
+  - "dist"
+
+skip-files:
+  - "*.test.ts"
+  - "*.test.js"
+
+# Timeout for scanning
+timeout: 5m
