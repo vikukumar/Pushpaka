@@ -871,8 +871,11 @@ func copyFile(src, dst string, mode os.FileMode) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
 	_, err = io.Copy(out, in)
+	// Ensure Close() error is not masked by Copy error
+	if closeErr := out.Close(); closeErr != nil && err == nil {
+		err = closeErr
+	}
 	return err
 }
 

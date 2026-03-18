@@ -216,15 +216,28 @@ func postJSON(url string, payload any) error {
 	return nil
 }
 
+// sanitizeEmailHeader removes CRLF characters to prevent email header injection
+func sanitizeEmailHeader(s string) string {
+	s = strings.ReplaceAll(s, "\r", "")
+	s = strings.ReplaceAll(s, "\n", "")
+	return s
+}
+
 func sendEmail(cfg *models.NotificationConfig, subject, body string) error {
 	addr := fmt.Sprintf("%s:%d", cfg.SMTPHost, cfg.SMTPPort)
+
+	// Sanitize email headers to prevent header injection attacks
+	from := sanitizeEmailHeader(cfg.SMTPFrom)
+	to := sanitizeEmailHeader(cfg.SMTPTo)
+	subj := sanitizeEmailHeader(subject)
+
 	msg := []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s",
-		cfg.SMTPFrom, cfg.SMTPTo, subject, body))
+		from, to, subj, body))
 
 	var auth smtp.Auth
 	if cfg.SMTPUsername != "" {
 		auth = smtp.PlainAuth("", cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPHost)
 	}
 
-	return smtp.SendMail(addr, auth, cfg.SMTPFrom, []string{cfg.SMTPTo}, msg)
+	return smtp.SendMail(addr, auth, from, []string{to}, msg)
 }

@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { aiApi } from '@/lib/api'
 import { Sparkles, X, Send, Loader2, Bot, User, ChevronDown, Minimize2 } from 'lucide-react'
+import DOMPurify from 'dompurify'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -26,15 +27,36 @@ I can help you with:
 Ask me anything about your deployments!`
 
 function renderMarkdown(text: string): string {
-  return text
+  // First escape HTML to prevent injection
+  let escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+  
+  // Apply markdown replacements on escaped text
+  let html = escaped
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/`([^`]+)`/g, '<code class="bg-white/10 px-1 py-0.5 rounded text-xs font-mono text-cyan-300">$1</code>')
-    .replace(/```([\s\S]*?)```/g, '<pre class="bg-black/40 rounded-lg p-3 text-xs font-mono text-green-300 overflow-x-auto my-2">$1</pre>')
+    .replace(/```([\s\S]*?)```/g, (match, code) => {
+      const sanitized = code.replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      return `<pre class="bg-black/40 rounded-lg p-3 text-xs font-mono text-green-300 overflow-x-auto my-2">${sanitized}</pre>`
+    })
     .replace(/^- (.+)$/gm, '<li class="ml-3 list-disc">$1</li>')
     .replace(/^(#{1,3}) (.+)$/gm, '<div class="font-semibold text-white mt-2">$2</div>')
     .replace(/\n\n/g, '<div class="h-2"></div>')
     .replace(/\n/g, '<br/>')
     .replace(/🔍|🐳|🌿|⚙️|📊|✨/g, (m) => `<span>${m}</span>`)
+  
+  // Use DOMPurify to sanitize the final HTML
+  if (typeof window !== 'undefined') {
+    return DOMPurify.sanitize(html, { 
+      ALLOWED_TAGS: ['strong', 'code', 'pre', 'li', 'div', 'span', 'br'],
+      ALLOWED_ATTR: ['class']
+    })
+  }
+  return html
 }
 
 export default function AIChatbot({ deploymentId }: AIChatbotProps) {
