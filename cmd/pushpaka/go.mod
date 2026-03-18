@@ -6,6 +6,7 @@ require (
 	github.com/rs/zerolog v1.34.0
 	github.com/vikukumar/Pushpaka v0.0.0
 	github.com/vikukumar/Pushpaka-worker v0.0.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

@@ -1,9 +1,6 @@
 package repositories
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/jmoiron/sqlx"
 	"github.com/vikukumar/Pushpaka/internal/models"
 )
@@ -202,50 +199,4 @@ func (r *GitSyncRepository) GetSyncHistoryCount(deploymentID string) (int, error
 		r.db.Rebind(`SELECT COUNT(*) FROM deployment_sync_history WHERE deployment_id = ?`),
 		deploymentID)
 	return count, err
-}
-
-// GetChangesSummary parses and returns changes summary
-func (track *models.GitSyncTrack) GetChangesSummary() map[string]interface{} {
-	var summary map[string]interface{}
-	if err := json.Unmarshal([]byte(track.ChangesSummary), &summary); err != nil {
-		return map[string]interface{}{}
-	}
-	return summary
-}
-
-// SetChangesSummary sets the changes summary as JSON
-func (track *models.GitSyncTrack) SetChangesSummary(summary interface{}) error {
-	data, err := json.Marshal(summary)
-	if err != nil {
-		return fmt.Errorf("failed to marshal changes summary: %w", err)
-	}
-	track.ChangesSummary = string(data)
-	return nil
-}
-
-// MarshalAllowedBranches parses allowed branches from JSON
-func (config *models.GitAutoSyncConfig) MarshalAllowedBranches() []string {
-	var branches []string
-	if err := json.Unmarshal([]byte(config.AllowedBranches), &branches); err != nil {
-		return []string{}
-	}
-	return branches
-}
-
-// MarshalIgnorePaths parses ignore paths from JSON
-func (config *models.GitAutoSyncConfig) MarshalIgnorePaths() []string {
-	var paths []string
-	if err := json.Unmarshal([]byte(config.IgnorePaths), &paths); err != nil {
-		return []string{}
-	}
-	return paths
-}
-
-// MarshalRequiredApprovers parses required approvers from JSON
-func (config *models.GitAutoSyncConfig) MarshalRequiredApprovers() []string {
-	var approvers []string
-	if err := json.Unmarshal([]byte(config.RequiredApprovers), &approvers); err != nil {
-		return []string{}
-	}
-	return approvers
 }

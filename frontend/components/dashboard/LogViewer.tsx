@@ -54,7 +54,7 @@ export function LogViewer({ logs, isStreaming, deploymentId }: LogViewerProps) {
     return () => {
       ws.close()
     }
-  }, [isStreaming, deploymentId])
+  }, [isStreaming, deploymentId, token])
 
   // Auto-scroll to bottom
   useEffect(() => {

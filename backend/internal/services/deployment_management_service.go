@@ -121,7 +121,7 @@ func (s *DeploymentManagementService) CaptureCodeSignature(
 	// Calculate code hash
 	codeHash, fileCount, err := s.calculateCodeHash(sourcePath)
 	if err != nil {
-		return "", fmt.Errorf("failed to calculate code hash: %w", err)
+		return nil, fmt.Errorf("failed to calculate code hash: %w", err)
 	}
 
 	// Create signature record
@@ -135,7 +135,7 @@ func (s *DeploymentManagementService) CaptureCodeSignature(
 		CodeHash:      codeHash,
 		FileCount:     fileCount,
 		DirectoryPath: sourcePath,
-		CreatedAt:     models.Time(time.Now()),
+		CreatedAt:     models.NowUTC(),
 	}
 
 	if err := s.dmRepo.CreateCodeSignature(sig); err != nil {
@@ -176,8 +176,8 @@ func (s *DeploymentManagementService) CreateDeploymentInstance(
 		CodeSignatureID: sig.ID,
 		InstanceDir:     instanceDir,
 		HealthStatus:    "unknown",
-		CreatedAt:       models.Time(time.Now()),
-		UpdatedAt:       models.Time(time.Now()),
+		CreatedAt:       models.NowUTC(),
+		UpdatedAt:       models.NowUTC(),
 	}
 
 	if err := s.dmRepo.CreateDeploymentInstance(instance); err != nil {
@@ -224,7 +224,7 @@ func (s *DeploymentManagementService) CreateBackup(
 		BackupPath:      backupDir,
 		Size:            size,
 		Reason:          reason,
-		CreatedAt:       models.Time(time.Now()),
+		CreatedAt:       models.NowUTC(),
 	}
 
 	if err := s.dmRepo.CreateBackup(backup); err != nil {
@@ -297,8 +297,8 @@ func (s *DeploymentManagementService) RecordAction(
 		UserID:       userID,
 		Action:       action,
 		Status:       "pending",
-		CreatedAt:    models.Time(time.Now()),
-		UpdatedAt:    models.Time(time.Now()),
+		CreatedAt:    models.NowUTC(),
+		UpdatedAt:    models.NowUTC(),
 	}
 
 	if err := s.dmRepo.CreateDeploymentAction(act); err != nil {
@@ -318,7 +318,7 @@ func (s *DeploymentManagementService) UpdateActionStatus(
 		ID:        actionID,
 		Status:    status,
 		Result:    result,
-		UpdatedAt: models.Time(time.Now()),
+		UpdatedAt: models.NowUTC(),
 	}
 
 	return s.dmRepo.UpdateDeploymentAction(act)
@@ -352,7 +352,7 @@ func (s *DeploymentManagementService) PromoteTestingToMain(
 
 	// Stop main gracefully
 	mainInstance.Status = "stopping"
-	mainInstance.UpdatedAt = models.Time(time.Now())
+	mainInstance.UpdatedAt = models.NowUTC()
 	if err := s.dmRepo.UpdateDeploymentInstance(mainInstance); err != nil {
 		return fmt.Errorf("failed to update main instance status: %w", err)
 	}
@@ -371,7 +371,7 @@ func (s *DeploymentManagementService) PromoteTestingToMain(
 	testingInstance.Role = models.DeploymentRoleMain
 	testingInstance.Status = "running"
 	testingInstance.StartedAt = &models.Time{Time: time.Now()}
-	testingInstance.UpdatedAt = models.Time(time.Now())
+	testingInstance.UpdatedAt = models.NowUTC()
 
 	if err := s.dmRepo.UpdateDeploymentInstance(testingInstance); err != nil {
 		return fmt.Errorf("failed to promote testing deployment: %w", err)

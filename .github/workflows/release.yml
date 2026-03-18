@@ -91,10 +91,10 @@ jobs:
           echo "🐳 Image Tags: ${IMAGE_TAG}, latest"
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Build backend for all platforms (Linux, macOS, Windows)
+  # Build combined Pushpaka binary for all platforms (API + embedded frontend + embedded workers)
   # ─────────────────────────────────────────────────────────────────────────
   backend:
-    needs: version
+    needs: [version, frontend]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -115,18 +115,22 @@ jobs:
             worker/go.sum
             cmd/pushpaka/go.sum
 
-      - name: Build backend
+      - uses: actions/download-artifact@v4
+        with:
+          name: embedded-ui
+          path: backend/ui
+
+      - name: Build combined binary
         env:
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: 0
         run: |
-          OUTPUT_NAME="pushpaka-backend-${{ matrix.goos }}-${{ matrix.goarch }}"
+          OUTPUT_NAME="pushpaka-${{ matrix.goos }}-${{ matrix.goarch }}"
           if [ "${{ matrix.goos }}" = "windows" ]; then
             OUTPUT_NAME="${OUTPUT_NAME}.exe"
           fi
-          mkdir -p backend/ui/dist
-          [ -f backend/ui/dist/.gitkeep ] || touch backend/ui/dist/.gitkeep
+          test -f backend/ui/dist/index.html
           
           go build -C cmd/pushpaka \
             -ldflags="-w -s -X main.version=v${{ needs.version.outputs.full-version }}" \
@@ -140,7 +144,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: backend-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: pushpaka-backend-*
+          path: pushpaka-*
           retention-days: 5
 
   # ─────────────────────────────────────────────────────────────────────────
@@ -195,7 +199,7 @@ jobs:
           retention-days: 5
 
   # ─────────────────────────────────────────────────────────────────────────
-  # Build frontend
+  # Build embedded frontend
   # ─────────────────────────────────────────────────────────────────────────
   frontend:
     needs: version
@@ -221,24 +225,22 @@ jobs:
         working-directory: frontend
         run: pnpm type-check
 
-      - name: Build
-        working-directory: frontend
+      - name: Build static frontend for Go embedding
         env:
           NEXT_TELEMETRY_DISABLED: 1
-        run: pnpm build
-
-      - name: Create artifact archive
         run: |
+          node scripts/patch-layout.js remove
+          trap 'node scripts/patch-layout.js restore' EXIT
           cd frontend
-          tar -czf ../pushpaka-frontend-${{ needs.version.outputs.full-version }}.tar.gz \
-            .next/ public/ package.json pnpm-lock.yaml
+          STATIC_EXPORT=1 pnpm build
           cd ..
-          ls -lh pushpaka-frontend-*.tar.gz
+          node scripts/copy-frontend.js
+          test -f backend/ui/dist/index.html
 
       - uses: actions/upload-artifact@v4
         with:
-          name: frontend
-          path: pushpaka-frontend-*.tar.gz
+          name: embedded-ui
+          path: backend/ui/dist
           retention-days: 5
 
   # ─────────────────────────────────────────────────────────────────────────
@@ -299,7 +301,7 @@ jobs:
   # Create combined release package
   # ─────────────────────────────────────────────────────────────────────────
   package:
-    needs: [version, backend, worker, frontend]
+    needs: [version, backend, worker]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -309,11 +311,10 @@ jobs:
       - name: Create combined packages
         run: |
           mkdir -p releases
-          FRONTEND_ARCHIVE="$(find "$(pwd)/artifacts/frontend" -name "*.tar.gz" | head -1)"
           
-          # Create separate platform packages (backend + worker + frontend)
+          # Create separate platform packages (combined binary + optional worker + config example)
           for platform in linux darwin windows; do
-            mkdir -p "package-${platform}/bin" "package-${platform}/frontend"
+            mkdir -p "package-${platform}/bin" "package-${platform}/config"
             
             # Copy binaries
             for arch in amd64 arm64; do
@@ -321,7 +322,7 @@ jobs:
                 continue
               fi
               
-              BACKEND="artifacts/backend-${platform}-${arch}/pushpaka-backend-${platform}-${arch}"
+              BACKEND="artifacts/backend-${platform}-${arch}/pushpaka-${platform}-${arch}"
               WORKER="artifacts/worker-${platform}-${arch}/pushpaka-worker-${platform}-${arch}"
               
               if [ "$platform" = "windows" ]; then
@@ -340,12 +341,7 @@ jobs:
               fi
             done
             
-            # Copy frontend artifacts
-            if [ -n "$FRONTEND_ARCHIVE" ] && [ -f "$FRONTEND_ARCHIVE" ]; then
-              cd "package-${platform}/frontend"
-              tar -xzf "$FRONTEND_ARCHIVE"
-              cd ../../
-            fi
+            cp config/config.yaml.example "package-${platform}/config/config.yaml.example"
             
             # Create archive
             if [ "$platform" = "windows" ]; then
@@ -371,7 +367,7 @@ jobs:
   # Create GitHub Release and upload all artifacts
   # ─────────────────────────────────────────────────────────────────────────
   release:
-    needs: [version, backend, worker, frontend, docker, package]
+    needs: [version, backend, worker, docker, package]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -393,15 +389,8 @@ jobs:
           # Collect individual binaries
           find all-artifacts/backend-* -type f -exec cp {} release-assets/ \;
           find all-artifacts/worker-* -type f -exec cp {} release-assets/ \;
-          find all-artifacts/frontend -type f -exec cp {} release-assets/ \;
           find all-artifacts/release-packages -type f -exec cp {} release-assets/ \;
-          
-          # Stable aliases for public GitHub download links.
-          cp release-assets/pushpaka-backend-linux-amd64 release-assets/pushpaka-linux-amd64
-          cp release-assets/pushpaka-backend-linux-arm64 release-assets/pushpaka-linux-arm64
-          cp release-assets/pushpaka-backend-darwin-amd64 release-assets/pushpaka-darwin-amd64
-          cp release-assets/pushpaka-backend-darwin-arm64 release-assets/pushpaka-darwin-arm64
-          cp release-assets/pushpaka-backend-windows-amd64.exe release-assets/pushpaka-windows-amd64.exe
+          cp config/config.yaml.example release-assets/config.yaml.example
           
           # Create checksums
           cd release-assets
@@ -417,14 +406,13 @@ jobs:
           NOTES="## 📦 Release v${{ needs.version.outputs.full-version }}"
           NOTES="${NOTES}\n\n### 📋 Artifacts"
           NOTES="${NOTES}\n\n**Binaries:**"
-          NOTES="${NOTES}\n- \`pushpaka-backend\` (Linux, macOS, Windows - amd64 & arm64)"
+          NOTES="${NOTES}\n- \`pushpaka\` (single binary: API + embedded frontend + embedded worker mode)"
           NOTES="${NOTES}\n- \`pushpaka-worker\` (Linux, macOS, Windows - amd64 & arm64)"
-          NOTES="${NOTES}\n\n**Frontend:**"
-          NOTES="${NOTES}\n- \`pushpaka-frontend-${{ needs.version.outputs.full-version }}.tar.gz\` (Next.js build artifacts)"
+          NOTES="${NOTES}\n- \`config.yaml.example\` (template for the new \`-config\` flag)"
           NOTES="${NOTES}\n\n**Combined Packages:**"
-          NOTES="${NOTES}\n- \`pushpaka-linux-${{ needs.version.outputs.full-version }}.tar.gz\` (Backend + Worker + Frontend)"
-          NOTES="${NOTES}\n- \`pushpaka-darwin-${{ needs.version.outputs.full-version }}.tar.gz\` (Backend + Worker + Frontend)"
-          NOTES="${NOTES}\n- \`pushpaka-windows-${{ needs.version.outputs.full-version }}.zip\` (Backend + Worker + Frontend)"
+          NOTES="${NOTES}\n- \`pushpaka-linux-${{ needs.version.outputs.full-version }}.tar.gz\` (combined binary + worker + config example)"
+          NOTES="${NOTES}\n- \`pushpaka-darwin-${{ needs.version.outputs.full-version }}.tar.gz\` (combined binary + worker + config example)"
+          NOTES="${NOTES}\n- \`pushpaka-windows-${{ needs.version.outputs.full-version }}.zip\` (combined binary + worker + config example)"
           NOTES="${NOTES}\n\n### 🐳 Docker Image"
           NOTES="${NOTES}\n\`\`\`bash"
           NOTES="${NOTES}\ndocker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${{ needs.version.outputs.full-version }}"
@@ -494,7 +482,7 @@ jobs:
   # Final status check
   # ─────────────────────────────────────────────────────────────────────────
   status:
-    needs: [version, backend, worker, frontend, docker, release]
+    needs: [version, backend, worker, docker, release]
     runs-on: ubuntu-latest
     if: always()
     steps:

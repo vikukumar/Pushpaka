@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -23,15 +24,35 @@ var version = "dev"
 
 func main() {
 	dev := flag.Bool("dev", false, "dev mode: use SQLite + embedded worker (no Postgres/Redis required)")
+	configPath := flag.String("config", os.Getenv("PUSHPAKA_CONFIG_FILE"), "path to config.yaml")
+	mode := flag.String("mode", "", "config mode: development, staging, production")
 	flag.Parse()
 
+	if *configPath != "" {
+		selectedMode := *mode
+		if selectedMode == "" {
+			if *dev {
+				selectedMode = "development"
+			} else if envMode := os.Getenv("APP_ENV"); envMode != "" {
+				selectedMode = envMode
+			} else {
+				selectedMode = "production"
+			}
+		}
+		if err := applyConfigFile(*configPath, selectedMode); err != nil {
+			log.Fatal().Err(err).Msg("failed to load config file")
+		}
+		log.Info().Str("config_file", *configPath).Str("mode", normalizeConfigMode(selectedMode)).Msg("loaded config file")
+	}
+
 	if *dev {
-		setIfEmpty("DATABASE_DRIVER", "sqlite")
-		setIfEmpty("DATABASE_URL", "pushpaka-dev.db")
-		setIfEmpty("REDIS_URL", "")
+		os.Setenv("DATABASE_DRIVER", "sqlite")
+		os.Setenv("DATABASE_URL", "pushpaka-dev.db")
+		os.Setenv("REDIS_URL", "")
+		os.Setenv("REDIS_ENABLED", "false")
+		os.Setenv("APP_ENV", "development")
+		os.Setenv("PORT", "8080")
 		setIfEmpty("JWT_SECRET", "dev-secret-change-in-production")
-		setIfEmpty("APP_ENV", "development")
-		setIfEmpty("PORT", "8080")
 	}
 
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
@@ -120,5 +141,14 @@ func main() {
 func setIfEmpty(key, val string) {
 	if os.Getenv(key) == "" {
 		os.Setenv(key, val)
+	}
+}
+
+func init() {
+	flag.Usage = func() {
+		fmt.Fprintf(flag.CommandLine.Output(), "Usage of %s:\n", os.Args[0])
+		flag.PrintDefaults()
+		fmt.Fprintln(flag.CommandLine.Output(), "")
+		fmt.Fprintln(flag.CommandLine.Output(), "The config file, when provided, overrides environment-derived values for the selected mode.")
 	}
 }

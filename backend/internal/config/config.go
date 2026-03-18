@@ -13,10 +13,13 @@ type Config struct {
 	Port               string
 	DatabaseDriver     string // "postgres" (default) or "sqlite"
 	DatabaseURL        string
+	DatabaseConfig     *DatabaseConfig // Structured database config (alternative to DSN)
 	RedisURL           string
+	RedisConfig        *RedisConfig // Structured Redis config (alternative to URL)
 	JWTSecret          string
 	JWTExpiry          int // hours
 	AppEnv             string
+	AppMode            string // development, staging, production
 	BaseURL            string // public base URL, e.g. https://push.example.com
 	AllowedOrigins     []string
 	DockerHost         string
@@ -62,14 +65,33 @@ func Load() *Config {
 	}
 	deployDir := getEnv("BUILD_DEPLOY_DIR", defaultDeployDir())
 
+	appMode := normalizeMode(getEnv("APP_ENV", "development"))
+
+	// Build DatabaseURL from structured config if DATABASE_URL not explicitly set
+	databaseURL := getEnv("DATABASE_URL", "")
+	if databaseURL == "" && getEnv("DATABASE_DRIVER", "postgres") == "postgres" {
+		dbCfg := LoadDatabaseConfig(appMode)
+		databaseURL = dbCfg.BuildPostgresURL()
+	}
+
+	// Build RedisURL from structured config if REDIS_URL not explicitly set
+	redisURL := getEnv("REDIS_URL", "")
+	if redisURL == "" && getEnv("REDIS_HOST", "") != "" {
+		redisCfg := LoadRedisConfig(appMode)
+		redisURL = redisCfg.BuildRedisURL()
+	}
+
 	return &Config{
 		Port:               getEnv("PORT", "8080"),
 		DatabaseDriver:     getEnv("DATABASE_DRIVER", "postgres"),
-		DatabaseURL:        getEnv("DATABASE_URL", "postgres://pushpaka:pushpaka@localhost:5432/pushpaka?sslmode=disable"),
-		RedisURL:           getEnv("REDIS_URL", ""), // empty = Redis disabled
+		DatabaseURL:        databaseURL,
+		DatabaseConfig:     LoadDatabaseConfig(appMode),
+		RedisURL:           redisURL,
+		RedisConfig:        LoadRedisConfig(appMode),
 		JWTSecret:          getEnv("JWT_SECRET", "change-me-in-production"),
 		JWTExpiry:          jwtExpiry,
 		AppEnv:             getEnv("APP_ENV", "development"),
+		AppMode:            appMode,
 		BaseURL:            getEnv("BASE_URL", "http://localhost:"+getEnv("PORT", "8080")),
 		AllowedOrigins:     strings.Split(getEnv("CORS_ORIGINS", "http://localhost:3000"), ","),
 		DockerHost:         getEnv("DOCKER_HOST", "unix:///var/run/docker.sock"),
@@ -124,6 +146,18 @@ func defaultDeployDir() string {
 		return filepath.Join(base, "pushpaka", "deploy")
 	}
 	return "/deploy/pushpaka"
+}
+
+// normalizeMode converts app environment names to standard modes
+func normalizeMode(env string) string {
+	switch strings.ToLower(env) {
+	case "prod", "production":
+		return "production"
+	case "stage", "staging":
+		return "staging"
+	default:
+		return "development"
+	}
 }
 
 func getEnv(key, fallback string) string {

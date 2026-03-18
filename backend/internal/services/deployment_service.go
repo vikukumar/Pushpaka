@@ -12,7 +12,6 @@ import (
 
 	"github.com/vikukumar/Pushpaka/internal/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
-	"github.com/vikukumar/Pushpaka/queue"
 )
 
 const deployJobQueue = "pushpaka:deploy:queue"
@@ -20,13 +19,19 @@ const deployJobQueue = "pushpaka:deploy:queue"
 var ErrDeploymentNotFound = errors.New("deployment not found")
 var ErrQueueUnavailable = errors.New("deployment queue unavailable")
 
+// DeploymentJobQueue captures the only queue operation the service needs.
+// Using an interface here keeps services decoupled from the concrete queue package.
+type DeploymentJobQueue interface {
+	Push(payload []byte) error
+}
+
 type DeploymentService struct {
 	deploymentRepo *repositories.DeploymentRepository
 	projectRepo    *repositories.ProjectRepository
 	envRepo        *repositories.EnvVarRepository
 	domainRepo     *repositories.DomainRepository
 	rdb            *redis.Client
-	inQueue        *queue.InProcess // non-nil in dev mode (no Redis)
+	inQueue        DeploymentJobQueue // non-nil in dev mode (no Redis)
 	baseURL        string
 }
 
@@ -36,7 +41,7 @@ func NewDeploymentService(
 	envRepo *repositories.EnvVarRepository,
 	domainRepo *repositories.DomainRepository,
 	rdb *redis.Client,
-	inQueue *queue.InProcess,
+	inQueue DeploymentJobQueue,
 	baseURL string,
 ) *DeploymentService {
 	svc := &DeploymentService{

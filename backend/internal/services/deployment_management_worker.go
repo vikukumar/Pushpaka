@@ -1,4 +1,4 @@
-package queue
+package services
 
 import (
 	"context"
@@ -7,14 +7,13 @@ import (
 
 	"github.com/vikukumar/Pushpaka/internal/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
-	"github.com/vikukumar/Pushpaka/internal/services"
 )
 
 type DeploymentManagementWorker struct {
 	projectRepo  *repositories.ProjectRepository
 	deployRepo   *repositories.DeploymentRepository
 	dmRepo       *repositories.DeploymentManagementRepository
-	dmService    *services.DeploymentManagementService
+	dmService    *DeploymentManagementService
 	tickInterval time.Duration
 	stopChan     chan bool
 	isStopped    bool
@@ -24,7 +23,7 @@ func NewDeploymentManagementWorker(
 	projectRepo *repositories.ProjectRepository,
 	deployRepo *repositories.DeploymentRepository,
 	dmRepo *repositories.DeploymentManagementRepository,
-	dmService *services.DeploymentManagementService,
+	dmService *DeploymentManagementService,
 	tickInterval time.Duration,
 ) *DeploymentManagementWorker {
 	return &DeploymentManagementWorker{
@@ -304,7 +303,7 @@ func (w *DeploymentManagementWorker) RestartDeploymentIfUnhealthy(ctx context.Co
 		// Update restart count
 		instance.RestartCount++
 		instance.HealthStatus = "attempting_restart"
-		instance.UpdatedAt = models.Time(time.Now())
+		instance.UpdatedAt = models.NowUTC()
 
 		// TODO: Update instance in database
 		// return w.dmRepo.UpdateDeploymentInstance(instance)
@@ -312,7 +311,7 @@ func (w *DeploymentManagementWorker) RestartDeploymentIfUnhealthy(ctx context.Co
 		// Reset restart count if healthy
 		instance.RestartCount = 0
 		instance.HealthStatus = "healthy"
-		instance.UpdatedAt = models.Time(time.Now())
+		instance.UpdatedAt = models.NowUTC()
 
 		// TODO: Update instance in database
 	}

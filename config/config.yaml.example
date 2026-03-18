@@ -1,0 +1,142 @@
+# Pushpaka Configuration - Multi-Mode Support
+# Copy this file to config/config.yaml and customize for your environment
+# Environment variables override these settings (12-factor app principle)
+
+# Development mode: SQLite + in-process workers, minimal security
+development:
+  server:
+    port: 8080
+    log_level: debug
+    environment: development
+
+  database:
+    driver: sqlite  # sqlite | postgres
+    path: pushpaka-dev.db
+    # For SQLite, set driver to "sqlite" and path to database file path
+    
+  # Redis disabled in development (in-process queue used instead)
+  # Uncomment to enable Redis even in development:
+  # redis:
+  #   enabled: false
+  #   host: localhost
+  #   port: 6379
+  #   password: ""
+  #   db: 0
+
+  component: all  # all | api | worker
+
+# Staging mode: PostgreSQL with basic SSL, production-like
+staging:
+  server:
+    port: 8080
+    log_level: info
+    environment: staging
+    
+  database:
+    driver: postgres
+    host: ${DB_HOST}
+    port: ${DB_PORT}
+    user: ${DB_USER}
+    password: ${DB_PASSWORD}
+    name: ${DB_NAME}
+    ssl_mode: prefer      # disable | prefer | require | verify-ca | verify-full
+    ssl_cert_file: ""
+    # Connection pool tuning for staging
+    max_open_conns: 20
+    max_idle_conns: 5
+    conn_max_lifetime: 10m
+    
+  redis:
+    enabled: true
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+    password: ${REDIS_PASSWORD}
+    db: 0
+    # Connection pool settings
+    max_retries: 3
+    pool_size: 10
+    min_idle_conns: 2
+    max_conn_age: 10m
+    pool_timeout: 4s
+    idle_timeout: 5m
+    read_timeout: 3s
+    write_timeout: 3s
+
+  component: all  # all | api | worker
+
+# Production mode: PostgreSQL with full SSL, optimized for high availability
+production:
+  server:
+    port: 8080
+    log_level: warn
+    environment: production
+    
+  database:
+    driver: postgres
+    host: ${DB_HOST}
+    port: ${DB_PORT}
+    user: ${DB_USER}
+    password: ${DB_PASSWORD}
+    name: ${DB_NAME}
+    ssl_mode: require        # Enforce SSL in production
+    ssl_cert_file: ${DB_SSL_CERT_FILE}  # Path to CA certificate
+    # Production-optimized connection pool
+    max_open_conns: 30
+    max_idle_conns: 10
+    conn_max_lifetime: 5m
+    
+  redis:
+    enabled: true
+    host: ${REDIS_HOST}
+    port: ${REDIS_PORT}
+    password: ${REDIS_PASSWORD}
+    db: 0
+    # Production-optimized connection pool
+    max_retries: 5
+    pool_size: 20
+    min_idle_conns: 5
+    max_conn_age: 10m
+    pool_timeout: 4s
+    idle_timeout: 5m
+    read_timeout: 5s
+    write_timeout: 5s
+
+  component: all  # all | api | worker
+
+# Common settings across all modes
+common:
+  jwt_secret: ${JWT_SECRET}
+  jwt_expiry_hours: 24
+  base_url: ${BASE_URL}
+  cors_origins: ${CORS_ORIGINS}
+  
+  build:
+    clone_dir: ${BUILD_CLONE_DIR}
+    deploy_dir: ${BUILD_DEPLOY_DIR}
+    workers: 3
+  
+  # OAuth providers
+  github:
+    client_id: ${GITHUB_CLIENT_ID}
+    client_secret: ${GITHUB_CLIENT_SECRET}
+    
+  gitlab:
+    client_id: ${GITLAB_CLIENT_ID}
+    client_secret: ${GITLAB_CLIENT_SECRET}
+    base_url: ${GITLAB_BASE_URL}
+    
+  # AI Integration
+  ai:
+    provider: ${AI_PROVIDER}
+    api_key: ${AI_API_KEY}
+    model: ${AI_MODEL}
+    base_url: ${AI_BASE_URL}
+    rate_limit_per_user_per_day: ${AI_RATE_LIMIT_PER_USER_PER_DAY}
+    
+  # SMTP for notifications
+  smtp:
+    host: ${SMTP_HOST}
+    port: ${SMTP_PORT}
+    username: ${SMTP_USERNAME}
+    password: ${SMTP_PASSWORD}
+    from: ${SMTP_FROM}

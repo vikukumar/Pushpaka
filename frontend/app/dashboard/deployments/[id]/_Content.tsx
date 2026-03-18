@@ -177,7 +177,7 @@ export default function DeploymentDetailPage() {
     prevStatusRef.current = current
   }, [deployment?.status, refetchLogs])
 
-  const logs: DeploymentLog[] = logsData?.data || []
+  const logs = useMemo<DeploymentLog[]>(() => logsData?.data ?? [], [logsData?.data])
   const isLive = deployment?.status === 'building'
 
   // Detect issues from logs + error_msg once deployment is failed
