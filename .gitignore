@@ -46,8 +46,10 @@ desktop.ini
 
 # ── Build dirs ────────────────────────────────────────────────────────────────
 /tmp/
-dist/
-build/
+/build/
+/website/dist/
+/frontend/out/
+/frontend/.next/
 !backend/ui/dist/
 !backend/ui/dist/.gitkeep
 
@@ -83,3 +85,5 @@ dist/
 *.tar
 *.tgz
 Chart.lock
+!backend/ui/dist/
+!backend/ui/dist/.gitkeep

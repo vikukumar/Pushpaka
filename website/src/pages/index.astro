@@ -6,173 +6,240 @@ import Footer from '../components/Footer.astro';
 
 <Layout title="Pushpaka - Cloud Deployment Platform">
   <Header />
-  
-  <!-- Hero Section -->
-  <section class="pt-40 pb-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-    <!-- Gradient Background Elements -->
-    <div class="absolute inset-0 -z-10">
-      <div class="absolute top-20 left-1/4 w-96 h-96 bg-brand-600 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
-      <div class="absolute top-40 right-1/4 w-96 h-96 bg-accent-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10"></div>
-    </div>
 
-    <div class="max-w-7xl mx-auto text-center">
-      <div class="mb-8 inline-block">
-        <span class="inline-block px-4 py-2 bg-brand-950 border border-brand-700 rounded-full text-brand-300 text-sm font-medium">
-          🚀 Production Ready · Open Source · Enterprise Grade
-        </span>
-      </div>
+  <section class="hero-scene pt-36 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+    <div class="hero-grid"></div>
+    <div class="hero-glow-orb is-primary"></div>
+    <div class="hero-glow-orb is-accent"></div>
+    <div class="hero-glow-orb is-field"></div>
+    <div class="hero-ring"></div>
+    <div class="hero-panel is-tilted"></div>
+    <div class="hero-panel is-drifting"></div>
 
-      <h1 class="text-5xl md:text-7xl font-bold mb-6 gradient-text leading-tight">
-        Carry Your Code<br />to the Cloud
-      </h1>
-
-      <p class="text-xl md:text-2xl text-gray-300 mb-12 max-w-2xl mx-auto">
-        Self-hosted cloud deployment platform. Deploy applications from Git with automated builds, real-time logs, and Traefik-powered routing.
-      </p>
-
-      <div class="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-        <a href="https://github.com/vikukumar/Pushpaka#quick-start" target="_blank" rel="noopener noreferrer" class="btn-primary">
-          Get Started
-        </a>
-        <a href="/features/" class="btn-secondary">
-          Explore Features
-        </a>
-      </div>
-
-      <!-- Stats -->
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto mt-20 border-t border-surface-border pt-12">
+    <div class="max-w-7xl mx-auto">
+      <div class="grid gap-14 lg:grid-cols-[1.2fr_0.8fr] items-center">
         <div>
-          <div class="gradient-text text-3xl font-bold mb-2">100%</div>
-          <div class="text-gray-400 text-sm">Open Source</div>
+          <div class="mb-8 inline-block">
+            <span class="inline-block px-4 py-2 bg-brand-950/90 border border-brand-700 rounded-full text-brand-300 text-sm font-medium">
+              v1.0.0 · Git delivery, AI operations, Traefik routing
+            </span>
+          </div>
+
+          <h1 class="text-5xl md:text-7xl font-bold mb-6 gradient-text leading-tight">
+            Git-to-cloud delivery<br />with AI operations built in
+          </h1>
+
+          <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl">
+            Pushpaka is a production-grade self-hosted deployment platform for shipping from Git, streaming builds in real time, routing through Traefik, and using AI to monitor runtime behavior and explain deployment logs.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-4 mb-12">
+            <a href="/install/" class="btn-primary">
+              Install v1.0.0
+            </a>
+            <a href="/features/" class="btn-secondary">
+              Explore Shipped Features
+            </a>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-surface-border pt-8">
+            <div>
+              <div class="gradient-text text-3xl font-bold mb-2">AI Ops</div>
+              <div class="text-gray-400 text-sm">Log analysis, alerts, assistant chat</div>
+            </div>
+            <div>
+              <div class="gradient-text text-3xl font-bold mb-2">Go 1.25</div>
+              <div class="text-gray-400 text-sm">API, worker, single binary runtime</div>
+            </div>
+            <div>
+              <div class="gradient-text text-3xl font-bold mb-2">Traefik</div>
+              <div class="text-gray-400 text-sm">TLS, domains, routing surface</div>
+            </div>
+            <div>
+              <div class="gradient-text text-3xl font-bold mb-2">Next 16</div>
+              <div class="text-gray-400 text-sm">Frontend dashboard and operator UI</div>
+            </div>
+          </div>
         </div>
-        <div>
-          <div class="gradient-text text-3xl font-bold mb-2">MIT</div>
-          <div class="text-gray-400 text-sm">Licensed</div>
-        </div>
-        <div>
-          <div class="gradient-text text-3xl font-bold mb-2">Go 1.25</div>
-          <div class="text-gray-400 text-sm">Built With</div>
-        </div>
-        <div>
-          <div class="gradient-text text-3xl font-bold mb-2">Deployed</div>
-          <div class="text-gray-400 text-sm">Instantly</div>
+
+        <div class="space-y-5">
+          <div class="metallic-card p-6">
+            <div class="text-sm uppercase tracking-[0.22em] text-brand-300 mb-3">Operational Flow</div>
+            <div class="space-y-4 text-sm text-gray-300">
+              <div class="flex items-start gap-3">
+                <span class="text-accent-400 text-lg">01</span>
+                <div>
+                  <div class="text-white font-semibold">Connect any Git repository</div>
+                  <div>Public or private repos with protected PAT handling and redaction.</div>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-accent-400 text-lg">02</span>
+                <div>
+                  <div class="text-white font-semibold">Build automatically</div>
+                  <div>Framework detection, Dockerfile generation, or direct deploy fallback.</div>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-accent-400 text-lg">03</span>
+                <div>
+                  <div class="text-white font-semibold">Observe in real time</div>
+                  <div>Live logs, health endpoints, worker stats, metrics, and AI analysis.</div>
+                </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-accent-400 text-lg">04</span>
+                <div>
+                  <div class="text-white font-semibold">Route and recover</div>
+                  <div>Traefik domains, TLS, rollback flow, and multi-project lifecycle management.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="metallic-card p-6">
+            <div class="text-sm uppercase tracking-[0.22em] text-brand-300 mb-3">Runtime Modes</div>
+            <div class="grid gap-3 sm:grid-cols-2 text-sm">
+              <div class="rounded-xl border border-surface-border bg-slate-950/40 p-4">
+                <div class="text-white font-semibold mb-1">Single Binary Dev</div>
+                <div class="text-gray-400">`pushpaka -dev` with SQLite, embedded worker, and in-process queue.</div>
+              </div>
+              <div class="rounded-xl border border-surface-border bg-slate-950/40 p-4">
+                <div class="text-white font-semibold mb-1">Split Scale Mode</div>
+                <div class="text-gray-400">Run API and worker independently with Redis-backed queueing.</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Key Features Section -->
-  <section class="py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent to-brand-950 to-10%">
+  <section class="py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent to-brand-950/20">
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-16">
-        <h2 class="section-title gradient-text">Why Pushpaka?</h2>
-        <p class="section-subtitle text-gray-400">Everything you need for professional cloud deployments</p>
+        <h2 class="section-title gradient-text">What Ships In v1.0.0</h2>
+        <p class="section-subtitle text-gray-400">Every block below maps to the current README, backend handlers, worker pipeline, and release packaging.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <!-- Feature 1 -->
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-brand-600 to-brand-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">🚀</span>
+            <span class="text-sm font-bold">AI</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">One-Click Deployments</h3>
-          <p class="text-gray-400">Connect your Git repository and deploy with a single click. Automatic builds and updates.</p>
+          <h3 class="text-xl font-bold text-white mb-3">AI Monitoring And Log Analysis</h3>
+          <p class="text-gray-400">AI config, monitoring alerts, deployment log analysis, assistant chat, usage tracking, and RAG-backed documentation are present in the backend today.</p>
         </div>
 
-        <!-- Feature 2 -->
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-accent-600 to-accent-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">🐳</span>
+            <span class="text-2xl">🚀</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">Auto Dockerization</h3>
-          <p class="text-gray-400">Framework detection for Next.js, React, Go, Python, and more. Generates optimized Dockerfiles.</p>
+          <h3 class="text-xl font-bold text-white mb-3">Git Deployments With Rollbacks</h3>
+          <p class="text-gray-400">Trigger deployments from public or private repos, stream build logs, track history, and roll back previous deployments when you need recovery.</p>
         </div>
 
-        <!-- Feature 3 -->
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-cyan-600 to-cyan-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">🔐</span>
+            <span class="text-2xl">🐳</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">Private Repositories</h3>
-          <p class="text-gray-400">Full support for private repos with secure PAT storage and automatic git authentication.</p>
+          <h3 class="text-xl font-bold text-white mb-3">Container And Direct Runtime</h3>
+          <p class="text-gray-400">Pushpaka builds Docker images when available and falls back to direct process deployment when Docker is not present on the target host.</p>
         </div>
 
-        <!-- Feature 4 -->
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-brand-600 to-accent-500 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">📊</span>
+            <span class="text-2xl">📡</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">Real-Time Logs</h3>
-          <p class="text-gray-400">WebSocket streaming during builds with live system status and performance metrics.</p>
+          <h3 class="text-xl font-bold text-white mb-3">Realtime Visibility</h3>
+          <p class="text-gray-400">WebSocket log streaming, `/health`, `/ready`, `/system`, Prometheus metrics, and live worker statistics give operators direct feedback during builds and runtime.</p>
         </div>
 
-        <!-- Feature 5 -->
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-cyan-600 to-blue-500 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">🔀</span>
+            <span class="text-2xl">🌐</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">Traefik Routing</h3>
-          <p class="text-gray-400">Advanced reverse proxy with automatic TLS, Let's Encrypt SSL, and custom domains.</p>
+          <h3 class="text-xl font-bold text-white mb-3">Domains, TLS, And Routing</h3>
+          <p class="text-gray-400">Traefik v3 handles ingress, custom domains, automatic TLS through Let’s Encrypt, and the operator-facing routing surface for deployed applications.</p>
         </div>
 
-        <!-- Feature 6 -->
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-brand-600 to-cyan-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">♻️</span>
+            <span class="text-2xl">⚙️</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">Easy Rollbacks</h3>
-          <p class="text-gray-400">Instantly rollback to any previous deployment with a single click.</p>
+          <h3 class="text-xl font-bold text-white mb-3">Single Binary Or Split Architecture</h3>
+          <p class="text-gray-400">Run everything in one process for development or split API and worker components for horizontally scalable production setups.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Tech Stack Section -->
-  <section class="py-32 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-7xl mx-auto text-center">
-      <h2 class="section-title gradient-text">Built With Modern Tech</h2>
-      <p class="section-subtitle text-gray-400 mb-16">Leveraging the best tools in the industry</p>
+  <section class="py-28 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="section-title gradient-text">Mapped To The Real Code Structure</h2>
+        <p class="section-subtitle text-gray-400">The site content now reflects how the repository is actually organized and shipped.</p>
+      </div>
 
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <div class="metallic-card p-6">
-          <div class="font-bold text-brand-300 mb-2">Go 1.25</div>
-          <p class="text-sm text-gray-400">High performance backend</p>
+          <div class="text-brand-300 font-semibold mb-3">cmd/pushpaka</div>
+          <p class="text-sm text-gray-400">Combined entry point with `-dev`, embedded workers, and the all-in-one runtime path documented in the README.</p>
         </div>
         <div class="metallic-card p-6">
-          <div class="font-bold text-accent-300 mb-2">Next.js 16</div>
-          <p class="text-sm text-gray-400">Modern frontend framework</p>
+          <div class="text-accent-300 font-semibold mb-3">backend/internal</div>
+          <p class="text-sm text-gray-400">Handlers, services, repositories, middleware, AI endpoints, OAuth, webhooks, notifications, health, and deployment APIs.</p>
         </div>
         <div class="metallic-card p-6">
-          <div class="font-bold text-blue-300 mb-2">React 19</div>
-          <p class="text-sm text-gray-400">Rich UI components</p>
+          <div class="text-cyan-300 font-semibold mb-3">worker/internal/worker</div>
+          <p class="text-sm text-gray-400">Clone, detect, build, run, direct deploy fallback, Docker execution, rollback branch handling, and notification callbacks.</p>
         </div>
         <div class="metallic-card p-6">
-          <div class="font-bold text-cyan-300 mb-2">Tailwind CSS</div>
-          <p class="text-sm text-gray-400">Utility-first styling</p>
-        </div>
-        <div class="metallic-card p-6">
-          <div class="font-bold text-purple-300 mb-2">Docker</div>
-          <p class="text-sm text-gray-400">Container orchestration</p>
+          <div class="text-brand-200 font-semibold mb-3">frontend + website</div>
+          <p class="text-sm text-gray-400">Next.js operator dashboard plus Astro-based docs and release site using the same brand palette and deployment messaging.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- CTA Section -->
-  <section class="py-32 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-    <div class="absolute inset-0 -z-10">
-      <div class="absolute inset-0 bg-gradient-radial-brand opacity-50"></div>
-    </div>
+  <section class="py-28 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-16">
+        <h2 class="section-title gradient-text">Operational Surface</h2>
+        <p class="section-subtitle text-gray-400">Pushpaka v1.0.0 is more than a deploy button. It already exposes the operator controls below.</p>
+      </div>
 
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3">AI</h3>
+          <p class="text-gray-400">Per-user AI configuration, monitoring intervals, alert storage, RAG documents, deployment log analysis, and contextual assistant chat.</p>
+        </div>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3">Security</h3>
+          <p class="text-gray-400">JWT and API key auth, bcrypt password hashing, secure headers, rate limiting, configurable CORS, and PAT redaction in logs and APIs.</p>
+        </div>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3">Integrations</h3>
+          <p class="text-gray-400">GitHub and GitLab OAuth, incoming webhooks, internal deployment notifications, Slack, Discord, and SMTP notification paths in the backend.</p>
+        </div>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-3">Observability</h3>
+          <p class="text-gray-400">Metrics export, health and readiness endpoints, system diagnostics, deployment logs, worker activity stats, and terminal access for running containers.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
     <div class="max-w-4xl mx-auto text-center metallic-card p-12 md:p-16">
-      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Deploy?</h2>
-      <p class="text-gray-300 mb-8 text-lg">Start deploying your applications in minutes. No credit card required.</p>
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Deploy, Inspect, Recover</h2>
+      <p class="text-gray-300 mb-8 text-lg">Install locally, run a single binary in dev, or ship the full platform with worker separation, Traefik ingress, and release artifacts.</p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a href="https://github.com/vikukumar/Pushpaka" target="_blank" rel="noopener noreferrer" class="btn-primary">
-          View on GitHub
+          View On GitHub
         </a>
-        <a href="/install/" class="btn-secondary">
-          Installation Guide
+        <a href="/helm-install/" class="btn-secondary">
+          Helm Install Guide
         </a>
       </div>
     </div>

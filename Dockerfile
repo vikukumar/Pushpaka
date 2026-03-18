@@ -32,6 +32,9 @@ COPY backend/ ./backend/
 COPY worker/ ./worker/
 COPY cmd/pushpaka/ ./cmd/pushpaka/
 
+# Ensure the embedded UI path exists for server-only builds in CI/release.
+RUN mkdir -p /app/backend/ui/dist && touch /app/backend/ui/dist/.gitkeep
+
 # Build the unified binary (API + embedded worker) from the workspace root
 # Use ARG VERSION for build-time version injection
 RUN go build -C cmd/pushpaka \

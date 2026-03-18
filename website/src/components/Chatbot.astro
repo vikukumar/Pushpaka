@@ -89,7 +89,7 @@ const { initialMessage = "Hi! I'm the Pushpaka assistant. How can I help you tod
   }
 </style>
 
-<script define:vars={{ openRouterApiKey: process.env.OPENROUTER_API_KEY }}>
+<script>
 // System prompt for Pushpaka assistant
 const SYSTEM_PROMPT = `You are a helpful assistant for Pushpaka, a self-hosted cloud deployment platform. 
 
@@ -114,6 +114,10 @@ const sendButton = document.getElementById('send-button');
 const chatMessages = document.getElementById('chat-messages');
 
 let isOpen = false;
+
+if (!chatToggle || !chatWindow || !closeChat || !chatInput || !sendButton || !chatMessages) {
+  console.warn('Chatbot UI was not initialized because one or more elements are missing.');
+} else {
 
 // Toggle chat window
 chatToggle.addEventListener('click', () => {
@@ -232,5 +236,6 @@ function escapeHtml(text) {
     "'": '&#039;'
   };
   return text.replace(/[&<>"']/g, m => map[m]);
+}
 }
 </script>

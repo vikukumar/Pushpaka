@@ -9,13 +9,11 @@ import Footer from '../components/Footer.astro';
   
   <div class="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
-      <!-- Page Header -->
       <div class="text-center mb-16">
         <h1 class="text-5xl md:text-6xl font-bold gradient-text mb-6">Release Tracker</h1>
-        <p class="text-xl text-gray-400">Latest versions and release history</p>
+        <p class="text-xl text-gray-400">Release notes aligned to the shipped codebase, packaging, and operator-facing surface.</p>
       </div>
 
-      <!-- Latest Release -->
       <div class="mb-12">
         <h2 class="text-3xl font-bold text-white mb-8">📦 Latest Release</h2>
         
@@ -31,12 +29,12 @@ import Footer from '../components/Footer.astro';
           <div class="prose prose-invert max-w-none mb-8">
             <h4 class="text-lg font-bold text-white mb-4">🎉 Initial Release</h4>
             <ul class="space-y-3 text-gray-300">
-              <li><strong class="text-white">✨ Features:</strong> Complete deployment platform with Git integration, auto-dockerization, and real-time logs</li>
-              <li><strong class="text-white">🚀 Performance:</strong> Sub-second deployment triggers with streaming build logs</li>
-              <li><strong class="text-white">🔒 Security:</strong> Secure private repo support with PAT authentication</li>
-              <li><strong class="text-white">📊 Monitoring:</strong> Prometheus metrics, health checks, and detailed logging</li>
-              <li><strong class="text-white">🌐 Routing:</strong> Traefik v3 with automatic SSL/TLS and custom domain support</li>
-              <li><strong class="text-white">🛠️ Management:</strong> Full project and deployment lifecycle management</li>
+              <li><strong class="text-white">✨ Platform:</strong> Git-based deployments, private repo auth, automatic Dockerization, direct deploy fallback, and rollback support</li>
+              <li><strong class="text-white">🤖 AI Ops:</strong> AI monitoring config, alert persistence, assistant chat, RAG docs, and deployment log analysis endpoints</li>
+              <li><strong class="text-white">📊 Observability:</strong> Real-time logs, Prometheus metrics, health probes, `/system`, and live worker stats</li>
+              <li><strong class="text-white">🌐 Routing:</strong> Traefik v3, custom domains, automatic TLS, and self-hosted ingress patterns</li>
+              <li><strong class="text-white">🔒 Security:</strong> JWT/API key auth, secure headers, bcrypt, rate limiting, and PAT redaction</li>
+              <li><strong class="text-white">⚙️ Runtime:</strong> Single-binary dev mode plus split API/worker deployments for production</li>
             </ul>
           </div>
 
@@ -57,7 +55,7 @@ import Footer from '../components/Footer.astro';
                 <div>✓ Backend (Go)</div>
                 <div>✓ Frontend (Next.js)</div>
                 <div>✓ Worker (Go)</div>
-                <div>✓ Docker Image</div>
+                <div>✓ Helm chart and Docker image</div>
               </div>
             </div>
 
@@ -83,7 +81,7 @@ curl -L https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-
 chmod +x pushpaka
 ./pushpaka -dev
 
-# Windows 
+# Windows
 $url = "https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-windows-amd64.exe"
 Invoke-WebRequest -Uri $url -OutFile .\pushpaka.exe
 .\pushpaka.exe -dev
@@ -96,12 +94,10 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
         </div>
       </div>
 
-      <!-- Release History -->
       <div class="mb-12">
         <h2 class="text-3xl font-bold text-white mb-8">📋 Release History</h2>
 
         <div class="space-y-6">
-          <!-- v1.0.0 -->
           <div class="metallic-card p-8">
             <div class="flex items-start justify-between mb-4">
               <div>
@@ -112,14 +108,13 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
             </div>
             <ul class="space-y-2 text-gray-300 text-sm">
               <li>✨ Initial production release</li>
-              <li>🚀 Full deployment platform with Git integration</li>
-              <li>🐳 Auto-dockerization for 15+ frameworks</li>
-              <li>🔒 Secure private repository support</li>
-              <li>📊 Real-time monitoring and logging</li>
+              <li>🚀 Git deploy platform with rollback and direct deploy fallback</li>
+              <li>🤖 AI monitoring, assistant chat, and deployment log analysis</li>
+              <li>🔒 Secure private repository support and hardened auth surface</li>
+              <li>📊 Realtime logs, metrics, health, and system diagnostics</li>
             </ul>
           </div>
 
-          <!-- Upcoming -->
           <div class="metallic-card p-8 opacity-60">
             <div class="flex items-start justify-between mb-4">
               <div>
@@ -129,35 +124,16 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
               <span class="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-xs font-semibold">Planned</span>
             </div>
             <ul class="space-y-2 text-gray-300 text-sm">
-              <li>🔄 Scheduled deployments</li>
-              <li>📧 Email notifications</li>
-              <li>🔑 API key management</li>
-              <li>📱 Mobile dashboard (PWA)</li>
+              <li>🔁 Scheduled deployments</li>
+              <li>📧 Notification polish and workflow improvements</li>
               <li>🎯 Advanced deployment strategies</li>
-            </ul>
-          </div>
-
-          <!-- v1.2.0 -->
-          <div class="metallic-card p-8 opacity-60">
-            <div class="flex items-start justify-between mb-4">
-              <div>
-                <h3 class="text-xl font-bold text-white">v1.2.0</h3>
-                <p class="text-gray-400 text-sm">Coming Later</p>
-              </div>
-              <span class="px-3 py-1 bg-purple-500/20 text-purple-400 rounded-full text-xs font-semibold">Roadmap</span>
-            </div>
-            <ul class="space-y-2 text-gray-300 text-sm">
-              <li>🤖 AI-powered deployment optimization</li>
-              <li>📦 Package registry integration</li>
-              <li>🌍 Multi-region deployments</li>
-              <li>⚖️ Load balancing improvements</li>
-              <li>🔐 Enhanced security features</li>
+              <li>🪵 More operator workflows around logs and system control</li>
+              <li>📈 Expanded AI-assisted operations</li>
             </ul>
           </div>
         </div>
       </div>
 
-      <!-- Version Support Matrix -->
       <div class="mb-12">
         <h2 class="text-3xl font-bold text-white mb-8">🛠️ Version Support</h2>
 
@@ -181,10 +157,10 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
                 <td class="py-3 px-4 text-gray-300">Mar 17, 2027</td>
               </tr>
               <tr class="border-b border-surface-border hover:bg-surface-elevated/50">
-                <td class="py-3 px-4 text-white">1.1.x (RC)</td>
-                <td class="py-3 px-4 text-gray-300">Coming Soon</td>
+                <td class="py-3 px-4 text-white">1.1.x</td>
+                <td class="py-3 px-4 text-gray-300">Planned</td>
                 <td class="py-3 px-4">
-                  <span class="inline-block px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-semibold">Beta</span>
+                  <span class="inline-block px-3 py-1 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-semibold">Preview</span>
                 </td>
                 <td class="py-3 px-4 text-gray-300">TBD</td>
               </tr>
@@ -193,7 +169,6 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
         </div>
       </div>
 
-      <!-- Download Binaries -->
       <div class="mb-12">
         <h2 class="text-3xl font-bold text-white mb-8">⬇️ Download Binaries</h2>
 
@@ -242,10 +217,9 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
         </div>
       </div>
 
-      <!-- CTA -->
       <div class="text-center">
         <a href="https://github.com/vikukumar/Pushpaka/releases" target="_blank" rel="noopener noreferrer" class="btn-primary">
-          View All Releases on GitHub
+          View All Releases On GitHub
         </a>
       </div>
     </div>

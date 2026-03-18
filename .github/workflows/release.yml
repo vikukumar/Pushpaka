@@ -309,6 +309,7 @@ jobs:
       - name: Create combined packages
         run: |
           mkdir -p releases
+          FRONTEND_ARCHIVE="$(find "$(pwd)/artifacts/frontend" -name "*.tar.gz" | head -1)"
           
           # Create separate platform packages (backend + worker + frontend)
           for platform in linux darwin windows; do
@@ -340,10 +341,9 @@ jobs:
             done
             
             # Copy frontend artifacts
-            FRONTEND=$(find artifacts/frontend -name "*.tar.gz" | head -1)
-            if [ -f "$FRONTEND" ]; then
+            if [ -n "$FRONTEND_ARCHIVE" ] && [ -f "$FRONTEND_ARCHIVE" ]; then
               cd "package-${platform}/frontend"
-              tar -xzf "$FRONTEND"
+              tar -xzf "$FRONTEND_ARCHIVE"
               cd ../../
             fi
             

@@ -6,3 +6,6 @@ server.exe
 *.test
 *.prof
 coverage.out
+
+ui/dist/*
+!ui/dist/.gitkeep
