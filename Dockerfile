@@ -1,6 +1,6 @@
 #  Stage 1: Build 
 # Go 1.25 matches go.work / cmd/pushpaka/go.mod
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Build arguments
 ARG VERSION=v1.0.0
