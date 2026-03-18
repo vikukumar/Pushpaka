@@ -6,26 +6,27 @@ const base = import.meta.env.BASE_URL;
 <nav class="fixed top-0 w-full z-50 glass border-b border-surface-border">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between items-center h-16">
-      <!-- Logo -->
-      <div class="flex items-center gap-2">
+      <a href={base} class="flex items-center gap-3 group">
         <img 
-          src={`${base}favicon.svg`} 
+          src={`${base}logo.svg`} 
           alt="Pushpaka Logo" 
-          class="h-8 w-8"
+          class="h-8 w-auto sm:h-9 transition duration-200 group-hover:opacity-95"
         />
-        <span class="gradient-text font-bold text-xl hidden sm:inline">Pushpaka</span>
-      </div>
+        <div class="hidden sm:block">
+          <div class="gradient-text font-bold text-xl leading-none">Pushpaka</div>
+          <div class="text-xs text-slate-400 tracking-[0.18em] uppercase mt-1">Cloud Deployments</div>
+        </div>
+      </a>
 
-      <!-- Nav Links -->
       <div class="hidden md:flex items-center gap-8">
-        <a href={base} class="text-gray-300 hover:text-brand-400 transition">Home</a>
-        <a href={`${base}features`} class="text-gray-300 hover:text-brand-400 transition">Features</a>
-        <a href={`${base}docs`} class="text-gray-300 hover:text-brand-400 transition">Docs</a>
-        <a href={`${base}install`} class="text-gray-300 hover:text-brand-400 transition">Install</a>
-        <a href={`${base}releases`} class="text-gray-300 hover:text-brand-400 transition">Releases</a>
+        <a href={base} class="text-gray-300 hover:text-brand-300 transition">Home</a>
+        <a href={`${base}features`} class="text-gray-300 hover:text-brand-300 transition">Features</a>
+        <a href={`${base}docs`} class="text-gray-300 hover:text-brand-300 transition">Docs</a>
+        <a href={`${base}install`} class="text-gray-300 hover:text-brand-300 transition">Install</a>
+        <a href={`${base}helm-install`} class="text-gray-300 hover:text-brand-300 transition">Helm</a>
+        <a href={`${base}releases`} class="text-gray-300 hover:text-brand-300 transition">Releases</a>
       </div>
 
-      <!-- CTA Button -->
       <a 
         href="https://github.com/vikukumar/Pushpaka" 
         target="_blank"
@@ -38,13 +39,13 @@ const base = import.meta.env.BASE_URL;
   </div>
 </nav>
 
-<!-- Mobile menu overlay (add JS for interactivity) -->
 <div id="mobile-menu" class="hidden fixed inset-0 top-16 bg-surface-bg/95 backdrop-blur-lg z-40 md:hidden">
   <div class="flex flex-col p-8 gap-4">
-    <a href={base} class="text-gray-300 hover:text-brand-400">Home</a>
-    <a href={`${base}features`} class="text-gray-300 hover:text-brand-400">Features</a>
-    <a href={`${base}docs`} class="text-gray-300 hover:text-brand-400">Docs</a>
-    <a href={`${base}install`} class="text-gray-300 hover:text-brand-400">Install</a>
-    <a href={`${base}releases`} class="text-gray-300 hover:text-brand-400">Releases</a>
+    <a href={base} class="text-gray-300 hover:text-brand-300">Home</a>
+    <a href={`${base}features`} class="text-gray-300 hover:text-brand-300">Features</a>
+    <a href={`${base}docs`} class="text-gray-300 hover:text-brand-300">Docs</a>
+    <a href={`${base}install`} class="text-gray-300 hover:text-brand-300">Install</a>
+    <a href={`${base}helm-install`} class="text-gray-300 hover:text-brand-300">Helm</a>
+    <a href={`${base}releases`} class="text-gray-300 hover:text-brand-300">Releases</a>
   </div>
 </div>

@@ -48,7 +48,7 @@ import Footer from '../components/Footer.astro';
               <span class="text-brand-400 font-bold">1.</span>
               <div>
                 <strong class="text-white">Create a Project</strong>
-                <p className="text-sm mt-1">Click "New Project" and provide a name for your application.</p>
+                <p class="text-sm mt-1">Click "New Project" and provide a name for your application.</p>
               </div>
             </li>
             <li class="flex gap-3">
@@ -147,8 +147,10 @@ CMD ["npm", "start"]</pre>
           <p class="text-gray-300 mb-4">All API requests require authentication using a bearer token:</p>
           <div class="code-block">
             <pre>
+export PUSHPAKA_TOKEN="replace-with-your-token"
+
 curl -X GET https://your-instance.com/api/v1/projects \
-  -H "Authorization: Bearer YOUR_API_TOKEN"</pre>
+  -H "Authorization: Bearer &#36;&#123;PUSHPAKA_TOKEN&#125;"</pre>
           </div>
         </div>
 

@@ -39,6 +39,13 @@ jobs:
           cache: true
           cache-dependency-path: ${{ matrix.working-directory }}/go.sum
 
+      - name: Prepare embedded UI placeholder
+        if: matrix.working-directory == 'backend'
+        working-directory: ${{ matrix.working-directory }}
+        run: |
+          mkdir -p ui/dist
+          [ -f ui/dist/.gitkeep ] || touch ui/dist/.gitkeep
+
       - name: Go fmt
         working-directory: ${{ matrix.working-directory }}
         run: |
@@ -58,10 +65,6 @@ jobs:
       - name: Build check
         working-directory: ${{ matrix.working-directory }}
         run: |
-          if [ "${{ matrix.working-directory }}" = "backend" ]; then
-            mkdir -p ui/dist
-            [ -f ui/dist/.gitkeep ] || touch ui/dist/.gitkeep
-          fi
           go build -v ./...
           echo "✅ Build check passed"
 

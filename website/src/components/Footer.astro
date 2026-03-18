@@ -6,26 +6,24 @@ const base = import.meta.env.BASE_URL;
 <footer class="bg-surface-elevated border-t border-surface-border mt-32">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
     <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-      <!-- Brand -->
       <div>
-        <h3 class="gradient-text font-bold text-xl mb-4">Pushpaka</h3>
+        <img src={`${base}logo.svg`} alt="Pushpaka" class="h-10 w-auto mb-4" />
         <p class="text-gray-400 text-sm">
-          Carry your code to the cloud effortlessly. Deploy applications with ease.
+          Self-hosted cloud deployment with the same palette and visual direction as the main frontend.
         </p>
       </div>
 
-      <!-- Product -->
       <div>
         <h4 class="text-white font-semibold mb-4">Product</h4>
         <ul class="space-y-2 text-sm text-gray-400">
           <li><a href={`${base}features`} class="hover:text-brand-400 transition">Features</a></li>
           <li><a href={`${base}docs`} class="hover:text-brand-400 transition">Documentation</a></li>
+          <li><a href={`${base}helm-install`} class="hover:text-brand-400 transition">Helm Install</a></li>
           <li><a href={`${base}releases`} class="hover:text-brand-400 transition">Releases</a></li>
           <li><a href={`${base}install`} class="hover:text-brand-400 transition">Installation</a></li>
         </ul>
       </div>
 
-      <!-- Developers -->
       <div>
         <h4 class="text-white font-semibold mb-4">Developers</h4>
         <ul class="space-y-2 text-sm text-gray-400">
@@ -35,7 +33,6 @@ const base = import.meta.env.BASE_URL;
         </ul>
       </div>
 
-      <!-- Legal -->
       <div>
         <h4 class="text-white font-semibold mb-4">Legal</h4>
         <ul class="space-y-2 text-sm text-gray-400">
@@ -45,9 +42,8 @@ const base = import.meta.env.BASE_URL;
       </div>
     </div>
 
-    <!-- Divider -->
     <div class="border-t border-surface-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-      <p>&copy; 2026 Pushpaka. All rights reserved.</p>
+      <p>&copy; 2026 Pushpaka. Built for direct Git-to-cloud delivery.</p>
       <div class="flex gap-6">
         <a href="https://github.com/vikukumar" target="_blank" rel="noopener noreferrer" class="hover:text-brand-400 transition">GitHub</a>
         <a href="https://github.com/vikukumar/Pushpaka" target="_blank" rel="noopener noreferrer" class="hover:text-brand-400 transition">Repository</a>

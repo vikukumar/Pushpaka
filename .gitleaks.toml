@@ -1,0 +1,5 @@
+[allowlist]
+description = "Ignore placeholder token examples in website documentation"
+paths = [
+  '''website/src/pages/docs\.astro''',
+]

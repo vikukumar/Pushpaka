@@ -40,6 +40,8 @@ jobs:
     runs-on: ubuntu-latest
     name: Package Helm Chart
     needs: lint
+    outputs:
+      chart-version: ${{ steps.chart_version.outputs.version }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -64,6 +66,13 @@ jobs:
           VERSION=$(cat VERSION)
           sed -i "s/^version: .*/version: ${VERSION}/" helm/pushpaka/Chart.yaml
           sed -i "s/^appVersion: .*/appVersion: ${VERSION}/" helm/pushpaka/Chart.yaml
+
+      - name: Read packaged chart version
+        id: chart_version
+        run: |
+          CHART_VERSION=$(awk -F': ' '/^version:/ { print $2; exit }' helm/pushpaka/Chart.yaml)
+          echo "version=${CHART_VERSION}" >> $GITHUB_OUTPUT
+          echo "Chart version: ${CHART_VERSION}"
 
       - name: Package Helm chart
         run: |
@@ -102,9 +111,9 @@ jobs:
           
           # Create index if it doesn't exist
           if [ ! -f helm-repo/index.yaml ]; then
-            helm repo index helm-repo/ --url https://vikukumar.github.io/Pushpaka/helm
+            helm repo index helm-repo/ --url https://pushpaka.vikshro.in/helm
           else
-            helm repo index helm-repo/ --url https://vikukumar.github.io/Pushpaka/helm --merge helm-repo/index.yaml
+            helm repo index helm-repo/ --url https://pushpaka.vikshro.in/helm --merge helm-repo/index.yaml
           fi
 
       - name: Deploy to GitHub Pages
@@ -118,38 +127,33 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     name: Notify Release
-    needs: publish
+    needs: [publish, package]
     steps:
-      - name: Read VERSION
-        id: version
-        run: |
-          VERSION=$(cat VERSION | head -1)
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release (if not exists)
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ steps.version.outputs.version }}
-          release_name: Helm Chart v${{ steps.version.outputs.version }}
+          tag_name: v${{ needs.package.outputs.chart-version }}
+          release_name: Helm Chart v${{ needs.package.outputs.chart-version }}
           body: |
-            ## Helm Chart v${{ steps.version.outputs.version }}
+            ## Helm Chart v${{ needs.package.outputs.chart-version }}
             
             This release includes the Pushpaka Helm chart for Kubernetes deployment.
             
             ### Quick Start
             
             ```bash
-            helm repo add pushpaka https://vikukumar.github.io/Pushpaka/helm
+            helm repo add pushpaka https://pushpaka.vikshro.in/helm
             helm repo update
             helm install pushpaka pushpaka/pushpaka -n pushpaka --create-namespace
             ```
             
             ### Documentation
-            - [Helm Installation](https://vikukumar.github.io/Pushpaka/helm-install)
+            - [Helm Installation](https://pushpaka.vikshro.in/helm-install)
             - [Values Configuration](https://github.com/vikukumar/Pushpaka/blob/main/helm/pushpaka/values.yaml)
-            - [Release Notes](https://vikukumar.github.io/Pushpaka/releases)
+            - [Release Notes](https://pushpaka.vikshro.in/releases)
           draft: false
           prerelease: false
         continue-on-error: true

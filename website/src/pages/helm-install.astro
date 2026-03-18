@@ -346,37 +346,37 @@ helm rollback pushpaka -n pushpaka</pre>
       </div>
 
       <!-- Troubleshooting -->
-      <div className="mb-12">
-        <h2 className="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
           <span>🔧</span> Troubleshooting
         </h2>
 
-        <div className="space-y-6">
-          <div className="metallic-card p-8">
-            <h3 className="text-lg font-bold text-white mb-3">Pods Not Starting</h3>
-            <div className="code-block mb-4">
+        <div class="space-y-6">
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-3">Pods Not Starting</h3>
+            <div class="code-block mb-4">
               <pre>
 kubectl describe pod POD_NAME -n pushpaka
 kubectl logs POD_NAME -n pushpaka
 kubectl get events -n pushpaka --sort-by='.lastTimestamp'</pre>
             </div>
-            <p className="text-sm text-gray-400">Check pod status, logs, and events</p>
+            <p class="text-sm text-gray-400">Check pod status, logs, and events</p>
           </div>
 
-          <div className="metallic-card p-8">
-            <h3 className="text-lg font-bold text-white mb-3">Persistent Volume Issues</h3>
-            <div className="code-block mb-4">
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-3">Persistent Volume Issues</h3>
+            <div class="code-block mb-4">
               <pre>
 kubectl get pv
 kubectl get pvc -n pushpaka
 kubectl describe pvc -n pushpaka</pre>
             </div>
-            <p className="text-sm text-gray-400">Verify PVC and PV provisioning</p>
+            <p class="text-sm text-gray-400">Verify PVC and PV provisioning</p>
           </div>
 
-          <div className="metallic-card p-8">
-            <h3 className="text-lg font-bold text-white mb-3">Reset/Reinstall</h3>
-            <div className="code-block mb-4">
+          <div class="metallic-card p-8">
+            <h3 class="text-lg font-bold text-white mb-3">Reset/Reinstall</h3>
+            <div class="code-block mb-4">
               <pre>
 # Uninstall
 helm uninstall pushpaka -n pushpaka
@@ -387,31 +387,31 @@ kubectl delete namespace pushpaka
 # Reinstall
 helm install pushpaka pushpaka/pushpaka -n pushpaka --create-namespace -f values.yaml</pre>
             </div>
-            <p className="text-sm text-gray-400">Clean reinstall (removes all data)</p>
+            <p class="text-sm text-gray-400">Clean reinstall (removes all data)</p>
           </div>
         </div>
       </div>
 
       <!-- Values Reference -->
-      <div className="mb-12">
-        <h2 className="text-3xl font-bold text-white mb-6">📚 Full Values Reference</h2>
-        <div className="metallic-card p-8">
-          <p className="text-gray-300 mb-4">View the complete values configuration:</p>
-          <a href="https://github.com/vikukumar/Pushpaka/blob/main/helm/pushpaka/values.yaml" target="_blank" rel="noopener noreferrer" className="btn-primary inline-block">
+      <div class="mb-12">
+        <h2 class="text-3xl font-bold text-white mb-6">📚 Full Values Reference</h2>
+        <div class="metallic-card p-8">
+          <p class="text-gray-300 mb-4">View the complete values configuration:</p>
+          <a href="https://github.com/vikukumar/Pushpaka/blob/main/helm/pushpaka/values.yaml" target="_blank" rel="noopener noreferrer" class="btn-primary inline-block">
             View values.yaml on GitHub
           </a>
         </div>
       </div>
 
       <!-- Support -->
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-white mb-6">Need Help?</h2>
-        <p className="text-gray-400 mb-8">Get support from the community:</p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="https://github.com/vikukumar/Pushpaka/issues" target="_blank" rel="noopener noreferrer" className="btn-primary">
+      <div class="text-center">
+        <h2 class="text-3xl font-bold text-white mb-6">Need Help?</h2>
+        <p class="text-gray-400 mb-8">Get support from the community:</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+          <a href="https://github.com/vikukumar/Pushpaka/issues" target="_blank" rel="noopener noreferrer" class="btn-primary">
             Report Issues
           </a>
-          <a href="https://github.com/vikukumar/Pushpaka/discussions" target="_blank" rel="noopener noreferrer" className="btn-secondary">
+          <a href="https://github.com/vikukumar/Pushpaka/discussions" target="_blank" rel="noopener noreferrer" class="btn-secondary">
             Discussions
           </a>
         </div>

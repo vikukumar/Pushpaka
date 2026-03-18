@@ -30,8 +30,10 @@ jobs:
       - name: Run OWASP Dependency-Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
+          project: 'Pushpaka'
           path: '.'
-          format: 'JSON'
+          format: 'SARIF'
+          out: 'reports'
           args: >
             --enableExperimental
             --enableRetired
@@ -39,11 +41,23 @@ jobs:
             --exclude ./website/node_modules
             --exclude ./frontend/node_modules
 
+      - name: Normalize dependency-check SARIF path
+        if: always()
+        run: |
+          mkdir -p reports
+          if [ -f reports/dependency-check-report.sarif ]; then
+            exit 0
+          fi
+          FOUND="$(find reports -maxdepth 1 -name '*.sarif' | head -1)"
+          if [ -n "$FOUND" ]; then
+            cp "$FOUND" reports/dependency-check-report.sarif
+          fi
+
       - name: Upload SARIF to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && github.event_name != 'pull_request'
+        if: always() && github.event_name != 'pull_request' && hashFiles('reports/*.sarif') != ''
         with:
-          sarif_file: 'reports'
+          sarif_file: 'reports/dependency-check-report.sarif'
           wait-for-processing: true
 
       - name: Create dependency report
@@ -52,6 +66,7 @@ jobs:
         with:
           name: dependency-check-report
           path: reports/
+          if-no-files-found: ignore
 
   trivy-fs-scan:
     name: Filesystem Scanning (Trivy)
@@ -213,14 +228,14 @@ jobs:
           go-version: '1.25'
           cache-dependency-path: backend/go.sum
 
-      - name: Install license-maven-plugin
-        run: npm install -g license-maven-plugin
+      - name: Install go-licenses
+        run: go install github.com/google/go-licenses@latest
 
       - name: Check Go licenses
         continue-on-error: true
         run: |
-          go install github.com/google/go-licenses@latest
-          ~/go/bin/go-licenses report ./backend/... --template="{{ range . }}{{ .LicensePath }}{{ end }}"
+          export PATH="$(go env GOPATH)/bin:$PATH"
+          go-licenses report ./backend/... ./worker/... ./cmd/pushpaka/... --template="{{ range . }}{{ .LicensePath }}{{ end }}"
 
   summary:
     name: Security Summary

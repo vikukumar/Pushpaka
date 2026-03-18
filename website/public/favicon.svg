@@ -1,11 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
-  <rect width="256" height="256" rx="56" fill="#0F172A"/>
-  <path d="M64 76h88c25.405 0 46 20.595 46 46s-20.595 46-46 46H114v46H64V76Z" fill="url(#g1)"/>
-  <path d="M114 118h35c9.941 0 18 8.059 18 18s-8.059 18-18 18h-35v-36Z" fill="#E2E8F0"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
   <defs>
-    <linearGradient id="g1" x1="64" y1="76" x2="198" y2="214" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#818CF8"/>
-      <stop offset="1" stop-color="#22D3EE"/>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1"/>
+      <stop offset="100%" style="stop-color:#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#06B6D4"/>
+      <stop offset="100%" style="stop-color:#8B5CF6"/>
     </linearGradient>
   </defs>
+  <rect width="32" height="32" rx="8" fill="#0F172A"/>
+  <!-- Cloud body -->
+  <rect x="3" y="15" width="26" height="10" rx="5" fill="url(#bg)"/>
+  <circle cx="8" cy="15" r="4" fill="url(#bg)"/>
+  <circle cx="16" cy="12" r="5" fill="url(#bg)"/>
+  <circle cx="24" cy="14" r="4" fill="url(#bg)"/>
+  <!-- Wings -->
+  <path d="M3 18 Q0 16 1 20 Q0 23 3 22" fill="url(#wg)" opacity="0.85"/>
+  <path d="M29 18 Q32 16 31 20 Q32 23 29 22" fill="url(#wg)" opacity="0.85"/>
+  <!-- Spire -->
+  <line x1="16" y1="4" x2="16" y2="9" stroke="#E0D6FF" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="16" cy="3.5" r="1.5" fill="#06B6D4"/>
 </svg>
