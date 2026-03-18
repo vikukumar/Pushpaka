@@ -375,6 +375,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_GPG_PRIVATE_KEY: ${{ secrets.RELEASE_GPG_PRIVATE_KEY }}
+      RELEASE_GPG_PASSPHRASE: ${{ secrets.RELEASE_GPG_PASSPHRASE }}
     steps:
       - uses: actions/checkout@v5
 
@@ -434,12 +438,12 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
 
       - name: Import release signing key
-        if: ${{ secrets.RELEASE_GPG_PRIVATE_KEY != '' }}
+        if: ${{ env.RELEASE_GPG_PRIVATE_KEY != '' }}
         run: |
           export GNUPGHOME="$RUNNER_TEMP/gnupg"
           mkdir -p "$GNUPGHOME"
           chmod 700 "$GNUPGHOME"
-          printf '%s' "${{ secrets.RELEASE_GPG_PRIVATE_KEY }}" | gpg --batch --import
+          printf '%s' "$RELEASE_GPG_PRIVATE_KEY" | gpg --batch --import
           KEY_ID="$(gpg --list-secret-keys --keyid-format=long | awk '/^sec/{print $2}' | head -1 | cut -d/ -f2)"
           echo "GNUPGHOME=$GNUPGHOME" >> "$GITHUB_ENV"
           echo "GPG_KEY_ID=$KEY_ID" >> "$GITHUB_ENV"
@@ -460,7 +464,7 @@ jobs:
             printf '%s\n' "pinentry-mode loopback" > "$GNUPGHOME/gpg.conf"
             git config user.signingkey "$GPG_KEY_ID"
             git config gpg.program gpg
-            git tag -s "$TAG" -m "Release $TAG" --batch --pinentry-mode loopback --passphrase "${{ secrets.RELEASE_GPG_PASSPHRASE }}"
+            git tag -s "$TAG" -m "Release $TAG" --batch --pinentry-mode loopback --passphrase "$RELEASE_GPG_PASSPHRASE"
           else
             git tag -a "$TAG" -m "Release $TAG"
           fi
@@ -485,8 +489,6 @@ jobs:
               --verify-tag \
               $EXTRA_ARGS
           fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # ─────────────────────────────────────────────────────────────────────────
   # Final status check
