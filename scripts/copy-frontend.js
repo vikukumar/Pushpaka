@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-/**
- * Copies frontend/out/ → backend/ui/dist/ (works on Windows, macOS, Linux).
- * Called by `make front-build` before compiling the Go binary.
- */
+
 const fs = require("fs");
 const path = require("path");
 
@@ -15,7 +12,6 @@ if (!fs.existsSync(src)) {
   process.exit(1);
 }
 
-// Remove old dist contents (keep the directory itself)
 if (fs.existsSync(dst)) {
   fs.rmSync(dst, { recursive: true });
 }

@@ -28,8 +28,14 @@ type Project struct {
 	// DeployTarget determines where the project runs: "docker" (default) or "kubernetes".
 	DeployTarget string `db:"deploy_target"  json:"deploy_target"`
 	K8sNamespace string `db:"k8s_namespace"  json:"k8s_namespace"`
-	CreatedAt    Time   `db:"created_at" json:"created_at"`
-	UpdatedAt    Time   `db:"updated_at" json:"updated_at"`
+	// Deployment limits and backup configuration
+	MaxDeployments int    `db:"max_deployments" json:"max_deployments"` // Max simultaneous deployments (default: 2)
+	MaxBackups     int    `db:"max_backups"     json:"max_backups"`     // Max backup versions kept (default: 3)
+	CloneDirectory string `db:"clone_directory" json:"clone_directory"` // Base directory for git clones
+	GitClonePath   string `db:"git_clone_path"  json:"git_clone_path"`  // Current git clone directory for project
+	MainDeployID   string `db:"main_deploy_id"  json:"main_deploy_id"`  // Current main deployment ID
+	CreatedAt      Time   `db:"created_at" json:"created_at"`
+	UpdatedAt      Time   `db:"updated_at" json:"updated_at"`
 }
 
 type CreateProjectRequest struct {
@@ -49,6 +55,8 @@ type CreateProjectRequest struct {
 	RestartPolicy  string `json:"restart_policy"`
 	DeployTarget   string `json:"deploy_target"`
 	K8sNamespace   string `json:"k8s_namespace"`
+	MaxDeployments int    `json:"max_deployments"` // Default: 2 (1 main + 1 testing)
+	MaxBackups     int    `json:"max_backups"`     // Default: 3
 }
 
 // UpdateProjectRequest allows updating mutable project fields.
@@ -64,10 +72,12 @@ type UpdateProjectRequest struct {
 	Framework      string `json:"framework"`
 	IsPrivate      bool   `json:"is_private"`
 	// GitToken -- if empty the existing stored token is preserved.
-	GitToken      string `json:"git_token"`
-	CPULimit      string `json:"cpu_limit"`
-	MemoryLimit   string `json:"memory_limit"`
-	RestartPolicy string `json:"restart_policy"`
-	DeployTarget  string `json:"deploy_target"`
-	K8sNamespace  string `json:"k8s_namespace"`
+	GitToken       string `json:"git_token"`
+	CPULimit       string `json:"cpu_limit"`
+	MemoryLimit    string `json:"memory_limit"`
+	RestartPolicy  string `json:"restart_policy"`
+	DeployTarget   string `json:"deploy_target"`
+	K8sNamespace   string `json:"k8s_namespace"`
+	MaxDeployments int    `json:"max_deployments"`
+	MaxBackups     int    `json:"max_backups"`
 }
