@@ -4,252 +4,389 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 ---
 
-<Layout title="Documentation - Pushpaka">
+<Layout
+  title="Documentation - Pushpaka"
+  description="Enterprise-style Pushpaka documentation for installation, upgrades, AI monitoring, editor workflows, web terminal usage, support, troubleshooting, and platform operations."
+  keywords="Pushpaka docs, Pushpaka installation, Pushpaka upgrade guide, Pushpaka troubleshooting, Pushpaka AI monitoring, Pushpaka web terminal, Pushpaka code editor"
+>
   <Header />
   
-  <div class="pt-32 pb-20 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-4xl mx-auto">
-      <!-- Page Header -->
-      <div class="text-center mb-16">
-        <h1 class="text-5xl md:text-6xl font-bold gradient-text mb-6">Documentation</h1>
-        <p class="text-xl text-gray-400">Learn how to use Pushpaka for your deployments</p>
+  <div class="pt-28 pb-20 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-7xl mx-auto">
+      <div class="text-center mb-14">
+        <span class="docs-kicker mb-5">Enterprise Documentation Hub</span>
+        <h1 class="text-5xl md:text-6xl font-bold gradient-text mb-6">Operate Pushpaka Like A Platform Team</h1>
+        <p class="text-xl text-gray-400 max-w-4xl mx-auto">
+          Installation, upgrades, AI operations, editor workflows, terminal access, troubleshooting, and support guidance in one structured documentation surface.
+        </p>
       </div>
 
-      <!-- Getting Started Section -->
-      <div class="mb-12">
-        <h2 class="text-3xl font-bold text-white mb-6">Getting Started</h2>
-        
-        <div class="metallic-card p-8 mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Core Concepts</h3>
-          <div class="space-y-4 text-gray-300">
-            <div>
-              <h4 class="font-semibold text-white mb-2">Projects</h4>
-              <p>A project in Pushpaka represents a single application. Each project contains deployments, configurations, and environment variables.</p>
+      <div class="docs-shell">
+        <aside class="docs-sidebar">
+          <nav class="docs-nav">
+            <div class="docs-nav-group metallic-card">
+              <div class="docs-nav-title">Get Started</div>
+              <a class="docs-nav-link" href="#overview">Platform Overview</a>
+              <a class="docs-nav-link" href="#install">Installation</a>
+              <a class="docs-nav-link" href="#upgrade">Upgrade Guide</a>
             </div>
-            <div>
-              <h4 class="font-semibold text-white mb-2">Deployments</h4>
-              <p>A deployment is a version of your application. Each deployment is built from a specific Git commit and can be independently managed.</p>
+
+            <div class="docs-nav-group metallic-card">
+              <div class="docs-nav-title">Operate</div>
+              <a class="docs-nav-link" href="#deployments">Deployments</a>
+              <a class="docs-nav-link" href="#ai-ops">AI Operations</a>
+              <a class="docs-nav-link" href="#editor-terminal">Editor And Terminal</a>
+              <a class="docs-nav-link" href="#domains-routing">Domains And Routing</a>
             </div>
-            <div>
-              <h4 class="font-semibold text-white mb-2">Builds</h4>
-              <p>The build process takes your source code, detects the framework, generates (or uses your) Dockerfile, and creates a runnable image.</p>
+
+            <div class="docs-nav-group metallic-card">
+              <div class="docs-nav-title">Platform</div>
+              <a class="docs-nav-link" href="#infra">Infrastructure Controls</a>
+              <a class="docs-nav-link" href="#integrations">Integrations</a>
+              <a class="docs-nav-link" href="#api">API Usage</a>
             </div>
-            <div>
-              <h4 class="font-semibold text-white mb-2">Domains</h4>
-              <p>Route traffic to your deployments using custom domains with automatic SSL/TLS certificates from Let's Encrypt.</p>
+
+            <div class="docs-nav-group metallic-card">
+              <div class="docs-nav-title">Support</div>
+              <a class="docs-nav-link" href="#errors">Common Errors</a>
+              <a class="docs-nav-link" href="#support">Support Paths</a>
             </div>
-          </div>
-        </div>
+          </nav>
+        </aside>
 
-        <div class="metallic-card p-8">
-          <h3 class="text-xl font-bold text-white mb-4">Quick Start</h3>
-          <ol class="space-y-4 text-gray-300">
-            <li class="flex gap-3">
-              <span class="text-brand-400 font-bold">1.</span>
-              <div>
-                <strong class="text-white">Create a Project</strong>
-                <p class="text-sm mt-1">Click "New Project" and provide a name for your application.</p>
+        <main class="docs-content">
+          <section id="overview" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Platform Overview</h2>
+            <p class="text-gray-300 mb-6">
+              Pushpaka is a self-hosted deployment control plane for teams that want Git-based delivery, AI-assisted monitoring, and infrastructure operations in one product. The current codebase already includes Docker and Kubernetes controls, AI monitoring and log analysis, a built-in Monaco editor, web terminal access, rollbacks, notifications, OAuth, webhooks, and Traefik-powered routing.
+            </p>
+
+            <div class="docs-grid">
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Supported Delivery Targets</div>
+                <div class="text-sm text-gray-400">Docker containers, Kubernetes-oriented deployments, and direct runtime fallback when Docker is unavailable.</div>
               </div>
-            </li>
-            <li class="flex gap-3">
-              <span class="text-brand-400 font-bold">2.</span>
-              <div>
-                <strong class="text-white">Connect Git Repository</strong>
-                <p class="text-sm mt-1">Provide a public repository URL or use a Personal Access Token for private repos.</p>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Operator Workflows</div>
+                <div class="text-sm text-gray-400">Deploy, inspect logs, analyze with AI, edit source, open terminal, restart infra, and roll back from one system.</div>
               </div>
-            </li>
-            <li class="flex gap-3">
-              <span class="text-brand-400 font-bold">3.</span>
-              <div>
-                <strong class="text-white">Configure & Deploy</strong>
-                <p class="text-sm mt-1">Set environment variables if needed and click "Deploy" to start the build process.</p>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Runtime Modes</div>
+                <div class="text-sm text-gray-400">Single-binary dev mode, all-in-one mode, or split API and worker components for horizontal scale.</div>
               </div>
-            </li>
-            <li class="flex gap-3">
-              <span class="text-brand-400 font-bold">4.</span>
-              <div>
-                <strong class="text-white">Monitor & Manage</strong>
-                <p class="text-sm mt-1">Watch real-time logs and manage your deployment through the dashboard.</p>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Enterprise Surfaces</div>
+                <div class="text-sm text-gray-400">Health, readiness, metrics, AI usage limits, audit-like activity, notifications, infra operations, and guided troubleshooting.</div>
               </div>
-            </li>
-          </ol>
-        </div>
-      </div>
+            </div>
+          </section>
 
-      <!-- Using Pushpaka Section -->
-      <div class="mb-12">
-        <h2 class="text-3xl font-bold text-white mb-6">Using Pushpaka</h2>
+          <section id="install" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Installation For Every Platform</h2>
+            <p class="text-gray-300 mb-6">Choose the installation path that matches how your team wants to evaluate or run Pushpaka.</p>
 
-        <div class="metallic-card p-8 mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Environment Variables</h3>
-          <p class="text-gray-300 mb-4">Set environment variables for your deployments in the project settings.</p>
-          <div class="bg-surface-bg rounded p-4">
-            <p class="text-sm text-gray-400 mb-3">Each deployment inherits project-level environment variables. You can also override them per-deployment.</p>
-          </div>
-        </div>
+            <div class="docs-steps mb-8">
+              <div class="docs-step">
+                <div class="docs-step-number">1</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Docker Compose Production Install</div>
+                  <p class="text-sm text-gray-400 mb-3">Best default for production evaluation and self-hosted deployments.</p>
+                  <div class="code-block"><pre>git clone https://github.com/vikukumar/Pushpaka
+cd Pushpaka
+cp .env.example .env
+# Set DOMAIN, JWT_SECRET, POSTGRES_PASSWORD, REDIS_PASSWORD, ACME_EMAIL
+docker compose up -d --build</pre></div>
+                </div>
+              </div>
 
-        <div class="metallic-card p-8 mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Custom Dockerfile</h3>
-          <p class="text-gray-300 mb-4">Pushpaka auto-detects frameworks and generates Dockerfiles. You can also provide a custom Dockerfile:</p>
-          <div class="code-block">
-            <pre>
-# Create a Dockerfile in your repository root
-FROM node:20-alpine
+              <div class="docs-step">
+                <div class="docs-step-number">2</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Single Binary Dev Mode</div>
+                  <p class="text-sm text-gray-400 mb-3">Fastest local path. No Docker, Redis, or PostgreSQL required.</p>
+                  <div class="code-block"><pre>cd cmd/pushpaka
+go build -o pushpaka .
+./pushpaka -dev</pre></div>
+                </div>
+              </div>
 
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
+              <div class="docs-step">
+                <div class="docs-step-number">3</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Frontend Dashboard</div>
+                  <p class="text-sm text-gray-400 mb-3">Run the operator dashboard separately when developing locally.</p>
+                  <div class="code-block"><pre>cd frontend
+pnpm install
+pnpm dev</pre></div>
+                </div>
+              </div>
 
-COPY . .
-EXPOSE 3000
+              <div class="docs-step">
+                <div class="docs-step-number">4</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Helm Installation</div>
+                  <p class="text-sm text-gray-400 mb-3">Use the Helm chart for cluster-native rollout and lifecycle management.</p>
+                  <div class="code-block"><pre>helm repo add pushpaka https://pushpaka.vikshro.in/helm
+helm repo update
+helm install pushpaka pushpaka/pushpaka</pre></div>
+                </div>
+              </div>
+            </div>
 
-CMD ["npm", "start"]</pre>
-          </div>
-        </div>
+            <div class="docs-callout">
+              For production installs, expect to configure domain routing, secrets, database access, Redis, and Let’s Encrypt contact details before exposing the platform publicly.
+            </div>
+          </section>
 
-        <div class="metallic-card p-8 mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Custom Domains</h3>
-          <p class="text-gray-300 mb-4">Point your custom domain to Pushpaka and deploy:</p>
-          <ol class="space-y-3 text-gray-300 text-sm">
-            <li><strong class="text-white">1.</strong> Add your domain in project settings</li>
-            <li><strong class="text-white">2.</strong> Update DNS CNAME to point to your Pushpaka instance</li>
-            <li><strong class="text-white">3.</strong> Wait for DNS propagation (typically 5-30 minutes)</li>
-            <li><strong class="text-white">4.</strong> Automatic SSL certificate will be provisioned</li>
-          </ol>
-        </div>
+          <section id="upgrade" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Upgrade Guide</h2>
+            <p class="text-gray-300 mb-6">Use a repeatable upgrade flow so your platform state and deployment history stay intact.</p>
 
-        <div class="metallic-card p-8">
-          <h3 class="text-xl font-bold text-white mb-4">Monitoring & Logs</h3>
-          <p class="text-gray-300 mb-4">Access detailed logs through the dashboard:</p>
-          <ul class="space-y-2 text-gray-300 text-sm">
-            <li>✓ Real-time log streaming during builds</li>
-            <li>✓ Filter by log level (debug, info, warn, error)</li>
-            <li>✓ Download complete build logs</li>
-            <li>✓ View runtime application logs</li>
-            <li>✓ Performance metrics and system status</li>
-          </ul>
-        </div>
-      </div>
+            <div class="docs-steps">
+              <div class="docs-step">
+                <div class="docs-step-number">1</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Back Up Data</div>
+                  <p class="text-sm text-gray-400">Export PostgreSQL or copy the SQLite database before changing binaries or images.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">2</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Pull New Release Assets</div>
+                  <p class="text-sm text-gray-400">Upgrade from GitHub release binaries, a new Docker image tag, or an updated Helm chart version.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">3</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Apply Infrastructure Update</div>
+                  <p class="text-sm text-gray-400">Run `docker compose up -d --build`, replace the binary, or run `helm upgrade` depending on your installation path.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">4</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Validate Health And Feature Surfaces</div>
+                  <p class="text-sm text-gray-400">Check `/health`, `/ready`, `/system`, log streaming, AI settings, editor access, and deployment execution before declaring success.</p>
+                </div>
+              </div>
+            </div>
+          </section>
 
-      <!-- API Documentation Section -->
-      <div class="mb-12">
-        <h2 class="text-3xl font-bold text-white mb-6">API Documentation</h2>
+          <section id="deployments" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Step-By-Step Deployment Workflow</h2>
+            <div class="docs-steps">
+              <div class="docs-step">
+                <div class="docs-step-number">1</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Create A Project</div>
+                  <p class="text-sm text-gray-400">Set repository URL, branch, build command overrides, deploy target, and runtime settings in project creation or settings.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">2</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Configure Secrets And Environment Variables</div>
+                  <p class="text-sm text-gray-400">Add project-level environment variables. Values are write-only in the API and UI.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">3</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Trigger Deployment</div>
+                  <p class="text-sm text-gray-400">Start from the dashboard or API. Pushpaka clones, detects the stack, generates Docker assets if needed, and starts the deployment flow.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">4</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Monitor Logs In Real Time</div>
+                  <p class="text-sm text-gray-400">Use WebSocket streaming and deployment log history to inspect build and runtime behavior.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">5</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Rollback When Needed</div>
+                  <p class="text-sm text-gray-400">Use the rollback endpoint or dashboard action to recover to a previous deployment version quickly.</p>
+                </div>
+              </div>
+            </div>
+          </section>
 
-        <div class="metallic-card p-8 mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Base URL</h3>
-          <div class="code-block">
-            <pre>https://your-pushpaka-instance.com/api/v1</pre>
-          </div>
-        </div>
+          <section id="ai-ops" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">AI Operations</h2>
+            <p class="text-gray-300 mb-6">Pushpaka already exposes AI configuration, AI usage, RAG documents, AI monitoring alerts, and deployment log analysis.</p>
 
-        <div class="metallic-card p-8 mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Authentication</h3>
-          <p class="text-gray-300 mb-4">All API requests require authentication using a bearer token:</p>
-          <div class="code-block">
-            <pre>
-export PUSHPAKA_TOKEN="replace-with-your-token"
+            <div class="docs-grid">
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">1. Configure AI Provider</div>
+                <div class="text-sm text-gray-400">Open Settings → AI and set provider, model, API key, system prompt, and monitoring interval.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">2. Enable Monitoring</div>
+                <div class="text-sm text-gray-400">Turn on monitoring to let Pushpaka persist AI-generated alerts for failed or problematic deployments.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">3. Analyze Deployment Logs</div>
+                <div class="text-sm text-gray-400">Use AI analysis on a deployment to summarize failures and propose next actions for remediation.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">4. Add RAG Knowledge</div>
+                <div class="text-sm text-gray-400">Store runbooks, internal docs, or platform standards as RAG documents to improve AI answers.</div>
+              </div>
+            </div>
+          </section>
+
+          <section id="editor-terminal" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Built-In Editor And Web Terminal</h2>
+            <div class="docs-steps">
+              <div class="docs-step">
+                <div class="docs-step-number">1</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Open The Project Editor</div>
+                  <p class="text-sm text-gray-400">Use the project editor view to browse source files from the working directory with Monaco-based editing.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">2</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Sync Latest Source</div>
+                  <p class="text-sm text-gray-400">Use source sync to refresh the editor workspace from the repository clone without requiring a full deployment first.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">3</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Save Carefully</div>
+                  <p class="text-sm text-gray-400">Save small text-based changes directly in the editor. Very large or binary files are intentionally blocked by the backend.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">4</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Use Terminal For Live Inspection</div>
+                  <p class="text-sm text-gray-400">Open the deployment terminal to inspect a running container, validate runtime state, or execute targeted troubleshooting commands.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="domains-routing" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Domains, TLS, And Routing</h2>
+            <div class="docs-steps">
+              <div class="docs-step">
+                <div class="docs-step-number">1</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Add Domain In Project Settings</div>
+                  <p class="text-sm text-gray-400">Attach the hostname to the target project from the dashboard.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">2</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Update DNS</div>
+                  <p class="text-sm text-gray-400">Point your DNS record to the Pushpaka entrypoint handled by Traefik.</p>
+                </div>
+              </div>
+              <div class="docs-step">
+                <div class="docs-step-number">3</div>
+                <div>
+                  <div class="text-white font-semibold mb-2">Wait For TLS Provisioning</div>
+                  <p class="text-sm text-gray-400">Traefik and Let’s Encrypt complete certificate provisioning automatically after DNS is correct.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section id="infra" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Infrastructure Controls</h2>
+            <div class="docs-inline-list">
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Docker Operations</div>
+                <div class="text-sm text-gray-400">List containers, start, stop, restart, and read container logs from the platform.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Kubernetes Operations</div>
+                <div class="text-sm text-gray-400">View namespaces, pods, deployments, services, and trigger rollout restarts when `kubectl` access is configured.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Health And System Visibility</div>
+                <div class="text-sm text-gray-400">Use `/health`, `/ready`, and `/system` to confirm database, Redis, Docker, Git, runtime mode, and worker state.</div>
+              </div>
+            </div>
+          </section>
+
+          <section id="integrations" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Integrations And Automation</h2>
+            <div class="docs-grid">
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">OAuth</div>
+                <div class="text-sm text-gray-400">GitHub and GitLab OAuth handlers are present for login and repository-adjacent flows.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Webhooks</div>
+                <div class="text-sm text-gray-400">Create per-project webhooks so incoming Git events can trigger automated deployment behavior.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Notifications</div>
+                <div class="text-sm text-gray-400">Configure Slack, Discord, and SMTP settings to push deployment results to your preferred channels.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">API-First Use</div>
+                <div class="text-sm text-gray-400">Most operational paths also exist through `/api/v1` for internal platform automation.</div>
+              </div>
+            </div>
+          </section>
+
+          <section id="api" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">API Usage</h2>
+            <p class="text-gray-300 mb-4">Authenticate with a bearer token and use the platform endpoints for projects, deployments, logs, AI operations, infra, domains, notifications, and webhooks.</p>
+            <div class="code-block mb-4"><pre>export PUSHPAKA_TOKEN="replace-with-your-token"
 
 curl -X GET https://your-instance.com/api/v1/projects \
-  -H "Authorization: Bearer &#36;&#123;PUSHPAKA_TOKEN&#125;"</pre>
-          </div>
-        </div>
-
-        <div class="metallic-card p-8 mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Common Endpoints</h3>
-          <div class="space-y-4 text-sm text-gray-300">
-            <div>
-              <code class="text-accent-400">GET /projects</code>
-              <p class="mt-1">List all projects</p>
+  -H "Authorization: Bearer &#36;&#123;PUSHPAKA_TOKEN&#125;"</pre></div>
+            <div class="docs-callout">
+              Use the API for automated deployment triggers, health validation, deployment history, AI workflows, infra inspection, and notification setup.
             </div>
-            <div>
-              <code class="text-accent-400">POST /projects</code>
-              <p class="mt-1">Create a new project</p>
+          </section>
+
+          <section id="errors" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Common Errors And How To Handle Them</h2>
+            <div class="docs-inline-list">
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Docker Not Available</div>
+                <div class="text-sm text-gray-400">Pushpaka can fall back to direct deploy, but validate host runtime expectations and check `/system` for Docker visibility.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">AI Not Configured</div>
+                <div class="text-sm text-gray-400">Set `AI_API_KEY` globally or configure user-level AI settings before using AI analysis or assistant chat.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">kubectl Error</div>
+                <div class="text-sm text-gray-400">Check cluster access, kubeconfig, namespace, and whether Kubernetes integration is enabled for the user.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Domain Or TLS Delay</div>
+                <div class="text-sm text-gray-400">Validate DNS first. Traefik and Let’s Encrypt cannot complete until the hostname resolves correctly to the platform edge.</div>
+              </div>
+              <div class="docs-inline-item">
+                <div class="text-white font-semibold mb-2">Editor Cannot Open File</div>
+                <div class="text-sm text-gray-400">Large files and binary files are intentionally blocked. Use the editor for text-based operational changes and the repository for larger updates.</div>
+              </div>
             </div>
-            <div>
-              <code class="text-accent-400">GET /projects/:id</code>
-              <p class="mt-1">Get project details</p>
+          </section>
+
+          <section id="support" class="docs-section metallic-card docs-section-card">
+            <h2 class="text-3xl font-bold text-white mb-4">Support Paths</h2>
+            <p class="text-gray-300 mb-6">Use the right support path based on whether you need issue tracking, architecture discussion, or operating guidance.</p>
+            <div class="flex flex-col sm:flex-row gap-4">
+              <a href="https://github.com/vikukumar/Pushpaka/issues" target="_blank" rel="noopener noreferrer" class="btn-primary">Report Issues</a>
+              <a href="https://github.com/vikukumar/Pushpaka/discussions" target="_blank" rel="noopener noreferrer" class="btn-secondary">Join Discussions</a>
             </div>
-            <div>
-              <code class="text-accent-400">POST /projects/:id/deploy</code>
-              <p class="mt-1">Trigger a deployment</p>
-            </div>
-            <div>
-              <code class="text-accent-400">GET /projects/:id/deployments</code>
-              <p class="mt-1">List deployments for a project</p>
-            </div>
-            <div>
-              <code class="text-accent-400">POST /projects/:id/deployments/:did/rollback</code>
-              <p class="mt-1">Rollback to a previous deployment</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6">
-          <p class="text-blue-300">
-            <strong>Full API Documentation:</strong> Visit the API docs endpoint at <code class="text-accent-400">/api/v1/docs</code> for interactive API exploration.
-          </p>
-        </div>
-      </div>
-
-      <!-- Advanced Section -->
-      <div class="mb-12">
-        <h2 class="text-3xl font-bold text-white mb-6">Advanced Topics</h2>
-
-        <div class="metallic-card p-8 mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Horizontal Scaling</h3>
-          <p class="text-gray-300 mb-4">Deploy multiple Pushpaka instances with separate API and worker components:</p>
-          <div class="code-block">
-            <pre>
-# Run API server only
-PUSHPAKA_COMPONENT=api ./pushpaka
-
-# Run worker only (scales horizontally)
-PUSHPAKA_COMPONENT=worker ./pushpaka
-
-# Or run both in one instance (default)
-./pushpaka</pre>
-          </div>
-        </div>
-
-        <div class="metallic-card p-8 mb-6">
-          <h3 class="text-xl font-bold text-white mb-4">Database Options</h3>
-          <p class="text-gray-300 mb-4">Choose your database backend:</p>
-          <ul class="space-y-3 text-gray-300 text-sm">
-            <li>
-              <strong class="text-white">SQLite (Dev)</strong> - Perfect for development and single-instance deployments
-            </li>
-            <li>
-              <strong class="text-white">PostgreSQL</strong> - Enterprise option with full ACID compliance for production
-            </li>
-          </ul>
-        </div>
-
-        <div class="metallic-card p-8">
-          <h3 class="text-xl font-bold text-white mb-4">Backup & Restore</h3>
-          <p class="text-gray-300 mb-4">Regular backups are crucial for production deployments:</p>
-          <div class="code-block">
-            <pre>
-# PostgreSQL backup
-pg_dump -U pushpaka_user pushpaka_db > backup.sql
-
-# SQLite backup
-cp pushpaka.db pushpaka.db.backup</pre>
-          </div>
-        </div>
-      </div>
-
-      <!-- Support Section -->
-      <div class="text-center">
-        <h2 class="text-3xl font-bold text-white mb-6">Need Help?</h2>
-        <p class="text-gray-400 mb-8">Check out the GitHub repository for more resources:</p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-          <a href="https://github.com/vikukumar/Pushpaka/issues" target="_blank" rel="noopener noreferrer" class="btn-primary">
-            Report Issues
-          </a>
-          <a href="https://github.com/vikukumar/Pushpaka/discussions" target="_blank" rel="noopener noreferrer" class="btn-secondary">
-            Discussions
-          </a>
-        </div>
+          </section>
+        </main>
       </div>
     </div>
   </div>

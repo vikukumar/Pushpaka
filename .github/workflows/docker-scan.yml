@@ -62,9 +62,35 @@ jobs:
           image: pushpaka:latest
           fail-build: false
 
+      - name: Validate Grype SARIF
+        id: validate_grype
+        if: always() && steps.grype.outputs.sarif != '' && hashFiles(steps.grype.outputs.sarif) != ''
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import sys
+
+          path = os.environ["SARIF_PATH"]
+          try:
+              with open(path, "r", encoding="utf-8") as f:
+                  data = json.load(f)
+              if not isinstance(data, dict) or "runs" not in data:
+                  raise ValueError("missing SARIF runs array")
+          except Exception as exc:
+              print(f"grype_valid=false", file=open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8"))
+              print(f"Skipping Grype SARIF upload: {exc}")
+              sys.exit(0)
+
+          print(f"grype_valid=true", file=open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8"))
+          PY
+        env:
+          SARIF_PATH: ${{ steps.grype.outputs.sarif }}
+
       - name: Upload Grype scan results
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && steps.grype.outputs.sarif != '' && hashFiles(steps.grype.outputs.sarif) != ''
+        if: always() && steps.validate_grype.outputs.grype_valid == 'true'
         with:
           sarif_file: ${{ steps.grype.outputs.sarif }}
           category: grype
