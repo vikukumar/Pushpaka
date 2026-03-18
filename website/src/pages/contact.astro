@@ -1,0 +1,52 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+---
+
+<Layout
+  title="Contact - Pushpaka"
+  description="Contact and repository references for Pushpaka."
+>
+  <Header />
+
+  <main class="pt-32 pb-24 px-4 sm:px-6 lg:px-8">
+    <section class="max-w-5xl mx-auto">
+      <div class="max-w-3xl mb-14">
+        <p class="text-sm uppercase tracking-[0.28em] text-brand-300 mb-4">Contact</p>
+        <h1 class="text-5xl md:text-6xl font-bold text-white leading-tight mb-6">Connect through the repository and support surfaces.</h1>
+        <p class="text-lg text-slate-300 leading-relaxed">
+          Pushpaka support and project collaboration are routed through GitHub so operators and contributors can track product context, issues, discussions, and release artifacts in one place.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <article class="metallic-card p-8">
+          <p class="text-xs uppercase tracking-[0.22em] text-brand-300 mb-3">Author</p>
+          <h2 class="text-3xl font-bold text-white mb-3">Vikash Kumar</h2>
+          <p class="text-slate-300 leading-7">
+            Project author and maintainer for Pushpaka.
+          </p>
+          <div class="mt-6">
+            <a href="https://github.com/vikukumar" target="_blank" rel="noopener noreferrer" class="btn-primary">View GitHub Profile</a>
+          </div>
+        </article>
+
+        <article class="metallic-card p-8">
+          <p class="text-xs uppercase tracking-[0.22em] text-brand-300 mb-3">Repository</p>
+          <h2 class="text-3xl font-bold text-white mb-3">Pushpaka on GitHub</h2>
+          <p class="text-slate-300 leading-7">
+            Browse source, release assets, issues, discussions, and documentation updates directly in the project repository.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a href="https://github.com/vikukumar/Pushpaka" target="_blank" rel="noopener noreferrer" class="btn-primary">Open Repository</a>
+            <a href="https://github.com/vikukumar/Pushpaka/issues" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-surface-border px-5 py-3 text-sm font-medium text-slate-200 hover:border-brand-400/40 hover:text-brand-200 transition">Issues</a>
+            <a href="https://github.com/vikukumar/Pushpaka/discussions" target="_blank" rel="noopener noreferrer" class="inline-flex items-center rounded-full border border-surface-border px-5 py-3 text-sm font-medium text-slate-200 hover:border-brand-400/40 hover:text-brand-200 transition">Discussions</a>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Layout>

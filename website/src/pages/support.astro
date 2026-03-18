@@ -1,0 +1,81 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import { supportEntries, supportQuickPrompts } from '../data/support';
+---
+
+<Layout
+  title="Support - Pushpaka"
+  description="Pushpaka support hub covering installation, AI operations, deployments, editor workflows, upgrades, and troubleshooting."
+>
+  <Header />
+
+  <main class="pt-32 pb-24 px-4 sm:px-6 lg:px-8">
+    <section class="max-w-7xl mx-auto">
+      <div class="max-w-3xl mb-14">
+        <p class="text-sm uppercase tracking-[0.28em] text-brand-300 mb-4">Support Hub</p>
+        <h1 class="text-5xl md:text-6xl font-bold text-white leading-tight mb-6">Product support for operators shipping with Pushpaka.</h1>
+        <p class="text-lg text-slate-300 leading-relaxed">
+          Use the built-in assistant, documentation hub, and repository workflows to resolve install, upgrade, AI ops, runtime, routing, and release issues without leaving the platform context.
+        </p>
+      </div>
+
+      <div class="metallic-card p-8 mb-10">
+        <h2 class="text-2xl font-bold text-white mb-4">Quick Support Prompts</h2>
+        <div class="flex flex-wrap gap-3">
+          {supportQuickPrompts.map((prompt) => (
+            <span class="rounded-full border border-brand-400/25 bg-brand-500/10 px-4 py-2 text-sm text-brand-100">{prompt}</span>
+          ))}
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-[1.35fr_0.65fr] gap-8">
+        <div class="space-y-6">
+          {supportEntries.map((entry) => (
+            <article class="metallic-card p-8">
+              <p class="text-xs uppercase tracking-[0.22em] text-brand-300 mb-3">{entry.title}</p>
+              <p class="text-slate-200 leading-8">{entry.response}</p>
+              <div class="mt-6 flex flex-wrap gap-2">
+                {entry.links?.map((link) => (
+                  <a
+                    href={link.href}
+                    target={link.href.startsWith('http') ? '_blank' : undefined}
+                    rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                    class="inline-flex items-center rounded-full border border-surface-border bg-surface-bg px-4 py-2 text-sm text-slate-300 hover:border-brand-400/40 hover:text-brand-200 transition"
+                  >
+                    {link.label}
+                  </a>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <aside class="space-y-6">
+          <div class="metallic-card p-8">
+            <h2 class="text-2xl font-bold text-white mb-4">Need A Guided Path?</h2>
+            <ul class="space-y-3 text-slate-300">
+              <li>1. Start with the chatbot in the bottom-right corner.</li>
+              <li>2. Open the enterprise docs sidebar for step-by-step workflows.</li>
+              <li>3. Move to GitHub issues if you hit a confirmed defect.</li>
+              <li>4. Use GitHub discussions for usage, setup, and architecture questions.</li>
+            </ul>
+          </div>
+
+          <div class="metallic-card p-8">
+            <h2 class="text-2xl font-bold text-white mb-4">Support Channels</h2>
+            <div class="space-y-3">
+              <a href="/docs" class="block rounded-2xl border border-surface-border bg-surface-bg px-4 py-3 text-slate-200 hover:border-brand-400/40">Documentation Hub</a>
+              <a href="https://github.com/vikukumar/Pushpaka/issues" target="_blank" rel="noopener noreferrer" class="block rounded-2xl border border-surface-border bg-surface-bg px-4 py-3 text-slate-200 hover:border-brand-400/40">GitHub Issues</a>
+              <a href="https://github.com/vikukumar/Pushpaka/discussions" target="_blank" rel="noopener noreferrer" class="block rounded-2xl border border-surface-border bg-surface-bg px-4 py-3 text-slate-200 hover:border-brand-400/40">GitHub Discussions</a>
+              <a href="/contact" class="block rounded-2xl border border-surface-border bg-surface-bg px-4 py-3 text-slate-200 hover:border-brand-400/40">Contact Page</a>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</Layout>

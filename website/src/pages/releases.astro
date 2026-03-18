@@ -2,6 +2,10 @@
 import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
+
+const repoReleases = 'https://github.com/vikukumar/Pushpaka/releases';
+const latestRelease = `${repoReleases}/latest`;
+const latestDownload = `${repoReleases}/latest/download`;
 ---
 
 <Layout title="Releases - Pushpaka">
@@ -20,8 +24,8 @@ import Footer from '../components/Footer.astro';
         <div class="metallic-card p-8">
           <div class="flex items-start justify-between mb-6">
             <div>
-              <h3 class="text-2xl font-bold text-white mb-2">Version 1.0.0</h3>
-              <p class="text-gray-400 text-sm">Released on March 17, 2026</p>
+              <h3 class="text-2xl font-bold text-white mb-2">Version 1.0.x</h3>
+              <p class="text-gray-400 text-sm">Tracks the latest production build published from the main release workflow.</p>
             </div>
             <span class="px-4 py-2 bg-accent-500/20 text-accent-400 rounded-full text-sm font-semibold">Latest</span>
           </div>
@@ -62,10 +66,10 @@ import Footer from '../components/Footer.astro';
             <div>
               <h4 class="text-white font-semibold text-sm uppercase text-gray-400 mb-2">Download</h4>
               <div class="space-y-2">
-                <a href="https://github.com/vikukumar/Pushpaka/releases/tag/v1.0.0" target="_blank" rel="noopener noreferrer" class="block text-accent-400 hover:text-accent-300 text-sm">
+                <a href={latestRelease} target="_blank" rel="noopener noreferrer" class="block text-accent-400 hover:text-accent-300 text-sm">
                   GitHub Releases →
                 </a>
-                <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/checksums.txt" target="_blank" rel="noopener noreferrer" class="block text-accent-400 hover:text-accent-300 text-sm">
+                <a href={`${latestDownload}/checksums.txt`} target="_blank" rel="noopener noreferrer" class="block text-accent-400 hover:text-accent-300 text-sm">
                   Checksums →
                 </a>
               </div>
@@ -77,18 +81,18 @@ import Footer from '../components/Footer.astro';
             <div class="code-block mb-6">
               <pre>
 # Linux/macOS
-curl -L https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-linux-amd64 -o pushpaka
+curl -L https://github.com/vikukumar/Pushpaka/releases/latest/download/pushpaka-linux-amd64 -o pushpaka
 chmod +x pushpaka
 ./pushpaka -dev
 
 # Windows
-$url = "https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-windows-amd64.exe"
+$url = "https://github.com/vikukumar/Pushpaka/releases/latest/download/pushpaka-windows-amd64.exe"
 Invoke-WebRequest -Uri $url -OutFile .\pushpaka.exe
 .\pushpaka.exe -dev
 
 # Docker
-docker pull ghcr.io/vikukumar/pushpaka:v1.0.0
-docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
+docker pull ghcr.io/vikukumar/pushpaka:latest
+docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:latest</pre>
             </div>
           </div>
         </div>
@@ -176,11 +180,11 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
           <div class="metallic-card p-8">
             <h3 class="text-lg font-bold text-white mb-4">🐧 Linux</h3>
             <div class="space-y-3">
-              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-linux-amd64" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
-                → x86-64 (amd64) 64-bit
-              </a>
-              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-linux-arm64" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
-                → ARM 64-bit (arm64)
+                <a href={`${latestDownload}/pushpaka-linux-amd64`} class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+                  → x86-64 (amd64) 64-bit
+                </a>
+              <a href={`${latestDownload}/pushpaka-linux-arm64`} class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+                  → ARM 64-bit (arm64)
               </a>
             </div>
           </div>
@@ -188,10 +192,10 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
           <div class="metallic-card p-8">
             <h3 class="text-lg font-bold text-white mb-4">🍎 macOS</h3>
             <div class="space-y-3">
-              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-darwin-amd64" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+              <a href={`${latestDownload}/pushpaka-darwin-amd64`} class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
                 → Intel (amd64) 64-bit
               </a>
-              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-darwin-arm64" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+              <a href={`${latestDownload}/pushpaka-darwin-arm64`} class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
                 → Apple Silicon (arm64)
               </a>
             </div>
@@ -200,7 +204,7 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
           <div class="metallic-card p-8">
             <h3 class="text-lg font-bold text-white mb-4">🪟 Windows</h3>
             <div class="space-y-3">
-              <a href="https://github.com/vikukumar/Pushpaka/releases/download/v1.0.0/pushpaka-windows-amd64.exe" class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
+              <a href={`${latestDownload}/pushpaka-windows-amd64.exe`} class="block px-4 py-2 bg-surface-bg rounded text-accent-400 hover:text-accent-300 text-sm">
                 → x86-64 (amd64) 64-bit
               </a>
             </div>
@@ -210,7 +214,7 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
             <h3 class="text-lg font-bold text-white mb-4">🐳 Docker</h3>
             <div class="space-y-3">
               <div class="px-4 py-2 bg-surface-bg rounded text-accent-400 text-sm font-mono">
-                ghcr.io/vikukumar/pushpaka:v1.0.0
+                ghcr.io/vikukumar/pushpaka:latest
               </div>
             </div>
           </div>
@@ -218,7 +222,7 @@ docker run -p 8080:8080 ghcr.io/vikukumar/pushpaka:v1.0.0</pre>
       </div>
 
       <div class="text-center">
-        <a href="https://github.com/vikukumar/Pushpaka/releases" target="_blank" rel="noopener noreferrer" class="btn-primary">
+        <a href={repoReleases} target="_blank" rel="noopener noreferrer" class="btn-primary">
           View All Releases On GitHub
         </a>
       </div>
