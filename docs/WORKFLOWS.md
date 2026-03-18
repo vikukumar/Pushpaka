@@ -7,6 +7,7 @@ This document describes the GitHub Actions workflows for building, testing, and 
 ### 1. **Release** (`release.yml`)
 Automatically triggered on pushes to `main` with changes in key directories. Creates releases for all platforms.
 
+
 **Triggers:**
 - Push to `main` with changes in: `backend/`, `worker/`, `frontend/`, `cmd/`, `go.work`, `Dockerfile`, `.github/workflows/`
 - Manual dispatch via `workflow_dispatch` with optional `force_version` input
