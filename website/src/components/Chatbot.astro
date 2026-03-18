@@ -8,9 +8,9 @@ export interface Props {
 const { initialMessage = "Hi! I'm the Pushpaka assistant. How can I help you today?" } = Astro.props;
 ---
 
-<div id="chatbot-container" class="fixed bottom-6 right-6 z-50 w-96 max-w-[calc(100vw-2rem)]">
+<div id="chatbot-container" class="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-4 pointer-events-none">
   <!-- Chat Window -->
-  <div id="chat-window" class="metallic-card rounded-lg shadow-2xl hidden flex flex-col h-96 max-h-screen">
+  <div id="chat-window" class="metallic-card rounded-lg shadow-2xl hidden flex flex-col h-96 w-96 max-w-[calc(100vw-1rem)] max-h-[min(70vh,42rem)] pointer-events-auto">
     <!-- Header -->
     <div class="bg-gradient-to-r from-brand-600 to-accent-500 px-6 py-4 rounded-t-lg flex justify-between items-center">
       <h3 class="text-white font-bold text-lg">Pushpaka Assistant</h3>
@@ -51,7 +51,7 @@ const { initialMessage = "Hi! I'm the Pushpaka assistant. How can I help you tod
   <!-- Toggle Button -->
   <button
     id="chatbot-toggle"
-    class="bg-gradient-to-r from-brand-600 to-accent-500 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-2xl hover:shadow-accent-glow transition-all"
+    class="bg-gradient-to-r from-brand-600 to-accent-500 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-2xl transition-all pointer-events-auto"
   >
     <span class="text-2xl">💬</span>
   </button>
@@ -60,6 +60,11 @@ const { initialMessage = "Hi! I'm the Pushpaka assistant. How can I help you tod
 <style>
   #chatbot-container {
     --tw-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  #chatbot-toggle:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 18px 42px rgba(6, 182, 212, 0.35);
   }
   
   #chat-messages::-webkit-scrollbar {
@@ -77,13 +82,12 @@ const { initialMessage = "Hi! I'm the Pushpaka assistant. How can I help you tod
 
   @media (max-width: 480px) {
     #chatbot-container {
-      max-width: calc(100vw - 1rem);
       bottom: 1rem;
-      right: 0.5rem;
+      right: 1rem;
     }
     
     #chat-window {
-      max-width: 100%;
+      width: min(100vw - 1rem, 24rem);
       height: 70vh;
     }
   }

@@ -5,12 +5,13 @@ const base = import.meta.env.BASE_URL;
 
 <footer class="bg-surface-elevated border-t border-surface-border mt-32">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
-      <div>
+    <div data-reveal class="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
+      <div class="space-y-4">
         <img src={`${base}logo.svg`} alt="Pushpaka" class="h-10 w-auto mb-4" />
         <p class="text-gray-400 text-sm">
-          Self-hosted cloud deployment with the same palette and visual direction as the main frontend.
+          Self-hosted Git-to-cloud delivery with AI-assisted operations, real-time logs, custom domains, and production-ready routing.
         </p>
+        <p class="text-xs uppercase tracking-[0.24em] text-brand-300">Built for teams shipping on their own infrastructure</p>
       </div>
 
       <div>
@@ -42,8 +43,8 @@ const base = import.meta.env.BASE_URL;
       </div>
     </div>
 
-    <div class="border-t border-surface-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
-      <p>&copy; 2026 Pushpaka. Built for direct Git-to-cloud delivery.</p>
+    <div data-reveal class="border-t border-surface-border pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+      <p>&copy; 2026 Pushpaka. Made in India 🇮🇳 with love ❤️</p>
       <div class="flex gap-6">
         <a href="https://github.com/vikukumar" target="_blank" rel="noopener noreferrer" class="hover:text-brand-400 transition">GitHub</a>
         <a href="https://github.com/vikukumar/Pushpaka" target="_blank" rel="noopener noreferrer" class="hover:text-brand-400 transition">Repository</a>

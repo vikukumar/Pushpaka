@@ -4,7 +4,11 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 ---
 
-<Layout title="Pushpaka - Cloud Deployment Platform">
+<Layout
+  title="Pushpaka | AI-Native Multi-Platform Deployment And Monitoring"
+  description="Pushpaka is an AI-native self-hosted deployment platform for Docker, Kubernetes, and direct runtime delivery with AI monitoring, AI log analysis, built-in editor workflows, web terminal access, and Traefik-powered routing."
+  keywords="Pushpaka, AI deployment platform, self-hosted PaaS, Kubernetes deployment platform, Docker deployment platform, AI monitoring, AI log analyzer, built-in editor, web terminal, Git deployment, Traefik"
+>
   <Header />
 
   <section class="hero-scene pt-36 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
@@ -21,16 +25,16 @@ import Footer from '../components/Footer.astro';
         <div>
           <div class="mb-8 inline-block">
             <span class="inline-block px-4 py-2 bg-brand-950/90 border border-brand-700 rounded-full text-brand-300 text-sm font-medium">
-              v1.0.0 · Git delivery, AI operations, Traefik routing
+              v1.0.0 · AI-native deployment, monitoring, and operator control
             </span>
           </div>
 
           <h1 class="text-5xl md:text-7xl font-bold mb-6 gradient-text leading-tight">
-            Git-to-cloud delivery<br />with AI operations built in
+            Deploy everywhere.<br />Let AI run point.
           </h1>
 
           <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl">
-            Pushpaka is a production-grade self-hosted deployment platform for shipping from Git, streaming builds in real time, routing through Traefik, and using AI to monitor runtime behavior and explain deployment logs.
+            Pushpaka is an AI-native self-hosted platform for multi-platform delivery across Docker, Kubernetes, and direct runtime targets, with AI monitoring, AI log analysis, built-in editor workflows, terminal access, and real-time infrastructure control.
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 mb-12">
@@ -45,19 +49,19 @@ import Footer from '../components/Footer.astro';
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-surface-border pt-8">
             <div>
               <div class="gradient-text text-3xl font-bold mb-2">AI Ops</div>
-              <div class="text-gray-400 text-sm">Log analysis, alerts, assistant chat</div>
+              <div class="text-gray-400 text-sm">Monitoring, incident summaries, assistant chat</div>
             </div>
             <div>
-              <div class="gradient-text text-3xl font-bold mb-2">Go 1.25</div>
-              <div class="text-gray-400 text-sm">API, worker, single binary runtime</div>
+              <div class="gradient-text text-3xl font-bold mb-2">Editor</div>
+              <div class="text-gray-400 text-sm">Built-in code editing and source sync</div>
             </div>
             <div>
-              <div class="gradient-text text-3xl font-bold mb-2">Traefik</div>
-              <div class="text-gray-400 text-sm">TLS, domains, routing surface</div>
+              <div class="gradient-text text-3xl font-bold mb-2">Terminal</div>
+              <div class="text-gray-400 text-sm">Web terminal into running deployments</div>
             </div>
             <div>
-              <div class="gradient-text text-3xl font-bold mb-2">Next 16</div>
-              <div class="text-gray-400 text-sm">Frontend dashboard and operator UI</div>
+              <div class="gradient-text text-3xl font-bold mb-2">Multi-Platform</div>
+              <div class="text-gray-400 text-sm">Docker, Kubernetes, and direct runtime</div>
             </div>
           </div>
         </div>
@@ -70,43 +74,43 @@ import Footer from '../components/Footer.astro';
                 <span class="text-accent-400 text-lg">01</span>
                 <div>
                   <div class="text-white font-semibold">Connect any Git repository</div>
-                  <div>Public or private repos with protected PAT handling and redaction.</div>
+                  <div>Public or private repos with protected PAT handling, source sync, and operator-friendly project controls.</div>
                 </div>
               </div>
               <div class="flex items-start gap-3">
                 <span class="text-accent-400 text-lg">02</span>
                 <div>
-                  <div class="text-white font-semibold">Build automatically</div>
-                  <div>Framework detection, Dockerfile generation, or direct deploy fallback.</div>
+                  <div class="text-white font-semibold">Build for the right target</div>
+                  <div>Framework detection, Dockerfile generation, Kubernetes-aware targets, or direct deploy fallback.</div>
                 </div>
               </div>
               <div class="flex items-start gap-3">
                 <span class="text-accent-400 text-lg">03</span>
                 <div>
-                  <div class="text-white font-semibold">Observe in real time</div>
-                  <div>Live logs, health endpoints, worker stats, metrics, and AI analysis.</div>
+                  <div class="text-white font-semibold">Observe and triage with AI</div>
+                  <div>Live logs, metrics, health endpoints, worker stats, AI monitoring, and AI log analysis for incident response.</div>
                 </div>
               </div>
               <div class="flex items-start gap-3">
                 <span class="text-accent-400 text-lg">04</span>
                 <div>
-                  <div class="text-white font-semibold">Route and recover</div>
-                  <div>Traefik domains, TLS, rollback flow, and multi-project lifecycle management.</div>
+                  <div class="text-white font-semibold">Edit, route, and recover</div>
+                  <div>Built-in editor, terminal access, Traefik domains, TLS, rollback flow, and lifecycle controls in one place.</div>
                 </div>
               </div>
             </div>
           </div>
 
           <div class="metallic-card p-6">
-            <div class="text-sm uppercase tracking-[0.22em] text-brand-300 mb-3">Runtime Modes</div>
+            <div class="text-sm uppercase tracking-[0.22em] text-brand-300 mb-3">Operator Surface</div>
             <div class="grid gap-3 sm:grid-cols-2 text-sm">
               <div class="rounded-xl border border-surface-border bg-slate-950/40 p-4">
                 <div class="text-white font-semibold mb-1">Single Binary Dev</div>
-                <div class="text-gray-400">`pushpaka -dev` with SQLite, embedded worker, and in-process queue.</div>
+                <div class="text-gray-400">`pushpaka -dev` with SQLite, embedded worker, and in-process queue for fast local startup.</div>
               </div>
               <div class="rounded-xl border border-surface-border bg-slate-950/40 p-4">
-                <div class="text-white font-semibold mb-1">Split Scale Mode</div>
-                <div class="text-gray-400">Run API and worker independently with Redis-backed queueing.</div>
+                <div class="text-white font-semibold mb-1">Production Controls</div>
+                <div class="text-gray-400">Split API and worker, Docker and Kubernetes controls, editor sync, and terminal workflows.</div>
               </div>
             </div>
           </div>
@@ -118,8 +122,8 @@ import Footer from '../components/Footer.astro';
   <section class="py-28 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent to-brand-950/20">
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-16">
-        <h2 class="section-title gradient-text">What Ships In v1.0.0</h2>
-        <p class="section-subtitle text-gray-400">Every block below maps to the current README, backend handlers, worker pipeline, and release packaging.</p>
+        <h2 class="section-title gradient-text">Why Pushpaka Wins The Evaluation</h2>
+        <p class="section-subtitle text-gray-400">The platform already combines deployment, AI-assisted operations, editing, terminal access, and infra control in one operator workflow.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -128,7 +132,7 @@ import Footer from '../components/Footer.astro';
             <span class="text-sm font-bold">AI</span>
           </div>
           <h3 class="text-xl font-bold text-white mb-3">AI Monitoring And Log Analysis</h3>
-          <p class="text-gray-400">AI config, monitoring alerts, deployment log analysis, assistant chat, usage tracking, and RAG-backed documentation are present in the backend today.</p>
+          <p class="text-gray-400">Use AI to monitor failed deployments, inspect alerts, explain logs, chat with deployment context, and bring custom RAG knowledge into triage.</p>
         </div>
 
         <div class="metallic-card p-8">
@@ -136,15 +140,15 @@ import Footer from '../components/Footer.astro';
             <span class="text-2xl">🚀</span>
           </div>
           <h3 class="text-xl font-bold text-white mb-3">Git Deployments With Rollbacks</h3>
-          <p class="text-gray-400">Trigger deployments from public or private repos, stream build logs, track history, and roll back previous deployments when you need recovery.</p>
+          <p class="text-gray-400">Trigger deployments from public or private repositories, stream logs live, track deployment history, and recover fast with rollback workflows.</p>
         </div>
 
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-cyan-600 to-cyan-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">🐳</span>
+            <span class="text-2xl">🧭</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">Container And Direct Runtime</h3>
-          <p class="text-gray-400">Pushpaka builds Docker images when available and falls back to direct process deployment when Docker is not present on the target host.</p>
+          <h3 class="text-xl font-bold text-white mb-3">Container, Kubernetes, And Direct Runtime</h3>
+          <p class="text-gray-400">Run across Docker, Kubernetes-aware project targets, or direct process deployment when container runtime is not available.</p>
         </div>
 
         <div class="metallic-card p-8">
@@ -152,7 +156,7 @@ import Footer from '../components/Footer.astro';
             <span class="text-2xl">📡</span>
           </div>
           <h3 class="text-xl font-bold text-white mb-3">Realtime Visibility</h3>
-          <p class="text-gray-400">WebSocket log streaming, `/health`, `/ready`, `/system`, Prometheus metrics, and live worker statistics give operators direct feedback during builds and runtime.</p>
+          <p class="text-gray-400">WebSocket log streaming, `/health`, `/ready`, `/system`, Prometheus metrics, and worker stats keep operators inside one feedback loop.</p>
         </div>
 
         <div class="metallic-card p-8">
@@ -160,15 +164,15 @@ import Footer from '../components/Footer.astro';
             <span class="text-2xl">🌐</span>
           </div>
           <h3 class="text-xl font-bold text-white mb-3">Domains, TLS, And Routing</h3>
-          <p class="text-gray-400">Traefik v3 handles ingress, custom domains, automatic TLS through Let’s Encrypt, and the operator-facing routing surface for deployed applications.</p>
+          <p class="text-gray-400">Traefik v3 handles ingress, custom domains, automatic TLS through Let’s Encrypt, and a cleaner self-hosted routing story for production workloads.</p>
         </div>
 
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-brand-600 to-cyan-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">⚙️</span>
+            <span class="text-2xl">🛠️</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">Single Binary Or Split Architecture</h3>
-          <p class="text-gray-400">Run everything in one process for development or split API and worker components for horizontally scalable production setups.</p>
+          <h3 class="text-xl font-bold text-white mb-3">Built-In Editor And Terminal</h3>
+          <p class="text-gray-400">Edit project files in-browser, sync source into the working directory, and open an interactive terminal into running deployments without leaving the platform.</p>
         </div>
       </div>
     </div>
@@ -177,26 +181,26 @@ import Footer from '../components/Footer.astro';
   <section class="py-28 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-16">
-        <h2 class="section-title gradient-text">Mapped To The Real Code Structure</h2>
-        <p class="section-subtitle text-gray-400">The site content now reflects how the repository is actually organized and shipped.</p>
+        <h2 class="section-title gradient-text">Mapped To The Real Product Surface</h2>
+        <p class="section-subtitle text-gray-400">These areas are already visible in the repository and dashboard code, not just roadmap language.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <div class="metallic-card p-6">
-          <div class="text-brand-300 font-semibold mb-3">cmd/pushpaka</div>
-          <p class="text-sm text-gray-400">Combined entry point with `-dev`, embedded workers, and the all-in-one runtime path documented in the README.</p>
+          <div class="text-brand-300 font-semibold mb-3">AI And Monitoring</div>
+          <p class="text-sm text-gray-400">AI config, monitoring alerts, RAG docs, assistant chat, usage tracking, and deployment log analysis are implemented in backend handlers and services.</p>
         </div>
         <div class="metallic-card p-6">
-          <div class="text-accent-300 font-semibold mb-3">backend/internal</div>
-          <p class="text-sm text-gray-400">Handlers, services, repositories, middleware, AI endpoints, OAuth, webhooks, notifications, health, and deployment APIs.</p>
+          <div class="text-accent-300 font-semibold mb-3">Editor And Terminal</div>
+          <p class="text-sm text-gray-400">The frontend ships Monaco-based editor flows, while the backend exposes file browsing, save, sync, and terminal WebSocket endpoints.</p>
         </div>
         <div class="metallic-card p-6">
-          <div class="text-cyan-300 font-semibold mb-3">worker/internal/worker</div>
-          <p class="text-sm text-gray-400">Clone, detect, build, run, direct deploy fallback, Docker execution, rollback branch handling, and notification callbacks.</p>
+          <div class="text-cyan-300 font-semibold mb-3">Multi-Platform Infra</div>
+          <p class="text-sm text-gray-400">Docker container controls, Kubernetes resource views, rollout actions, and deploy-target aware project configuration are already wired in the platform.</p>
         </div>
         <div class="metallic-card p-6">
-          <div class="text-brand-200 font-semibold mb-3">frontend + website</div>
-          <p class="text-sm text-gray-400">Next.js operator dashboard plus Astro-based docs and release site using the same brand palette and deployment messaging.</p>
+          <div class="text-brand-200 font-semibold mb-3">Operator Experience</div>
+          <p class="text-sm text-gray-400">Next.js dashboard, Astro docs site, Traefik routing, notifications, OAuth, and deployment workflows combine into one self-hosted control plane.</p>
         </div>
       </div>
     </div>
@@ -205,26 +209,26 @@ import Footer from '../components/Footer.astro';
   <section class="py-28 px-4 sm:px-6 lg:px-8">
     <div class="max-w-7xl mx-auto">
       <div class="text-center mb-16">
-        <h2 class="section-title gradient-text">Operational Surface</h2>
-        <p class="section-subtitle text-gray-400">Pushpaka v1.0.0 is more than a deploy button. It already exposes the operator controls below.</p>
+        <h2 class="section-title gradient-text">Customer-Facing Value, Not Just Features</h2>
+        <p class="section-subtitle text-gray-400">Pushpaka is positioned for teams that want a self-hosted platform with AI assistance and operational depth, not another thin deployment wrapper.</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="metallic-card p-8">
-          <h3 class="text-xl font-bold text-white mb-3">AI</h3>
-          <p class="text-gray-400">Per-user AI configuration, monitoring intervals, alert storage, RAG documents, deployment log analysis, and contextual assistant chat.</p>
+          <h3 class="text-xl font-bold text-white mb-3">For Platform Teams</h3>
+          <p class="text-gray-400">Consolidate deployment, AI operations, routing, editing, and infrastructure control into one internal platform instead of stitching multiple tools together.</p>
         </div>
         <div class="metallic-card p-8">
-          <h3 class="text-xl font-bold text-white mb-3">Security</h3>
-          <p class="text-gray-400">JWT and API key auth, bcrypt password hashing, secure headers, rate limiting, configurable CORS, and PAT redaction in logs and APIs.</p>
+          <h3 class="text-xl font-bold text-white mb-3">For Faster Incident Response</h3>
+          <p class="text-gray-400">AI monitoring, AI log analysis, metrics, health probes, terminal access, and editor sync reduce the time from alert to fix.</p>
         </div>
         <div class="metallic-card p-8">
-          <h3 class="text-xl font-bold text-white mb-3">Integrations</h3>
-          <p class="text-gray-400">GitHub and GitLab OAuth, incoming webhooks, internal deployment notifications, Slack, Discord, and SMTP notification paths in the backend.</p>
+          <h3 class="text-xl font-bold text-white mb-3">For Multi-Environment Delivery</h3>
+          <p class="text-gray-400">Ship to Docker-backed hosts, Kubernetes-aware targets, or direct runtime environments while keeping one operator workflow and one UI.</p>
         </div>
         <div class="metallic-card p-8">
-          <h3 class="text-xl font-bold text-white mb-3">Observability</h3>
-          <p class="text-gray-400">Metrics export, health and readiness endpoints, system diagnostics, deployment logs, worker activity stats, and terminal access for running containers.</p>
+          <h3 class="text-xl font-bold text-white mb-3">For Developer Velocity</h3>
+          <p class="text-gray-400">Built-in editing, terminal access, logs, AI assistance, source sync, and rollback keep teams moving without context-switching across separate products.</p>
         </div>
       </div>
     </div>
@@ -232,8 +236,8 @@ import Footer from '../components/Footer.astro';
 
   <section class="py-28 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
     <div class="max-w-4xl mx-auto text-center metallic-card p-12 md:p-16">
-      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Deploy, Inspect, Recover</h2>
-      <p class="text-gray-300 mb-8 text-lg">Install locally, run a single binary in dev, or ship the full platform with worker separation, Traefik ingress, and release artifacts.</p>
+      <h2 class="text-3xl md:text-4xl font-bold text-white mb-4">Ship Faster On Infrastructure You Control</h2>
+      <p class="text-gray-300 mb-8 text-lg">Install locally, run a single binary in dev, or ship the full platform with AI-assisted operations, built-in editing, worker separation, and Traefik ingress.</p>
       <div class="flex flex-col sm:flex-row gap-4 justify-center">
         <a href="https://github.com/vikukumar/Pushpaka" target="_blank" rel="noopener noreferrer" class="btn-primary">
           View On GitHub

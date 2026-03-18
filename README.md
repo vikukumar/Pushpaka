@@ -4,7 +4,7 @@
 
 # Pushpaka
 
-### *Carry your code to the cloud effortlessly.*
+### *Deploy everywhere. Let AI run point.*
 
 [![Version](https://img.shields.io/badge/version-v1.0.0-6366f1?style=flat-square)](https://github.com/vikukumar/Pushpaka)
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat-square&logo=go)](https://go.dev)
@@ -14,9 +14,9 @@
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker)](https://docker.com)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
 
-**Pushpaka** is a production-grade self-hosted cloud deployment platform — deploy applications from any Git repository (public or private) with automated container builds, real-time logs, custom domains, dark/light theming, and Traefik-powered routing. Runs as a **single binary in dev mode** (no Redis/Postgres required) or as a full distributed stack in production.
+**Pushpaka** is a production-grade self-hosted deployment platform for teams that want the Vercel, Render, or Railway experience on their own infrastructure. Deploy from any Git repository, build automatically, stream logs in real time, route through Traefik, and use AI-powered monitoring plus AI log analysis to shorten incident response.
 
-🌐 **[Visit Website](https://vikukumar.github.io/Pushpaka/)** - Modern, beautiful documentation site with installation guides, feature showcase, and release tracker.
+🌐 **[Visit Website](https://pushpaka.vikshro.in/)** - Product site, docs, install guides, Helm flow, and release tracker.
 
 [Quick Start](#quick-start) · [Dev Mode](#dev-mode-single-binary) · [Features](#features) · [Architecture](#architecture) · [API](#api) · [Configuration](#configuration) · [Website](#website) · [Roadmap](#roadmap)
 
@@ -34,6 +34,13 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
 4. **Deploy** the container (Docker) or in-place (no Docker required)
 5. **Route** traffic via Traefik + optional custom domains + auto-SSL
 6. **Monitor** with real-time WebSocket log streaming and live system status
+
+### Why teams use Pushpaka
+
+- **Ship from Git without giving up control** — keep the deployment experience, own the infrastructure and routing layer.
+- **Operate faster with AI** — use AI-assisted deployment log analysis, AI monitoring alerts, contextual chat, and RAG-backed knowledge.
+- **Scale the runtime your way** — run a single binary in dev, an all-in-one service on one machine, or split API and worker roles for production.
+- **Stay observable by default** — metrics, health, readiness, system diagnostics, worker stats, and terminal access are already in the platform.
 
 ---
 
@@ -97,6 +104,13 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
 - 📊 **Prometheus metrics** — export to Grafana at `/api/v1/metrics`
 - ❤️ **Health checks** — `/health`, `/ready`, and live `/system` status endpoint
 - 🔧 **Worker stats** — live worker count, active jobs, idle count, queue mode
+
+### AI Operations
+- 🤖 **AI deployment log analysis** — send deployment logs to an AI provider for failure summaries and remediation guidance
+- 📡 **AI monitoring configuration** — configure monitoring intervals and alert generation for runtime review
+- 💬 **Pushpaka Assistant** — contextual chat endpoint for operator help and deployment troubleshooting
+- 📚 **RAG documents** — attach custom docs and operational knowledge to AI context
+- 📈 **AI usage tracking** — token and call accounting per user/day
 
 ### Developer Experience
 - 📡 **Real-time logs** — WebSocket streaming during builds with level/stream filtering

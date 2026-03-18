@@ -43,14 +43,14 @@ jobs:
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          input: 'pushpaka:latest'
+          image-ref: 'pushpaka:latest'
           format: sarif
           output: trivy-docker-results.sarif
           severity: CRITICAL,HIGH
 
       - name: Upload Trivy Docker scan results
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && hashFiles('trivy-docker-results.sarif') != ''
         with:
           sarif_file: trivy-docker-results.sarif
           category: trivy-docker
@@ -64,7 +64,7 @@ jobs:
 
       - name: Upload Grype scan results
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && steps.grype.outputs.sarif != '' && hashFiles(steps.grype.outputs.sarif) != ''
         with:
           sarif_file: ${{ steps.grype.outputs.sarif }}
           category: grype
