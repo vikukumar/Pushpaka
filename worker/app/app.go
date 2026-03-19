@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"sync"
 
-	"gorm.io/gorm"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 
 	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/database"
 	"github.com/vikukumar/Pushpaka/pkg/models"
-	
+
 	"github.com/vikukumar/Pushpaka/worker/internal/client"
 	"github.com/vikukumar/Pushpaka/worker/internal/config"
 	"github.com/vikukumar/Pushpaka/worker/internal/worker"
@@ -81,21 +81,21 @@ func Run(ctx context.Context, opts RunOptions) error {
 	// directly over the Yamux multiplexed websocket from the main API!
 	if opts.Mode == "vaahan" || opts.Mode == "hybrid" {
 		deployCh := make(chan []byte, 100)
-		
+
 		nodeClient := client.NewWorkerClient(opts.ServerURL, opts.ZonePAT, db, cfg, deployCh)
-		
+
 		var wg sync.WaitGroup
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
 			nodeClient.Start(ctx)
 		}()
-		
+
 		log.Info().Msg("Starting in-process deployment workers bound to Yamux tunnel")
 		if err := runInProcess(ctx, deployCh, nil, db, cfg); err != nil {
 			return err
 		}
-		
+
 		wg.Wait()
 		return nil
 	}

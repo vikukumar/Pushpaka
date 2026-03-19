@@ -137,7 +137,7 @@ func (c *WorkerClient) connectAndServe(ctx context.Context) error {
 
 	// 4. Start Embedded HTTP Server on the Yamux session
 	mux := http.NewServeMux()
-	
+
 	// Handle API Deployment Triggers
 	mux.HandleFunc("/internal/deploy", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

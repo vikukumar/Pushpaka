@@ -91,12 +91,12 @@ func (r *DeploymentManagementRepository) GetOldestBackups(projectID string, keep
 	// Or use an offset. GORM Offset expects an integer.
 	var totalCount int64
 	r.db.Model(&models.DeploymentBackup{}).Where("project_id = ?", projectID).Count(&totalCount)
-	
+
 	offset := int(totalCount) - keepCount
 	if offset <= 0 {
 		return backups, nil // No backups to delete
 	}
-	
+
 	err := r.db.Where("project_id = ? AND is_restored = ?", projectID, false).Order("created_at asc").Limit(offset).Find(&backups).Error
 	return backups, err
 }
@@ -145,7 +145,7 @@ func (r *DeploymentManagementRepository) CreateOrUpdateStats(stats *models.Proje
 		}
 		return err
 	}
-	
+
 	// Ensure ID is matched to update existing record instead of creating new
 	stats.ID = existing.ID
 	return basemodel.Modify(r.db, stats)

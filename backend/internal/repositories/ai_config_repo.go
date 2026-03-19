@@ -41,7 +41,7 @@ func (r *AIConfigRepository) Upsert(cfg *models.AIConfig) error {
 		cfg.CreatedAt = time.Now().UTC()
 	}
 	cfg.UpdatedAt = time.Now().UTC()
-	
+
 	// Keep existing api_key if new is empty (like previous SQL implementation)
 	return r.db.Exec(`
 		INSERT INTO ai_configs
@@ -134,7 +134,7 @@ func (r *AIConfigRepository) ListUsersWithMonitoring() ([]string, error) {
 func (r *AIConfigRepository) GetOrCreateTodayUsage(userID string) (*models.AITokenUsage, error) {
 	today := time.Now().UTC().Format("2006-01-02")
 	var usage models.AITokenUsage
-	
+
 	err := r.db.Where("user_id = ? AND date = ?", userID, today).First(&usage).Error
 	if err == nil {
 		return &usage, nil
@@ -142,7 +142,7 @@ func (r *AIConfigRepository) GetOrCreateTodayUsage(userID string) (*models.AITok
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
-	
+
 	usage = models.AITokenUsage{
 		BaseModel: basemodel.BaseModel{ID: uuid.New().String()},
 		UserID:    userID,
@@ -150,13 +150,13 @@ func (r *AIConfigRepository) GetOrCreateTodayUsage(userID string) (*models.AITok
 		Calls:     0,
 		Tokens:    0,
 	}
-	
+
 	// Use clauses for IGNORE equivalent gracefully across DBs
 	err = r.db.Clauses(clause.OnConflict{DoNothing: true}).Create(&usage).Error
 	if err != nil {
 		return nil, err
 	}
-	
+
 	err = r.db.Where("user_id = ? AND date = ?", userID, today).First(&usage).Error
 	return &usage, err
 }
@@ -169,6 +169,6 @@ func (r *AIConfigRepository) IncrementTodayUsage(userID string, deltaCalls int) 
 	if err != nil {
 		return err
 	}
-	
+
 	return r.db.Model(usage).UpdateColumn("calls", gorm.Expr("calls + ?", deltaCalls)).Error
 }

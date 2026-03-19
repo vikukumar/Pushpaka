@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 type DeploymentManagementWorker struct {

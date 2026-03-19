@@ -15,10 +15,10 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 var ErrOAuthStateMismatch = errors.New("OAuth state mismatch or expired")

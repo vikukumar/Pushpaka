@@ -10,7 +10,7 @@ require (
 	github.com/lib/pq v1.12.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/rs/zerolog v1.34.0
-	github.com/vikukumar/Pushpaka v0.0.0-20260318182307-fb502f9c0282
+	github.com/vikukumar/Pushpaka v0.0.0-20260319064650-9ffd39a95938
 	gorm.io/gorm v1.31.1
 	modernc.org/sqlite v1.47.0
 )

@@ -111,12 +111,12 @@ type GitAutoSyncConfig struct {
 	DeploymentID      string `gorm:"index;type:varchar(255);not null" json:"deployment_id"`
 	Enabled           bool   `gorm:"default:false" json:"enabled"`
 	RequireApproval   bool   `gorm:"default:false" json:"require_approval"`
-	PollingInterval   int    `gorm:"default:0" json:"polling_interval"`   // seconds
-	MaxConcurrent     int    `gorm:"default:1" json:"max_concurrent"`     // max parallel syncs
-	OnlyProdReady     bool   `gorm:"default:false" json:"only_prod_ready"`    // only sync tagged releases
-	AllowedBranches   string `gorm:"type:text" json:"allowed_branches"`   // JSON array
-	IgnorePaths       string `gorm:"type:text" json:"ignore_paths"`       // JSON array
-	RequiredApprovers string `gorm:"type:text" json:"required_approvers"` // JSON array
+	PollingInterval   int    `gorm:"default:0" json:"polling_interval"`    // seconds
+	MaxConcurrent     int    `gorm:"default:1" json:"max_concurrent"`      // max parallel syncs
+	OnlyProdReady     bool   `gorm:"default:false" json:"only_prod_ready"` // only sync tagged releases
+	AllowedBranches   string `gorm:"type:text" json:"allowed_branches"`    // JSON array
+	IgnorePaths       string `gorm:"type:text" json:"ignore_paths"`        // JSON array
+	RequiredApprovers string `gorm:"type:text" json:"required_approvers"`  // JSON array
 }
 
 // DeploymentSyncHistory represents historical sync records

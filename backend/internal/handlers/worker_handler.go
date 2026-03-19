@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 
-	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/services"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/pkg/tunnel"
 )
 
@@ -109,5 +109,3 @@ func (h *WorkerHandler) GetZonePAT(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"zone_pat": pat})
 }
-
-

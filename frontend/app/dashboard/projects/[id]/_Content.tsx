@@ -2,15 +2,15 @@
 
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import { projectsApi, deploymentsApi, envApi } from '@/lib/api'
+import { projectsApi, deploymentsApi } from '@/lib/api'
 import { Header } from '@/components/layout/Header'
 import { StatusBadge } from '@/components/dashboard/StatusBadge'
 import { timeAgo } from '@/lib/utils'
 import toast from 'react-hot-toast'
 import {
-  Rocket, GitBranch, Globe, Key, Settings, Trash2,
+  Rocket, GitBranch, Globe, Key, Settings,
   ExternalLink, RefreshCw, Loader2, ChevronRight, GitCommit, Code2
 } from 'lucide-react'
 

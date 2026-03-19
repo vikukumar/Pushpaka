@@ -11,10 +11,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 type NotificationService struct {
@@ -221,11 +221,12 @@ func postJSON(url string, payload any) error {
 	return nil
 }
 
-// sanitizeEmailHeader removes CRLF characters to prevent email header injection
+// sanitizeEmailHeader removes CRLF and tab characters to prevent email header injection
 func sanitizeEmailHeader(s string) string {
 	s = strings.ReplaceAll(s, "\r", "")
 	s = strings.ReplaceAll(s, "\n", "")
-	return s
+	s = strings.ReplaceAll(s, "\t", " ") // Also remove tabs just in case
+	return strings.TrimSpace(s)
 }
 
 func sendEmail(cfg *models.NotificationConfig, subject, body string) error {
@@ -236,13 +237,16 @@ func sendEmail(cfg *models.NotificationConfig, subject, body string) error {
 	to := sanitizeEmailHeader(cfg.SMTPTo)
 	subj := sanitizeEmailHeader(subject)
 
-	msg := []byte(fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s",
-		from, to, subj, body))
+	// Construct message using a more robust header + body separation.
+	// We use the standard format: Header1: Value\r\nHeader2: Value\r\n\r\nBody.
+	// net/smtp.SendMail handles the DATA command and the trailing dot.
+	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
+		from, to, subj, body)
 
 	var auth smtp.Auth
 	if cfg.SMTPUsername != "" {
 		auth = smtp.PlainAuth("", cfg.SMTPUsername, cfg.SMTPPassword, cfg.SMTPHost)
 	}
 
-	return smtp.SendMail(addr, auth, from, []string{to}, msg)
+	return smtp.SendMail(addr, auth, from, []string{to}, []byte(msg))
 }

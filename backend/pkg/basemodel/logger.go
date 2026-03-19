@@ -53,7 +53,7 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 
 	elapsed := time.Since(begin)
 	file := utils.FileWithLineNum()
-	
+
 	// Determine status message
 	status := "SUCCESS"
 	if err != nil && err != logger.ErrRecordNotFound {

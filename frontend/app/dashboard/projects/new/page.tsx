@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { projectsApi } from '@/lib/api'
 import { Header } from '@/components/layout/Header'
 import toast from 'react-hot-toast'
-import { Loader2, GitBranch, Terminal, Globe, Lock, Eye, EyeOff, Zap, X } from 'lucide-react'
+import { Loader2, GitBranch, Terminal, Globe, Lock, Eye, EyeOff, Zap } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 
 const FRAMEWORKS = [

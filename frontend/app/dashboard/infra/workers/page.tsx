@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { workersApi } from '@/lib/api'
 import { WorkerNode } from '@/types'
 import { Header } from '@/components/layout/Header'
-import { Server, Shield, Key, RefreshCw, Cpu, HardDrive, Activity, CheckCircle2, XCircle, AlertCircle, Eye, EyeOff, Terminal } from 'lucide-react'
+import { Server, Shield, RefreshCw, Cpu, HardDrive, Activity, CheckCircle2, XCircle, AlertCircle, Eye, EyeOff, Terminal } from 'lucide-react'
 import { timeAgo } from '@/lib/utils'
 
 export default function WorkersPage() {

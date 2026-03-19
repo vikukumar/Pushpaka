@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/models"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
 const deployJobQueue = "pushpaka:deploy:queue"
@@ -107,7 +107,7 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		UserID:    userID,
 		CommitSHA: req.CommitSHA,
 		Branch:    branch,
-		Status:    "queued", 
+		Status:    "queued",
 		ImageTag:  imageTag,
 		URL:       deployURL,
 	}
@@ -120,7 +120,7 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 	// so the UI shows a clear error instead of spinning forever.
 	if s.rdb == nil && s.inQueue == nil {
 		failedAt := time.Now().UTC()
-		d.Status = "failed" 
+		d.Status = "failed"
 		d.ErrorMsg = "Deployment worker unavailable: start Pushpaka with -dev for " +
 			"the embedded worker, or configure REDIS_URL for a production worker."
 		d.FinishedAt = &failedAt

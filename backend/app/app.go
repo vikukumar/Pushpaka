@@ -9,21 +9,20 @@ import (
 	"net/http"
 	"time"
 
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/pkg/database"
 	"github.com/vikukumar/Pushpaka/internal/handlers"
-	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/internal/router"
 	"github.com/vikukumar/Pushpaka/internal/services"
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/database"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/queue"
 	"github.com/vikukumar/Pushpaka/ui"
 )
@@ -75,62 +74,64 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		}()
 	}
 
-	// AutoMigrate Database Schema
-	err := db.AutoMigrate(
-		&models.User{},
-		&models.Project{},
-		&models.Domain{},
-		&models.EnvVar{},
-		&models.AuditLog{},
-		&models.Deployment{},
-		&models.DeploymentAction{},
-		&models.DeploymentBackup{},
-		&models.DeploymentCodeSignature{},
-		&models.DeploymentInstance{},
-		&models.DeploymentLog{},
-		&models.DeploymentSyncHistory{},
-		&models.GitAutoSyncConfig{},
-		&models.GitChange{},
-		&models.GitSyncTrack{},
-		&models.NotificationConfig{},
-		&models.WebhookConfig{},
-		&models.AIConfig{},
-		&models.RAGDocument{},
-		&models.AIMonitorAlert{},
-		&models.AITokenUsage{},
-		&models.K8sConfig{},
-		&models.SystemConfig{},
-		&models.WorkerNode{},
-	)
-	if err != nil {
-		// Specific guidance for PostgreSQL permission errors common in managed databases (Aiven, RDS, etc.)
-		if cfg.DatabaseDriver == "postgres" && strings.Contains(err.Error(), "42501") {
-			user := "your_user"
-			if cfg.DatabaseConfig != nil {
-				user = cfg.DatabaseConfig.User
-			}
-			return fmt.Errorf("database migration failed: permission denied for schema 'public'. \n\n" +
-				"FIX: Run the following SQL command in your database console as a superuser/owner:\n" +
-				"GRANT ALL ON SCHEMA public TO \"%s\";\n" +
-				"ALTER SCHEMA public OWNER TO \"%s\";\n\n" +
-				"Original Error: %w", user, user, err)
+	// Background Initialization: AutoMigrate and System Config
+	go func() {
+		log.Info().Msg("starting background database migration...")
+		err := db.AutoMigrate(
+			&models.User{},
+			&models.Project{},
+			&models.Domain{},
+			&models.EnvVar{},
+			&models.AuditLog{},
+			&models.Deployment{},
+			&models.DeploymentAction{},
+			&models.DeploymentBackup{},
+			&models.DeploymentCodeSignature{},
+			&models.DeploymentInstance{},
+			&models.DeploymentLog{},
+			&models.DeploymentSyncHistory{},
+			&models.GitAutoSyncConfig{},
+			&models.GitChange{},
+			&models.GitSyncTrack{},
+			&models.NotificationConfig{},
+			&models.WebhookConfig{},
+			&models.AIConfig{},
+			&models.RAGDocument{},
+			&models.AIMonitorAlert{},
+			&models.AITokenUsage{},
+			&models.K8sConfig{},
+			&models.SystemConfig{},
+			&models.WorkerNode{},
+		)
+		if err != nil {
+			log.Error().Err(err).Msg("database migration failed in background")
+			// We don't exit here because the server is already starting/started.
+			// Handlers will return 503 until DBReady is true.
+			return
 		}
-		return fmt.Errorf("failed to auto migrate database: %w", err)
-	}
 
-	// Initialize System Configuration (ZoneID)
-	systemCfgRepo := repositories.NewSystemConfigRepository(db)
-	zoneID, err := systemCfgRepo.Get("ZONE_ID")
-	if err != nil {
-		zoneID = uuid.New().String()
-		if setErr := systemCfgRepo.Set("ZONE_ID", zoneID); setErr != nil {
-			log.Error().Err(setErr).Msg("failed to save new ZONE_ID")
+		// Initialize System Configuration (ZoneID)
+		systemCfgRepo := repositories.NewSystemConfigRepository(db)
+		zoneID, err := systemCfgRepo.Get("ZONE_ID")
+		if err != nil {
+			zoneID = uuid.New().String()
+			if setErr := systemCfgRepo.Set("ZONE_ID", zoneID); setErr != nil {
+				log.Error().Err(setErr).Msg("failed to save new ZONE_ID")
+			} else {
+				log.Info().Str("zone_id", zoneID).Msg("generated new installation ZoneID")
+			}
 		} else {
-			log.Info().Str("zone_id", zoneID).Msg("generated new installation ZoneID")
+			log.Info().Str("zone_id", zoneID).Msg("loaded installation ZoneID")
 		}
-	} else {
-		log.Info().Str("zone_id", zoneID).Msg("loaded installation ZoneID")
-	}
+
+		// Mark as ready
+		basemodel.SetDBReady(true)
+		log.Info().Msg("background database initialization complete")
+	}()
+
+	// Repositories for system-level services
+	systemCfgRepo := repositories.NewSystemConfigRepository(db)
+	workerNodeRepo := repositories.NewWorkerNodeRepository(db)
 
 	// Redis is optional: skipped when REDIS_URL is empty or an in-process queue is used.
 	var rdb *redis.Client
@@ -162,7 +163,6 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	r := router.New(cfg, db, rdb, uiFS, opts.InProcessQueue)
 
 	// Worker Management Router
-	workerNodeRepo := repositories.NewWorkerNodeRepository(db)
 	workerNodeSvc := services.NewWorkerNodeService(workerNodeRepo, systemCfgRepo)
 	workerHandler := handlers.NewWorkerHandler(workerNodeSvc)
 	workerR := router.NewWorkerRouter(cfg, workerHandler)

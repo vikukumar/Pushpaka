@@ -7,9 +7,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/models"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
 var ErrProjectNotFound = errors.New("project not found")
@@ -65,7 +65,7 @@ func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest)
 		RunDir:         req.RunDir,
 		Port:           port,
 		Framework:      req.Framework,
-		Status:         "inactive", 
+		Status:         "inactive",
 		IsPrivate:      req.IsPrivate,
 		GitToken:       req.GitToken,
 		CPULimit:       req.CPULimit,

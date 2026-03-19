@@ -12,10 +12,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	
+
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/models"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
 type DeploymentManagementService struct {
@@ -327,10 +327,10 @@ func (s *DeploymentManagementService) UpdateActionStatus(
 ) error {
 	act := &models.DeploymentAction{
 		BaseModel: basemodel.BaseModel{
-			ID:        actionID,
+			ID: actionID,
 		},
-		Status:    status,
-		Result:    result,
+		Status: status,
+		Result: result,
 	}
 	act.UpdatedAt = time.Now().UTC()
 

@@ -31,7 +31,7 @@ func (r *NotificationRepository) FindByUserID(userID string) (*models.Notificati
 
 func (r *NotificationRepository) Upsert(cfg *models.NotificationConfig) error {
 	return r.db.Clauses(clause.OnConflict{
-		Columns:   []clause.Column{{Name: "user_id"}}, // Unique index should exist on user_id
+		Columns: []clause.Column{{Name: "user_id"}}, // Unique index should exist on user_id
 		DoUpdates: clause.AssignmentColumns([]string{
 			"slack_webhook_url", "discord_webhook_url", "smtp_host", "smtp_port",
 			"smtp_username", "smtp_password", "smtp_from", "smtp_to",

@@ -18,6 +18,7 @@ type BaseModel struct {
 
 // Get retrieves a single record by its primary key ID
 func Get[T any](db *gorm.DB, id string) (*T, error) {
+	EnsureSynced[T](db)
 	var dest T
 	err := db.First(&dest, "id = ?", id).Error
 	if err != nil {
@@ -28,34 +29,40 @@ func Get[T any](db *gorm.DB, id string) (*T, error) {
 
 // Add inserts a new record
 func Add[T any](db *gorm.DB, record *T) error {
+	EnsureSynced[T](db)
 	return db.Create(record).Error
 }
 
 // Modify updates an existing record
 func Modify[T any](db *gorm.DB, record *T) error {
+	EnsureSynced[T](db)
 	return db.Save(record).Error
 }
 
 // Update explicit fields using a map
 func Update[T any](db *gorm.DB, id string, data map[string]interface{}) error {
+	EnsureSynced[T](db)
 	var model T
 	return db.Model(&model).Where("id = ?", id).Updates(data).Error
 }
 
 // Delete soft-deletes a record
 func Delete[T any](db *gorm.DB, id string) error {
+	EnsureSynced[T](db)
 	var dest T
 	return db.Where("id = ?", id).Delete(&dest).Error
 }
 
 // HardDelete permanently removes a record
 func HardDelete[T any](db *gorm.DB, id string) error {
+	EnsureSynced[T](db)
 	var dest T
 	return db.Unscoped().Where("id = ?", id).Delete(&dest).Error
 }
 
 // Query allows executing custom queries with conditions
 func Query[T any](db *gorm.DB, query string, args ...interface{}) ([]T, error) {
+	EnsureSynced[T](db)
 	var dest []T
 	err := db.Where(query, args...).Find(&dest).Error
 	return dest, err
@@ -63,6 +70,7 @@ func Query[T any](db *gorm.DB, query string, args ...interface{}) ([]T, error) {
 
 // First query wrapper to return single record
 func First[T any](db *gorm.DB, query string, args ...interface{}) (*T, error) {
+	EnsureSynced[T](db)
 	var dest T
 	err := db.Where(query, args...).First(&dest).Error
 	if err != nil {

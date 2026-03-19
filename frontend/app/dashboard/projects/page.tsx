@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 import { projectsApi } from '@/lib/api'
@@ -12,7 +11,6 @@ import { Plus, FolderGit2, Search } from 'lucide-react'
 
 export default function ProjectsPage() {
   const [search, setSearch] = useState('')
-  const router = useRouter()
 
   const { data, isLoading } = useQuery({
     queryKey: ['projects'],

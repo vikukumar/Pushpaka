@@ -75,13 +75,40 @@ func (h *FileHandler) projectDir(c *gin.Context) (string, bool) {
 // safePath resolves a relative user-supplied path within the project directory,
 // preventing path traversal attacks.
 func safePath(root, rel string) (string, bool) {
-	// Clean and join
-	clean := filepath.Join(root, filepath.FromSlash(rel))
-	// Ensure the result is still under root
-	if !strings.HasPrefix(clean+string(filepath.Separator), root+string(filepath.Separator)) {
+	// 1. Clean the root and get its absolute path.
+	absRoot, err := filepath.Abs(filepath.Clean(root))
+	if err != nil {
 		return "", false
 	}
-	return clean, true
+
+	// 2. Clean the relative path and join it with the root.
+	// filepath.Join calls filepath.Clean on the result.
+	clean := filepath.Join(absRoot, filepath.FromSlash(rel))
+
+	// 3. Get the absolute version of the target path.
+	absTarget, err := filepath.Abs(clean)
+	if err != nil {
+		return "", false
+	}
+
+	// 4. Ensure the target is actually under the root.
+	// Use string comparison with a trailing separator to avoid "root-matching"
+	// (e.g., /app/data-secret matching /app/data).
+	rootPrefix := absRoot
+	if !strings.HasSuffix(rootPrefix, string(filepath.Separator)) {
+		rootPrefix += string(filepath.Separator)
+	}
+
+	if !strings.HasPrefix(absTarget, absRoot) {
+		return "", false
+	}
+
+	// Re-verify after prefix check for edge cases.
+	if !strings.HasPrefix(absTarget+string(filepath.Separator), rootPrefix) && absTarget != absRoot {
+		return "", false
+	}
+
+	return absTarget, true
 }
 
 // FileEntry is a single entry in the file tree.

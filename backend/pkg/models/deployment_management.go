@@ -25,7 +25,7 @@ type DeploymentCodeSignature struct {
 	CommitAuthor  string `gorm:"type:varchar(255)" json:"commit_author"`
 	Branch        string `gorm:"type:varchar(100)" json:"branch"`
 	CodeHash      string `gorm:"type:varchar(255)" json:"code_hash"`      // SHA256 of entire codebase
-	FileCount     int    `gorm:"default:0" json:"file_count"`     // Number of files
+	FileCount     int    `gorm:"default:0" json:"file_count"`             // Number of files
 	DirectoryPath string `gorm:"type:varchar(255)" json:"directory_path"` // Where code is stored
 }
 
@@ -57,9 +57,9 @@ type DeploymentBackup struct {
 	CodeSignatureID string     `gorm:"type:varchar(255)" json:"code_signature_id"`
 	InstanceID      string     `gorm:"type:varchar(255)" json:"instance_id"`
 	BackupPath      string     `gorm:"type:varchar(255)" json:"backup_path"` // Directory where backup is stored
-	Size            int64      `gorm:"default:0" json:"size"`        // Backup size in bytes
-	Reason          string     `gorm:"type:text" json:"reason"`      // Why backup was created (rollback/upgrade)
-	IsRestored      bool       `gorm:"default:false" json:"is_restored"` // Whether this backup was restored
+	Size            int64      `gorm:"default:0" json:"size"`                // Backup size in bytes
+	Reason          string     `gorm:"type:text" json:"reason"`              // Why backup was created (rollback/upgrade)
+	IsRestored      bool       `gorm:"default:false" json:"is_restored"`     // Whether this backup was restored
 	RestoredAt      *time.Time `json:"restored_at"`
 }
 
@@ -97,7 +97,7 @@ type DeploymentAction struct {
 	UserID       string               `gorm:"index;type:varchar(255);not null" json:"user_id"`
 	Action       DeploymentActionType `gorm:"type:varchar(50)" json:"action"`
 	Status       string               `gorm:"type:varchar(50)" json:"status"` // pending/executing/success/failed
-	Result       string               `gorm:"type:text" json:"result"` // Result message
+	Result       string               `gorm:"type:text" json:"result"`        // Result message
 }
 
 // API Request/Response types

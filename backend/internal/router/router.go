@@ -495,14 +495,14 @@ func newDeploymentProxyHandler(repo *repositories.DeploymentRepository) gin.Hand
 				c.JSON(http.StatusBadGateway, gin.H{"error": "remote worker tunnel is offline"})
 				return
 			}
-			
+
 			// Inform the remote worker's yamux acceptor which local port to forward to
 			originalDirector := proxy.Director
 			proxy.Director = func(req *http.Request) {
 				originalDirector(req)
 				req.Header.Set("X-Pushpaka-Target-Port", fmt.Sprintf("%d", d.ExternalPort))
 			}
-			
+
 			proxy.Transport = &http.Transport{
 				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
 					// Open a new byte stream over the multiplexed websocket connection

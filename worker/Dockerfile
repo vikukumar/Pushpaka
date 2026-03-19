@@ -10,7 +10,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-w -s" -o /app/pushpaka-worker .
 
-FROM alpine:3.19
+FROM alpine:3.21
 RUN apk --no-cache add ca-certificates git docker-cli
 WORKDIR /app
 COPY --from=builder /app/pushpaka-worker .

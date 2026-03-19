@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 // WorkerStatsProvider is implemented by the in-process queue to expose live worker counts.

@@ -10,7 +10,7 @@ import (
 
 var (
 	ErrWorkerOffline = errors.New("worker tunnel is offline")
-	
+
 	// GlobalManager holds the singleton instance of the tunnel manager since it needs
 	// to span across the User API and Worker Management Router contexts
 	GlobalManager *Manager
@@ -34,17 +34,17 @@ func NewManager() *Manager {
 }
 
 // Register upgrades a websocket to a yamux session and registers the worker.
-// The session acts as a server on the Yamux layer, accepting reverse streams 
+// The session acts as a server on the Yamux layer, accepting reverse streams
 // from the worker, or opening streams directly to the worker.
 func (m *Manager) Register(workerID string, ws *websocket.Conn) (*yamux.Session, error) {
 	netConn := NewWSConn(ws)
-	
+
 	// We are the server, the Worker node is the client dialing in to us.
 	// But in Yamux, either side can open a stream once established.
 	config := yamux.DefaultConfig()
 	// Enable keepalive to prevent firewall drops
 	config.EnableKeepAlive = true
-	
+
 	session, err := yamux.Server(netConn, config)
 	if err != nil {
 		netConn.Close()
@@ -72,7 +72,7 @@ func (m *Manager) Register(workerID string, ws *websocket.Conn) (*yamux.Session,
 func (m *Manager) Unregister(workerID string, session *yamux.Session) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if current, ok := m.sessions[workerID]; ok && current == session {
 		delete(m.sessions, workerID)
 	}

@@ -29,11 +29,11 @@ type Project struct {
 	DeployTarget string `gorm:"type:varchar(50);default:'docker'"  json:"deploy_target"`
 	K8sNamespace string `gorm:"type:varchar(255)"  json:"k8s_namespace"`
 	// Deployment limits and backup configuration
-	MaxDeployments int    `gorm:"default:2" json:"max_deployments"` // Max simultaneous deployments (default: 2)
-	MaxBackups     int    `gorm:"default:3" json:"max_backups"`     // Max backup versions kept (default: 3)
+	MaxDeployments int    `gorm:"default:2" json:"max_deployments"`         // Max simultaneous deployments (default: 2)
+	MaxBackups     int    `gorm:"default:3" json:"max_backups"`             // Max backup versions kept (default: 3)
 	CloneDirectory string `gorm:"type:varchar(255)" json:"clone_directory"` // Base directory for git clones
-	GitClonePath   string `gorm:"type:varchar(255)"  json:"git_clone_path"`  // Current git clone directory for project
-	MainDeployID   string `gorm:"type:varchar(255)"  json:"main_deploy_id"`  // Current main deployment ID
+	GitClonePath   string `gorm:"type:varchar(255)"  json:"git_clone_path"` // Current git clone directory for project
+	MainDeployID   string `gorm:"type:varchar(255)"  json:"main_deploy_id"` // Current main deployment ID
 }
 
 type CreateProjectRequest struct {

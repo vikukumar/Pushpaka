@@ -13,7 +13,7 @@ type WebhookConfig struct {
 	basemodel.BaseModel
 	ProjectID string `gorm:"index;type:varchar(255);not null" json:"project_id"`
 	UserID    string `gorm:"index;type:varchar(255);not null" json:"user_id"`
-	Secret    string `gorm:"type:text;not null" json:"-"`        // never exposed in API responses
+	Secret    string `gorm:"type:text;not null" json:"-"`      // never exposed in API responses
 	Provider  string `gorm:"type:varchar(50)" json:"provider"` // "github" | "gitlab"
 	Branch    string `gorm:"type:varchar(100)" json:"branch"`  // "" = any branch
 }
