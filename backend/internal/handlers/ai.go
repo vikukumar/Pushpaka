@@ -20,10 +20,11 @@ type AIHandler struct {
 	deployRepo   *repositories.DeploymentRepository
 	aiConfigRepo *repositories.AIConfigRepository
 	cfg          *config.Config
+	aiExecutor   *services.AIToolsExecutor // New field for agent tool execution
 }
 
-func NewAIHandler(aiSvc *services.AIService, logRepo *repositories.LogRepository, deployRepo *repositories.DeploymentRepository, aiConfigRepo *repositories.AIConfigRepository, cfg *config.Config) *AIHandler {
-	return &AIHandler{aiSvc: aiSvc, logRepo: logRepo, deployRepo: deployRepo, aiConfigRepo: aiConfigRepo, cfg: cfg}
+func NewAIHandler(aiSvc *services.AIService, logRepo *repositories.LogRepository, deployRepo *repositories.DeploymentRepository, aiConfigRepo *repositories.AIConfigRepository, cfg *config.Config, aiExecutor *services.AIToolsExecutor) *AIHandler {
+	return &AIHandler{aiSvc: aiSvc, logRepo: logRepo, deployRepo: deployRepo, aiConfigRepo: aiConfigRepo, cfg: cfg, aiExecutor: aiExecutor}
 }
 
 // resolveUserConfig loads the user's AI config; returns nil when not found (falls back to global).
@@ -197,6 +198,85 @@ Be concise, technical, and actionable. Format responses with markdown when helpf
 	}
 
 	c.JSON(http.StatusOK, gin.H{"reply": reply})
+}
+
+// AgentChat handles autonomous/agentic conversations where the AI can summon tools.
+// POST /api/v1/ai/agent
+func (h *AIHandler) AgentChat(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	userCfg := h.resolveUserConfig(userID)
+
+	if !h.aiSvc.AvailableWithUserConfig(userCfg) {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"error": "AI not configured. Add your API key in Settings → AI.",
+		})
+		return
+	}
+
+	if ok, msg := h.checkRateLimit(userID, userCfg); !ok {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": msg})
+		return
+	}
+
+	var req services.AIAgentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ragDocs, _ := h.aiConfigRepo.ListRAG(userID)
+
+	resp, err := h.aiSvc.ChatWithTools(c.Request.Context(), userID, userCfg, ragDocs, req.Messages, h.aiExecutor, req.Autonomous)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Agent chat failed: " + err.Error()})
+		return
+	}
+
+	if userCfg == nil || userCfg.APIKey == "" {
+		_ = h.aiConfigRepo.IncrementTodayUsage(userID, 1)
+	}
+
+	c.JSON(http.StatusOK, resp)
+}
+
+// AgentExecute handles the execution of an approved tool call, resuming the chat.
+// POST /api/v1/ai/agent/execute
+func (h *AIHandler) AgentExecute(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	userCfg := h.resolveUserConfig(userID)
+
+	var req struct {
+		services.AIAgentRequest
+		ApprovedToolCall services.AIToolCall `json:"approved_tool_call"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// 1. Execute the approved tool
+	resultStr, err := h.aiExecutor.ExecuteToolCall(c.Request.Context(), userID, req.ApprovedToolCall)
+	if err != nil {
+		resultStr = fmt.Sprintf("Error executing tool: %v", err)
+	}
+
+	// 2. Append the tool's result to the message history
+	toolMsg := services.AIAgentMessage{
+		Role:       "tool",
+		Content:    resultStr,
+		ToolCallID: req.ApprovedToolCall.ID,
+	}
+	req.Messages = append(req.Messages, toolMsg)
+
+	// 3. Resume the chat
+	ragDocs, _ := h.aiConfigRepo.ListRAG(userID)
+	resp, err := h.aiSvc.ChatWithTools(c.Request.Context(), userID, userCfg, ragDocs, req.Messages, h.aiExecutor, req.Autonomous)
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Agent chat failed: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
 }
 
 // GetAIConfig returns the AI provider config for the authenticated user.

@@ -25,6 +25,13 @@ export interface Project {
   restart_policy: string
   deploy_target: string
   k8s_namespace: string
+  // Auto-sync fields
+  auto_sync_enabled: boolean
+  sync_interval_secs: number
+  // Git metadata
+  latest_commit_sha: string
+  latest_commit_msg: string
+  latest_commit_at: string
   created_at: string
   updated_at: string
 }

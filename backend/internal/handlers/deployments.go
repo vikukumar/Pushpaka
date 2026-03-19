@@ -113,3 +113,54 @@ func (h *DeploymentHandler) Delete(c *gin.Context) {
 	h.auditSvc.Log(userID, "delete", "deployment", id, nil, c.ClientIP(), c.Request.UserAgent())
 	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
 }
+
+func (h *DeploymentHandler) Sync(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	projectID := c.Param("id")
+
+	deployment, err := h.deploymentSvc.SyncRepo(userID, projectID)
+	if err != nil {
+		if err.Error() == "already up to date" {
+			c.JSON(http.StatusOK, gin.H{"message": "already up to date", "code": "UP_TO_DATE"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	h.auditSvc.Log(userID, "sync", "project", projectID, map[string]any{"deployment_id": deployment.ID}, c.ClientIP(), c.Request.UserAgent())
+	c.JSON(http.StatusCreated, deployment)
+}
+
+func (h *DeploymentHandler) Restart(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	id := c.Param("id")
+
+	deployment, err := h.deploymentSvc.RestartDeployment(userID, id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "restart failed: " + err.Error()})
+		return
+	}
+	h.auditSvc.Log(userID, "restart", "deployment", id, map[string]any{"new_id": deployment.ID}, c.ClientIP(), c.Request.UserAgent())
+	c.JSON(http.StatusCreated, deployment)
+}
+
+func (h *DeploymentHandler) Promote(c *gin.Context) {
+	userID := middleware.GetUserID(c)
+	id := c.Param("id")
+
+	deployment, err := h.deploymentSvc.PromoteDeployment(userID, id)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if errors.Is(err, services.ErrDeploymentNotFound) {
+			status = http.StatusNotFound
+		} else if err.Error() == "forbidden" {
+			status = http.StatusForbidden
+		} else if err.Error() == "only running deployments can be promoted to default" {
+			status = http.StatusBadRequest
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+	h.auditSvc.Log(userID, "promote", "deployment", id, nil, c.ClientIP(), c.Request.UserAgent())
+	c.JSON(http.StatusOK, deployment)
+}

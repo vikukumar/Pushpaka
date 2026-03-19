@@ -71,8 +71,10 @@ func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest)
 		CPULimit:       req.CPULimit,
 		MemoryLimit:    req.MemoryLimit,
 		RestartPolicy:  restart,
-		DeployTarget:   req.DeployTarget,
-		K8sNamespace:   req.K8sNamespace,
+		DeployTarget:     req.DeployTarget,
+		K8sNamespace:     req.K8sNamespace,
+		AutoSyncEnabled:  req.AutoSyncEnabled,
+		SyncIntervalSecs: req.SyncIntervalSecs,
 	}
 
 	if err := s.projectRepo.Create(p); err != nil {
@@ -128,6 +130,12 @@ func (s *ProjectService) Update(id, userID string, req *models.UpdateProjectRequ
 	p.MemoryLimit = req.MemoryLimit
 	if req.RestartPolicy != "" {
 		p.RestartPolicy = req.RestartPolicy
+	}
+	if req.AutoSyncEnabled != nil {
+		p.AutoSyncEnabled = *req.AutoSyncEnabled
+	}
+	if req.SyncIntervalSecs != nil {
+		p.SyncIntervalSecs = *req.SyncIntervalSecs
 	}
 	p.UpdatedAt = time.Now().UTC()
 

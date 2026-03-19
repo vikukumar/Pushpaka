@@ -49,6 +49,24 @@ export default function ProjectDetailPage() {
     }
   }
 
+  const handleSync = async () => {
+    const loadingToast = toast.loading('Checking for changes...')
+    try {
+      const res = await projectsApi.sync(id)
+      if (res.data?.code === 'UP_TO_DATE') {
+        toast.dismiss(loadingToast)
+        toast.success('Project is already up to date!')
+      } else {
+        toast.dismiss(loadingToast)
+        toast.success('New changes detected! Deployment triggered.')
+        queryClient.invalidateQueries({ queryKey: ['deployments'] })
+      }
+    } catch (err: any) {
+      toast.dismiss(loadingToast)
+      toast.error(err.response?.data?.error || 'Failed to sync with repository')
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex flex-col min-h-screen">
@@ -94,6 +112,14 @@ export default function ProjectDetailPage() {
             Deploy Now
           </button>
 
+          <button
+            onClick={handleSync}
+            className="btn-secondary"
+          >
+            <RefreshCw size={14} />
+            Sync
+          </button>
+
           <Link href={`/dashboard/projects/${id}/deployments`} className="btn-secondary">
             <RefreshCw size={14} />
             Deployments
@@ -126,6 +152,8 @@ export default function ProjectDetailPage() {
               {[
                 { label: 'Repository', value: project.repo_url, mono: true },
                 { label: 'Branch', value: project.branch },
+                { label: 'Latest Commit', value: project.latest_commit_sha ? `${project.latest_commit_sha.slice(0, 7)}: ${project.latest_commit_msg}` : 'Checking remote...', mono: true },
+                { label: 'Last Synced', value: project.latest_commit_at ? timeAgo(project.latest_commit_at) : 'Never' },
                 { label: 'Framework', value: project.framework || 'Auto-detect' },
                 { label: 'Port', value: project.port?.toString() || '3000' },
                 { label: 'Build Command', value: project.build_command || '', mono: true },

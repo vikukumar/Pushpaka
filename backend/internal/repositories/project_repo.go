@@ -33,6 +33,18 @@ func (r *ProjectRepository) Update(p *models.Project) error {
 	return basemodel.Modify(r.db, p)
 }
 
+// UpdateStatus updates only the status field of a project.
+func (r *ProjectRepository) UpdateStatus(id, status string) error {
+	return r.db.Model(&models.Project{}).Where("id = ?", id).Update("status", status).Error
+}
+
+// FindAllByAutoSync returns all projects that have AutoSync enabled.
+func (r *ProjectRepository) FindAllByAutoSync() ([]models.Project, error) {
+	var projects []models.Project
+	err := r.db.Where("auto_sync_enabled = ?", true).Find(&projects).Error
+	return projects, err
+}
+
 // FindByIDInternal returns the project including the git_token (for worker jobs).
 // Only use this server-side -- never marshal the result directly to an API response.
 func (r *ProjectRepository) FindByIDInternal(id string) (*models.Project, error) {
@@ -41,4 +53,10 @@ func (r *ProjectRepository) FindByIDInternal(id string) (*models.Project, error)
 
 func (r *ProjectRepository) Delete(id, userID string) error {
 	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&models.Project{}).Error
+}
+
+// SetMainDeployID updates the project's main_deploy_id pointer to the given deployment.
+func (r *ProjectRepository) SetMainDeployID(projectID, deploymentID string) error {
+	return r.db.Model(&models.Project{}).Where("id = ?", projectID).
+		Update("main_deploy_id", deploymentID).Error
 }

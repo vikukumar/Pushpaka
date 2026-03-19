@@ -1,6 +1,10 @@
 package models
 
-import "github.com/vikukumar/Pushpaka/pkg/basemodel"
+import (
+	"time"
+
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+)
 
 type Project struct {
 	basemodel.BaseModel
@@ -34,6 +38,15 @@ type Project struct {
 	CloneDirectory string `gorm:"type:varchar(255)" json:"clone_directory"` // Base directory for git clones
 	GitClonePath   string `gorm:"type:varchar(255)"  json:"git_clone_path"` // Current git clone directory for project
 	MainDeployID   string `gorm:"type:varchar(255)"  json:"main_deploy_id"` // Current main deployment ID
+	// AutoSync fields
+	AutoSyncEnabled  bool `gorm:"default:false" json:"auto_sync_enabled"`
+	SyncIntervalSecs int  `gorm:"default:0" json:"sync_interval_secs"`
+	// Git metadata for the latest commit found remotely
+	LatestCommitSHA string    `gorm:"type:varchar(100)" json:"latest_commit_sha"`
+	LatestCommitMsg string    `gorm:"type:text" json:"latest_commit_msg"`
+	LatestCommitAt  time.Time `json:"latest_commit_at"`
+	// DeploymentStatus tracks if the project "should" be running (e.g. 'running', 'stopped')
+	DeploymentStatus string `gorm:"type:varchar(50);default:'stopped'" json:"deployment_status"`
 }
 
 type CreateProjectRequest struct {
@@ -53,8 +66,10 @@ type CreateProjectRequest struct {
 	RestartPolicy  string `json:"restart_policy"`
 	DeployTarget   string `json:"deploy_target"`
 	K8sNamespace   string `json:"k8s_namespace"`
-	MaxDeployments int    `json:"max_deployments"` // Default: 2 (1 main + 1 testing)
-	MaxBackups     int    `json:"max_backups"`     // Default: 3
+	MaxDeployments   int    `json:"max_deployments"` // Default: 2 (1 main + 1 testing)
+	MaxBackups       int    `json:"max_backups"`     // Default: 3
+	AutoSyncEnabled  bool   `json:"auto_sync_enabled"`
+	SyncIntervalSecs int    `json:"sync_interval_secs"`
 }
 
 // UpdateProjectRequest allows updating mutable project fields.
@@ -76,6 +91,8 @@ type UpdateProjectRequest struct {
 	RestartPolicy  string `json:"restart_policy"`
 	DeployTarget   string `json:"deploy_target"`
 	K8sNamespace   string `json:"k8s_namespace"`
-	MaxDeployments int    `json:"max_deployments"`
-	MaxBackups     int    `json:"max_backups"`
+	MaxDeployments   int    `json:"max_deployments"`
+	MaxBackups       int    `json:"max_backups"`
+	AutoSyncEnabled  *bool  `json:"auto_sync_enabled"` // Pointer to distinguish false from unset
+	SyncIntervalSecs *int   `json:"sync_interval_secs"`
 }

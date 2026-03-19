@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
@@ -26,10 +27,48 @@ import (
 	"github.com/vikukumar/Pushpaka/queue"
 )
 
+// ServiceRegistry holds all the services and repositories needed by the router.
+type ServiceRegistry struct {
+	AuthSvc       *services.AuthService
+	ProjectSvc    *services.ProjectService
+	DeploymentSvc *services.DeploymentService
+	LogSvc        *services.LogService
+	DomainSvc     *services.DomainService
+	EnvSvc        *services.EnvService
+	AuditSvc      *services.AuditService
+	NotifSvc      *services.NotificationService
+	OAuthSvc      *services.OAuthService
+	WebhookSvc    *services.WebhookService
+	AISvc         *services.AIService
+	WorkerSvc     *services.WorkerNodeService
+	AIExecutor    *services.AIToolsExecutor
+	
+	UserRepo       *repositories.UserRepository
+	ProjectRepo    *repositories.ProjectRepository
+	DeploymentRepo *repositories.DeploymentRepository
+	LogRepo        *repositories.LogRepository
+	DomainRepo     *repositories.DomainRepository
+	EnvRepo        *repositories.EnvVarRepository
+	AuditRepo      *repositories.AuditRepository
+	NotifRepo      *repositories.NotificationRepository
+	WebhookRepo    *repositories.WebhookRepository
+	AIConfigRepo   *repositories.AIConfigRepository
+	WorkerRepo     *repositories.WorkerNodeRepository
+	SystemRepo     *repositories.SystemConfigRepository
+}
+
 // New builds the Gin engine. Pass a non-nil uiFS to serve the embedded
 // Next.js static export under /; pass nil to skip frontend serving (dev mode).
 // inQueue is only non-nil in dev mode (embedded worker, no Redis).
-func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, uiFS fs.FS, inQueue *queue.InProcess) *gin.Engine {
+// New builds the Gin engine.
+func New(
+	cfg *config.Config,
+	db *gorm.DB,
+	rdb *redis.Client,
+	uiFS fs.FS,
+	inQueue *queue.InProcess,
+	reg *ServiceRegistry,
+) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -47,33 +86,25 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 		AllowCredentials: true,
 	}))
 
-	// Repositories
-	userRepo := repositories.NewUserRepository(db)
-	projectRepo := repositories.NewProjectRepository(db)
-	deploymentRepo := repositories.NewDeploymentRepository(db)
-	logRepo := repositories.NewLogRepository(db)
-	domainRepo := repositories.NewDomainRepository(db)
-	envRepo := repositories.NewEnvVarRepository(db)
-	auditRepo := repositories.NewAuditRepository(db)
-	notifRepo := repositories.NewNotificationRepository(db)
-	webhookRepo := repositories.NewWebhookRepository(db)
-	aiConfigRepo := repositories.NewAIConfigRepository(db)
-	workerRepo := repositories.NewWorkerNodeRepository(db)
-	systemRepo := repositories.NewSystemConfigRepository(db)
+	// Repositories & Services from Registry
+	projectRepo := reg.ProjectRepo
+	deploymentRepo := reg.DeploymentRepo
+	logRepo := reg.LogRepo
+	aiConfigRepo := reg.AIConfigRepo
 
-	// Services
-	authSvc := services.NewAuthService(userRepo, cfg)
-	projectSvc := services.NewProjectService(projectRepo)
-	deploymentSvc := services.NewDeploymentService(deploymentRepo, projectRepo, envRepo, domainRepo, rdb, inQueue, cfg.BaseURL)
-	logSvc := services.NewLogService(logRepo)
-	domainSvc := services.NewDomainService(domainRepo, projectRepo)
-	envSvc := services.NewEnvService(envRepo, projectRepo)
-	auditSvc := services.NewAuditService(auditRepo)
-	notifSvc := services.NewNotificationService(notifRepo, cfg)
-	oauthSvc := services.NewOAuthService(userRepo, cfg, authSvc, db)
-	webhookSvc := services.NewWebhookService(webhookRepo, projectRepo, deploymentSvc, cfg)
-	aiSvc := services.NewAIService(cfg)
-	workerSvc := services.NewWorkerNodeService(workerRepo, systemRepo)
+	authSvc := reg.AuthSvc
+	projectSvc := reg.ProjectSvc
+	deploymentSvc := reg.DeploymentSvc
+	logSvc := reg.LogSvc
+	domainSvc := reg.DomainSvc
+	envSvc := reg.EnvSvc
+	auditSvc := reg.AuditSvc
+	notifSvc := reg.NotifSvc
+	oauthSvc := reg.OAuthSvc
+	webhookSvc := reg.WebhookSvc
+	aiSvc := reg.AISvc
+	workerSvc := reg.WorkerSvc
+	aiExecutor := reg.AIExecutor
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authSvc)
@@ -86,7 +117,10 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	notifHandler := handlers.NewNotificationHandler(notifSvc)
 	oauthHandler := handlers.NewOAuthHandler(oauthSvc)
 	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
-	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo, aiConfigRepo, cfg)
+	
+	// Create AI Handler
+	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo, aiConfigRepo, cfg, aiExecutor)
+	
 	workerHandler := handlers.NewWorkerHandler(workerSvc)
 	terminalHandler := handlers.NewTerminalHandler(deploymentRepo, cfg)
 	fileHandler := handlers.NewFileHandler(projectRepo, deploymentRepo, cfg)
@@ -98,6 +132,9 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	if inQueue != nil {
 		workerStats = inQueue
 	}
+	// Recover deployments in background after restart
+	go deploymentSvc.RecoverRunningDeployments(context.Background())
+
 	healthHandler := handlers.NewHealthHandler(db, rdb, workerStats)
 
 	// Auth middleware
@@ -144,6 +181,7 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 				projects.GET("/:id", projectHandler.Get)
 				projects.PUT("/:id", projectHandler.Update)
 				projects.DELETE("/:id", projectHandler.Delete)
+				projects.POST("/:id/sync", deploymentHandler.Sync)
 			}
 
 			// Deployments
@@ -153,6 +191,9 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 				deployments.GET("", deploymentHandler.List)
 				deployments.GET("/:id", deploymentHandler.Get)
 				deployments.POST("/:id/rollback", deploymentHandler.Rollback)
+				deployments.POST("/:id/restart", deploymentHandler.Restart)
+				deployments.PATCH("/:id/promote", deploymentHandler.Promote)
+				deployments.DELETE("/:id", deploymentHandler.Delete)
 			}
 
 			// Logs (REST + WebSocket)
@@ -202,6 +243,8 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 			// AI log analysis + chat assistant + config
 			protected.POST("/deployments/:id/analyze", aiHandler.AnalyzeLogs)
 			protected.POST("/ai/chat", aiHandler.Chat)
+			protected.POST("/ai/agent", aiHandler.AgentChat)
+			protected.POST("/ai/agent/execute", aiHandler.AgentExecute)
 			protected.GET("/ai/config", aiHandler.GetAIConfig)
 			protected.PUT("/ai/config", aiHandler.SaveAIConfig)
 
@@ -237,9 +280,6 @@ func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 				workers.GET("", workerHandler.ListNodes)
 				workers.POST("/pat", workerHandler.GetZonePAT)
 			}
-
-			// Deployment delete
-			protected.DELETE("/deployments/:id", deploymentHandler.Delete)
 
 			// In-browser code editor (file browser + read + save)
 			protected.GET("/projects/:id/files", fileHandler.ListFiles)
@@ -476,7 +516,13 @@ func newDeploymentProxyHandler(repo *repositories.DeploymentRepository) gin.Hand
 	return func(c *gin.Context) {
 		projectID := c.Param("projectID")
 
-		d, err := repo.FindRunningByProjectID(projectID)
+		// Prioritize the Default/Live deployment (Constant Endpoint)
+		d, err := repo.FindDefaultByProjectID(projectID)
+		if err != nil || d == nil {
+			// Fallback to any running deployment if no default is set
+			d, err = repo.FindRunningByProjectID(projectID)
+		}
+
 		if err != nil || d == nil {
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "no running deployment for this project"})
 			return
@@ -486,8 +532,18 @@ func newDeploymentProxyHandler(repo *repositories.DeploymentRepository) gin.Hand
 			return
 		}
 
-		target, _ := url.Parse(fmt.Sprintf("http://localhost:%d", d.ExternalPort))
+		target, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", d.ExternalPort))
 		proxy := httputil.NewSingleHostReverseProxy(target)
+
+		// Custom error handler to log proxy failures (502)
+		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+			log.Error().Err(err).
+				Str("project_id", projectID).
+				Int("port", d.ExternalPort).
+				Str("worker_id", d.WorkerID).
+				Msg("Deployment proxy error")
+			w.WriteHeader(http.StatusBadGateway)
+		}
 
 		if d.WorkerID != "" && d.WorkerID != "local" {
 			session, err := tunnel.GlobalManager.GetSession(d.WorkerID)

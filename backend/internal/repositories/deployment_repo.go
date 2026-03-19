@@ -58,6 +58,20 @@ func (r *DeploymentRepository) FindRunningByProjectID(projectID string) (*models
 	return &d, nil
 }
 
+func (r *DeploymentRepository) FindAllRunning() ([]models.Deployment, error) {
+	var deployments []models.Deployment
+	err := r.db.Where("status = ?", "running").Find(&deployments).Error
+	return deployments, err
+}
+
+func (r *DeploymentRepository) FixLocalProtocols() error {
+	// Update any 'https://localhost' or 'https://127.0.0.1' records to 'http'
+	return r.db.Model(&models.Deployment{}).
+		Where("url LIKE ?", "https://localhost%").
+		Or("url LIKE ?", "https://127.0.0.1%").
+		Update("url", gorm.Expr("REPLACE(url, 'https://', 'http://')")).Error
+}
+
 func (r *DeploymentRepository) FindLatestByProjectID(projectID string) (*models.Deployment, error) {
 	var d models.Deployment
 	err := r.db.Where("project_id = ?", projectID).Order("created_at desc").First(&d).Error
@@ -84,4 +98,26 @@ func (r *DeploymentRepository) FailStaleQueued(errorMsg string) error {
 		"finished_at": nowStr,
 		"updated_at":  nowStr,
 	}).Error
+}
+
+// ClearDefault clears is_default on all deployments for the given project.
+func (r *DeploymentRepository) ClearDefault(projectID string) error {
+	return r.db.Model(&models.Deployment{}).Where("project_id = ?", projectID).
+		Update("is_default", false).Error
+}
+
+// SetDefault marks a single deployment as the default/live one.
+func (r *DeploymentRepository) SetDefault(deploymentID string) error {
+	return r.db.Model(&models.Deployment{}).Where("id = ?", deploymentID).
+		Update("is_default", true).Error
+}
+
+// FindDefaultByProjectID returns the deployment marked as Default/Live for a project.
+func (r *DeploymentRepository) FindDefaultByProjectID(projectID string) (*models.Deployment, error) {
+	var d models.Deployment
+	err := r.db.Where("project_id = ? AND is_default = ? AND status = ?", projectID, true, models.DeploymentRunning).First(&d).Error
+	if err != nil {
+		return nil, err
+	}
+	return &d, nil
 }

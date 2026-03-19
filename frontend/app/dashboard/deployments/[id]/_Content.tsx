@@ -9,7 +9,7 @@ import { StatusBadge } from '@/components/dashboard/StatusBadge'
 import { LogViewer } from '@/components/dashboard/LogViewer'
 import { Deployment, DeploymentLog } from '@/types'
 import { timeAgo, formatDate } from '@/lib/utils'
-import { ExternalLink, GitBranch, GitCommit, Clock, Loader2, RotateCcw, Sparkles, Terminal, Trash2, ChevronDown, ChevronUp, AlertTriangle, Wrench } from 'lucide-react'
+import { ExternalLink, GitBranch, GitCommit, Clock, Loader2, RotateCcw, Sparkles, Terminal, Trash2, ChevronDown, ChevronUp, AlertTriangle, Wrench, RefreshCw } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // ---------------------------------------------------------------------------
@@ -210,6 +210,20 @@ export default function DeploymentDetailPage() {
     }
   }
 
+  const handleRestart = async () => {
+    const loadingToast = toast.loading('Restarting deployment...')
+    try {
+      const res = await deploymentsApi.restart(id)
+      toast.dismiss(loadingToast)
+      toast.success('Restart triggered!')
+      queryClient.invalidateQueries({ queryKey: ['deployments'] })
+      router.push(`/dashboard/deployments/${res.data.id}`)
+    } catch {
+      toast.dismiss(loadingToast)
+      toast.error('Restart failed')
+    }
+  }
+
   const handleAnalyze = async () => {
     setAnalyzing(true)
     setAnalysis(null)
@@ -321,6 +335,10 @@ export default function DeploymentDetailPage() {
                 <RotateCcw size={14} />
                 Rollback
               </button>
+              <button className="btn-secondary text-sm flex-1 sm:flex-none justify-center" onClick={handleRestart}>
+                <RefreshCw size={14} />
+                Restart
+              </button>
               <button
                 className="btn-secondary text-sm flex-1 sm:flex-none justify-center"
                 onClick={handleAnalyze}
@@ -403,7 +421,7 @@ export default function DeploymentDetailPage() {
                             <p className="text-xs text-slate-300 font-semibold mb-1 flex items-center gap-1.5">
                               <Sparkles size={11} className="text-brand-400" /> AI Fix Suggestion
                             </p>
-                            <pre className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed font-sans">{fixes[issue.summary]}</pre>
+                            <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed font-sans">{fixes[issue.summary]}</p>
                           </div>
                         )}
                       </div>

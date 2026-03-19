@@ -17,7 +17,7 @@ var version = "dev"
 
 func main() {
 	mode := flag.String("mode", "hybrid", "worker run mode: vaahan (serverless) or hybrid")
-	serverURL := flag.String("server", "ws://localhost:8081", "Pushpaka API Management Server URL")
+	serverURL := flag.String("server", "ws://127.0.0.1:8081", "Pushpaka API Management Server URL")
 	zonePAT := flag.String("zone-pat", "", "Personal Access Token for the Zone")
 	flag.Parse()
 

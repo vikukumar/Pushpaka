@@ -64,6 +64,8 @@ export const projectsApi = {
     framework?: string
     is_private?: boolean
     git_token?: string
+    auto_sync_enabled?: boolean
+    sync_interval_secs?: number
   }) => apiClient.post('/projects', data),
   update: (id: string, data: {
     name?: string
@@ -80,8 +82,11 @@ export const projectsApi = {
     cpu_limit?: string
     memory_limit?: string
     restart_policy?: string
+    auto_sync_enabled?: boolean
+    sync_interval_secs?: number
   }) => apiClient.put(`/projects/${id}`, data),
   delete: (id: string) => apiClient.delete(`/projects/${id}`),
+  sync: (id: string) => apiClient.post(`/projects/${id}/sync`, {}),
 }
 
 // Deployments
@@ -95,6 +100,7 @@ export const deploymentsApi = {
   trigger: (data: { project_id: string; branch?: string; commit_sha?: string }) =>
     apiClient.post('/deployments', data),
   rollback: (id: string) => apiClient.post(`/deployments/${id}/rollback`),
+  restart: (id: string) => apiClient.post(`/deployments/${id}/restart`),
   delete: (id: string) => apiClient.delete(`/deployments/${id}`),
 }
 
@@ -162,6 +168,17 @@ export const aiApi = {
     apiClient.post(`/deployments/${deploymentId}/analyze`),
   chat: (message: string, deploymentId?: string) =>
     apiClient.post('/ai/chat', { message, deployment_id: deploymentId }),
+  agentChat: (data: {
+    messages: { role: string; content: string }[]
+    project_id?: string
+    autonomous: boolean
+  }) => apiClient.post('/ai/agent', data),
+  agentExecute: (data: {
+    messages: { role: string; content: string }[]
+    project_id?: string
+    autonomous: boolean
+    approved_tool_call: any
+  }) => apiClient.post('/ai/agent/execute', data),
   getConfig: () => apiClient.get('/ai/config'),
   saveConfig: (data: {
     provider?: string
@@ -171,6 +188,7 @@ export const aiApi = {
     system_prompt?: string
     monitoring_enabled?: boolean
     monitoring_interval?: number
+    autonomous_agent?: boolean
   }) => apiClient.put('/ai/config', data),
   getUsage: () => apiClient.get('/ai/usage'),
 }

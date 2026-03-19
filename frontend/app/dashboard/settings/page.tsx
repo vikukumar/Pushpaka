@@ -255,6 +255,7 @@ function AIProviderSection() {
     system_prompt: '',
     monitoring_enabled: false,
     monitoring_interval: 300,
+    autonomous_agent: false,
   })
   const [maskedKey, setMaskedKey] = useState('')
 
@@ -271,6 +272,7 @@ function AIProviderSection() {
             system_prompt: d.system_prompt || '',
             monitoring_enabled: !!d.monitoring_enabled,
             monitoring_interval: d.monitoring_interval || 300,
+            autonomous_agent: !!d.autonomous_agent,
           }))
           setMaskedKey(d.api_key_masked || '')
         }
@@ -406,6 +408,20 @@ function AIProviderSection() {
           />
           <label htmlFor="ai-monitor" className="text-sm text-slate-300 select-none cursor-pointer">
             Enable background AI monitoring (auto-analyse failed deployments)
+          </label>
+        </div>
+
+        {/* Autonomous toggle */}
+        <div className="flex items-center gap-3">
+          <input
+            id="ai-autonomous"
+            type="checkbox"
+            className="accent-brand-500 w-4 h-4"
+            checked={form.autonomous_agent}
+            onChange={(e) => setForm((f) => ({ ...f, autonomous_agent: e.target.checked }))}
+          />
+          <label htmlFor="ai-autonomous" className="text-sm text-slate-300 select-none cursor-pointer">
+            Enable autonomous agent mode (allow AI to restart, sync, and promote without asking)
           </label>
         </div>
       </div>

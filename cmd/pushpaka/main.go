@@ -114,6 +114,7 @@ func main() {
 			opts := backendApp.RunOptions{InProcessQueue: q, DB: sharedDB}
 			if err := backendApp.RunWithOptions(ctx, opts); err != nil {
 				log.Error().Err(err).Msg("API server error")
+				cancel()
 			}
 		}()
 
@@ -122,6 +123,7 @@ func main() {
 			defer wg.Done()
 			if err := workerApp.RunInProcessWithDB(ctx, q.Chan(), q, sharedDB); err != nil {
 				log.Error().Err(err).Msg("embedded worker error")
+				cancel()
 			}
 		}()
 
@@ -133,6 +135,7 @@ func main() {
 			defer wg.Done()
 			if err := backendApp.Run(ctx); err != nil {
 				log.Error().Err(err).Msg("API server error")
+				cancel()
 			}
 		}()
 
@@ -147,6 +150,7 @@ func main() {
 			}
 			if err := workerApp.Run(ctx, opts); err != nil {
 				log.Error().Err(err).Msg("worker error")
+				cancel()
 			}
 		}()
 

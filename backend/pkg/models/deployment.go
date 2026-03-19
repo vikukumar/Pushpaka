@@ -30,15 +30,18 @@ type Deployment struct {
 	ContainerID  string           `gorm:"type:varchar(255)" json:"container_id"`
 	URL          string           `gorm:"type:varchar(255)" json:"url"`
 	ExternalPort int              `gorm:"default:0" json:"external_port"`
+	IsDefault    bool             `gorm:"default:false;index" json:"is_default"` // This is the live/production deployment
 	ErrorMsg     string           `gorm:"type:text" json:"error_msg"`
 	StartedAt    *time.Time       `json:"started_at"`
 	FinishedAt   *time.Time       `json:"finished_at"`
 }
 
 type DeployRequest struct {
-	ProjectID string `json:"project_id" binding:"required"`
-	Branch    string `json:"branch"`
-	CommitSHA string `json:"commit_sha"`
+	ProjectID     string `json:"project_id" binding:"required"`
+	Branch        string `json:"branch"`
+	CommitSHA     string `json:"commit_sha"`
+	CommitMsg     string `json:"commit_msg"`
+	ShouldPromote bool   `json:"should_promote"` // Auto-promote to live/default on success
 }
 
 type DeploymentJob struct {
@@ -49,12 +52,14 @@ type DeploymentJob struct {
 	RepoURL        string            `json:"repo_url"`
 	Branch         string            `json:"branch"`
 	CommitSHA      string            `json:"commit_sha"`
+	CommitMsg      string            `json:"commit_msg"`
 	InstallCommand string            `json:"install_command,omitempty"`
 	BuildCommand   string            `json:"build_command"`
 	StartCommand   string            `json:"start_command"`
-	RunDir         string            `json:"run_dir,omitempty"`
-	Port           int               `json:"port"`
-	EnvVars        map[string]string `json:"env_vars"`
+	RunDir          string            `json:"run_dir,omitempty"`
+	Port            int               `json:"port"`
+	ExternalPort    int               `json:"external_port"` // The host port to bind to
+	EnvVars         map[string]string `json:"env_vars"`
 	ImageTag       string            `json:"image_tag"`
 	// GitToken is the PAT for private-repo cloning. Never logged or stored in deployment records.
 	GitToken string `json:"git_token,omitempty"`
@@ -62,6 +67,8 @@ type DeploymentJob struct {
 	CPULimit      string `json:"cpu_limit,omitempty"`
 	MemoryLimit   string `json:"memory_limit,omitempty"`
 	RestartPolicy string `json:"restart_policy,omitempty"`
+	IsRecovery    bool   `json:"is_recovery,omitempty"`
+	ShouldPromote bool   `json:"should_promote,omitempty"` // Promote on success (auto-set for sync/restart)
 	// NotificationURL is an internal callback URL that the worker POSTs to
 	// when the deployment finishes (success or failure). This triggers all
 	// enabled notification channels (Slack, Discord, SMTP) without the worker

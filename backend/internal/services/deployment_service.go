@@ -5,10 +5,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"os/exec"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/pkg/basemodel"
@@ -34,6 +39,9 @@ type DeploymentService struct {
 	rdb            *redis.Client
 	inQueue        DeploymentJobQueue // non-nil in dev mode (no Redis)
 	baseURL        string
+	// lastSyncCheck tracks the last time we checked a project for auto-sync
+	lastSyncCheck map[string]time.Time
+	syncMu        sync.Mutex
 }
 
 func NewDeploymentService(
@@ -53,6 +61,7 @@ func NewDeploymentService(
 		rdb:            rdb,
 		inQueue:        inQueue,
 		baseURL:        baseURL,
+		lastSyncCheck:  make(map[string]time.Time),
 	}
 	// The in-process queue is ephemeral: jobs do not survive process restarts.
 	// Any deployment left in "queued" state from a previous run has no
@@ -84,6 +93,13 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 	//   - If the project has a verified custom domain -> https://<domain>
 	//   - Otherwise -> <baseURL>/app/<projectID>
 	deployURL := s.baseURL + "/app/" + project.ID
+	if strings.Contains(s.baseURL, "localhost") || strings.Contains(s.baseURL, "127.0.0.1") {
+		// For local development, always force http as we don't support local TLS yet.
+		// This prevents ERR_SSL_PROTOCOL_ERROR if BASE_URL was set to https by mistake.
+		if strings.HasPrefix(deployURL, "https://") {
+			deployURL = "http://" + strings.TrimPrefix(deployURL, "https://")
+		}
+	}
 	if domains, err := s.domainRepo.FindByProjectID(project.ID); err == nil {
 		for _, d := range domains {
 			if d.Verified {
@@ -106,6 +122,7 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		ProjectID: project.ID,
 		UserID:    userID,
 		CommitSHA: req.CommitSHA,
+		CommitMsg: req.CommitMsg,
 		Branch:    branch,
 		Status:    "queued",
 		ImageTag:  imageTag,
@@ -114,6 +131,14 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 
 	if err := s.deploymentRepo.Create(d); err != nil {
 		return nil, fmt.Errorf("creating deployment record: %w", err)
+	}
+
+	// Auto-promote: if this is the first deployment for the project or ShouldPromote is set,
+	// mark it as default immediately (will be confirmed healthy by the worker).
+	if req.ShouldPromote {
+		_ = s.deploymentRepo.ClearDefault(project.ID)
+		// We'll set the actual flag to true once the deployment succeeds (worker will call the API).
+		// For now, store it in the job so the worker knows to trigger promotion.
 	}
 
 	// If no queue is available at all, mark the deployment failed immediately
@@ -135,6 +160,16 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		envVars = map[string]string{}
 	}
 
+	// Find an available host port for the new deployment (Zero-Downtime)
+	externalPort := 0
+	if addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0"); err == nil {
+		if l, err := net.ListenTCP("tcp", addr); err == nil {
+			externalPort = l.Addr().(*net.TCPAddr).Port
+			l.Close()
+		}
+	}
+	d.ExternalPort = externalPort
+
 	job := &models.DeploymentJob{
 		DeploymentID:    d.ID,
 		ProjectID:       project.ID,
@@ -142,11 +177,13 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		RepoURL:         project.RepoURL,
 		Branch:          branch,
 		CommitSHA:       req.CommitSHA,
+		CommitMsg:       req.CommitMsg,
 		InstallCommand:  project.InstallCommand,
 		BuildCommand:    project.BuildCommand,
 		StartCommand:    project.StartCommand,
 		RunDir:          project.RunDir,
 		Port:            project.Port,
+		ExternalPort:    externalPort,
 		EnvVars:         envVars,
 		ImageTag:        imageTag,
 		GitToken:        project.GitToken,
@@ -154,6 +191,7 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		MemoryLimit:     project.MemoryLimit,
 		RestartPolicy:   project.RestartPolicy,
 		NotificationURL: s.baseURL + "/api/v1/internal/notify",
+		ShouldPromote:   req.ShouldPromote,
 	}
 
 	payload, err := json.Marshal(job)
@@ -218,6 +256,266 @@ func (s *DeploymentService) Rollback(deploymentID, userID string) (*models.Deplo
 		ProjectID: prev.ProjectID,
 		Branch:    prev.Branch,
 		CommitSHA: prev.CommitSHA,
+	}
+	return s.Trigger(userID, req)
+}
+
+// promoteToDefault atomically makes newDeployID the live/default deployment for the project.
+// It clears is_default on all other deployments and updates the project's main_deploy_id.
+func (s *DeploymentService) promoteToDefault(projectID, newDeployID string) error {
+	// Clear is_default on all deployments for the project
+	if err := s.deploymentRepo.ClearDefault(projectID); err != nil {
+		return fmt.Errorf("clearing default: %w", err)
+	}
+	// Mark the new one as default
+	if err := s.deploymentRepo.SetDefault(newDeployID); err != nil {
+		return fmt.Errorf("setting default: %w", err)
+	}
+	// Update the project's main_deploy_id pointer
+	if err := s.projectRepo.SetMainDeployID(projectID, newDeployID); err != nil {
+		log.Warn().Err(err).Str("project_id", projectID).Msg("failed to update project main_deploy_id")
+	}
+	log.Info().Str("project_id", projectID).Str("deployment_id", newDeployID).Msg("deployment promoted to default/live")
+	return nil
+}
+
+// PromoteDeployment makes the given deployment the live/default for the project.
+func (s *DeploymentService) PromoteDeployment(userID, deploymentID string) (*models.Deployment, error) {
+	d, err := s.deploymentRepo.FindByID(deploymentID)
+	if err != nil {
+		return nil, ErrDeploymentNotFound
+	}
+	if d.UserID != userID {
+		return nil, errors.New("forbidden")
+	}
+	if d.Status != models.DeploymentRunning {
+		return nil, errors.New("only running deployments can be promoted to default")
+	}
+	if err := s.promoteToDefault(d.ProjectID, d.ID); err != nil {
+		return nil, err
+	}
+	// Re-fetch to return updated record
+	return s.deploymentRepo.FindByID(deploymentID)
+}
+
+// RecoverRunningDeployments finds all deployments currently in "running" state
+// and pushes them back to the worker queue with the IsRecovery flag set.
+// This ensures that after a server restart, the worker reconciles and restarts
+// any missing containers or processes.
+func (s *DeploymentService) RecoverRunningDeployments(ctx context.Context) error {
+	// One-time fix for local URLs that might be stuck on https from old .env
+	if strings.Contains(s.baseURL, "localhost") || strings.Contains(s.baseURL, "127.0.0.1") {
+		_ = s.deploymentRepo.FixLocalProtocols()
+	}
+
+	running, err := s.deploymentRepo.FindAllRunning()
+	if err != nil {
+		return fmt.Errorf("finding running deployments: %w", err)
+	}
+
+	if len(running) == 0 {
+		return nil
+	}
+
+	log.Info().Int("count", len(running)).Msg("recovering running deployments after restart")
+
+	for _, d := range running {
+		project, err := s.projectRepo.FindByID(d.ProjectID, d.UserID)
+		if err != nil {
+			log.Error().Err(err).Str("deployment_id", d.ID).Msg("failed to find project for recovery")
+			continue
+		}
+
+		envVars, _ := s.envRepo.FindMapByProjectID(project.ID)
+
+		job := &models.DeploymentJob{
+			DeploymentID:    d.ID,
+			ProjectID:       project.ID,
+			UserID:          d.UserID,
+			WorkerID:        d.WorkerID,
+			RepoURL:         project.RepoURL,
+			Branch:          d.Branch,
+			CommitSHA:       d.CommitSHA,
+			InstallCommand:  project.InstallCommand,
+			BuildCommand:    project.BuildCommand,
+			StartCommand:    project.StartCommand,
+			RunDir:          project.RunDir,
+			Port:            project.Port,
+			EnvVars:         envVars,
+			ImageTag:        d.ImageTag,
+			GitToken:        project.GitToken,
+			CPULimit:        project.CPULimit,
+			MemoryLimit:     project.MemoryLimit,
+			RestartPolicy:   project.RestartPolicy,
+			NotificationURL: s.baseURL + "/api/v1/internal/notify",
+			IsRecovery:      true,
+		}
+
+		payload, err := json.Marshal(job)
+		if err != nil {
+			log.Error().Err(err).Str("deployment_id", d.ID).Msg("marshaling recovery job")
+			continue
+		}
+
+		if s.rdb != nil {
+			if err := s.rdb.LPush(ctx, deployJobQueue, payload).Err(); err != nil {
+				log.Error().Err(err).Str("deployment_id", d.ID).Msg("queuing recovery job to redis")
+			}
+		} else if s.inQueue != nil {
+			if err := s.inQueue.Push(payload); err != nil {
+				log.Error().Err(err).Str("deployment_id", d.ID).Msg("queuing recovery job to in-process queue")
+			}
+		}
+	}
+
+	return nil
+}
+
+// Shutdown gracefully stops the deployment service and marks running deployments for recovery.
+func (s *DeploymentService) Shutdown() {
+	log.Info().Msg("shutting down deployment service and stopping all running deployments")
+
+	running, err := s.deploymentRepo.FindAllRunning()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to find running deployments during shutdown")
+		return
+	}
+
+	for _, d := range running {
+		log.Info().Str("deployment_id", d.ID).Str("project_id", d.ProjectID).Msg("marking deployment for recovery")
+		// Update project status to 'stopped' to track it was running before shutdown
+		_ = s.projectRepo.UpdateStatus(d.ProjectID, "stopped")
+	}
+}
+
+// StartAutoSyncLoop starts a background goroutine that periodically checks for new commits.
+func (s *DeploymentService) StartAutoSyncLoop(ctx context.Context) {
+	log.Info().Msg("starting background auto-sync loop (10s ticker)")
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			s.checkAutoSync()
+		}
+	}
+}
+
+func (s *DeploymentService) checkAutoSync() {
+	projects, err := s.projectRepo.FindAllByAutoSync()
+	if err != nil {
+		log.Error().Err(err).Msg("auto-sync: failed to fetch projects")
+		return
+	}
+
+	for _, p := range projects {
+		if p.SyncIntervalSecs <= 0 {
+			continue
+		}
+
+		s.syncMu.Lock()
+		lastCheck, ok := s.lastSyncCheck[p.ID]
+		s.syncMu.Unlock()
+
+		if ok && time.Since(lastCheck) < time.Duration(p.SyncIntervalSecs)*time.Second {
+			continue
+		}
+
+		// Update last check time immediately to prevent concurrent triggers
+		s.syncMu.Lock()
+		s.lastSyncCheck[p.ID] = time.Now()
+		s.syncMu.Unlock()
+
+		log.Debug().Str("project_id", p.ID).Msg("auto-sync: checking for updates")
+		// Use a background context so a slow sync doesn't block the loop
+		go func(proj models.Project) {
+			_, err := s.SyncRepo(proj.UserID, proj.ID)
+			if err != nil && err.Error() != "already up to date" {
+				log.Error().Err(err).Str("project_id", proj.ID).Msg("auto-sync: sync failed")
+			}
+		}(p)
+	}
+}
+
+// SyncRepo checks the remote repository for the latest commit on the project's branch.
+// If a new commit is found (different from the last deployment), it triggers a new deployment.
+// On success, the new deployment is automatically promoted to default/live.
+func (s *DeploymentService) SyncRepo(userID, projectID string) (*models.Deployment, error) {
+	project, err := s.projectRepo.FindByID(projectID, userID)
+	if err != nil {
+		return nil, ErrProjectNotFound
+	}
+
+	// 1. Get the latest SHA from remote
+	cmd := exec.Command("git", "ls-remote", project.RepoURL, project.Branch)
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git ls-remote failed: %w", err)
+	}
+
+	parts := strings.Fields(string(output))
+	if len(parts) < 1 {
+		return nil, fmt.Errorf("could not determine remote SHA for branch %s", project.Branch)
+	}
+	latestSHA := parts[0]
+
+	// 2. Try to get the commit message
+	// If we have a local clone, we can fetch and get the message. 
+	// Otherwise, we'll try to get it during the build phase or leave it empty for now.
+	latestMsg := "Sync triggered (awaiting build to fetch message)"
+	if project.GitClonePath != "" {
+		// Attempt to fetch and get message if local dir exists
+		fetchCmd := exec.Command("git", "-C", project.GitClonePath, "fetch", "origin", project.Branch)
+		_ = fetchCmd.Run()
+		msgCmd := exec.Command("git", "-C", project.GitClonePath, "log", "-1", "--format=%B", latestSHA)
+		if msgOut, err := msgCmd.Output(); err == nil {
+			latestMsg = strings.TrimSpace(string(msgOut))
+		}
+	}
+
+	// Update project metadata
+	project.LatestCommitSHA = latestSHA
+	project.LatestCommitMsg = latestMsg
+	project.LatestCommitAt = time.Now().UTC()
+	_ = s.projectRepo.Update(project)
+
+	// Check if we already have a deployment for this SHA
+	latest, err := s.deploymentRepo.FindLatestByProjectID(projectID)
+	if err == nil && latest != nil && latest.CommitSHA == latestSHA {
+		// Already up to date
+		return nil, errors.New("already up to date")
+	}
+
+	// Trigger new deployment — it will be automatically promoted when it becomes running
+	req := &models.DeployRequest{
+		ProjectID:     projectID,
+		Branch:        project.Branch,
+		CommitSHA:     latestSHA,
+		CommitMsg:     latestMsg,
+		ShouldPromote: true, // Auto-promote on success
+	}
+	return s.Trigger(userID, req)
+}
+
+// RestartDeployment triggers a new deployment for the same version as the given deployment ID.
+// The new deployment will be automatically promoted to default/live on success.
+func (s *DeploymentService) RestartDeployment(userID, deploymentID string) (*models.Deployment, error) {
+	d, err := s.deploymentRepo.FindByID(deploymentID)
+	if err != nil {
+		return nil, ErrDeploymentNotFound
+	}
+	if d.UserID != userID {
+		return nil, errors.New("forbidden")
+	}
+
+	req := &models.DeployRequest{
+		ProjectID:     d.ProjectID,
+		Branch:        d.Branch,
+		CommitSHA:     d.CommitSHA,
+		ShouldPromote: d.IsDefault, // Promote if the restarted one was the default
 	}
 	return s.Trigger(userID, req)
 }

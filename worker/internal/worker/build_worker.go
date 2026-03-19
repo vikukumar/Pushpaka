@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -36,7 +37,7 @@ type JobReporter interface {
 // processManager tracks running direct-deployment processes (no Docker).
 var processManager = struct {
 	sync.Mutex
-	procs map[string]*os.Process // projectID -> running process
+	procs map[string]*os.Process // deploymentID -> running process
 }{procs: make(map[string]*os.Process)}
 
 const deployJobQueue = "pushpaka:deploy:queue"
@@ -208,25 +209,55 @@ func (w *BuildWorker) processJob(ctx context.Context, job *models.DeploymentJob)
 		w.fail(job.DeploymentID, fmt.Sprintf("failed to create build dir: %v", err))
 		return
 	}
-
 	// Step 1: Clone repository
-	w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Cloning %s@%s", job.RepoURL, job.Branch))
-	if err := w.cloneRepo(ctx, job, workDir); err != nil {
-		os.RemoveAll(workDir)
-		w.fail(job.DeploymentID, fmt.Sprintf("clone failed: %v", err))
-		return
-	}
-	w.appendLog(job.DeploymentID, "info", "system", "Repository cloned successfully")
+	needsClone := !job.IsRecovery
+	if job.IsRecovery {
+		// Verify if we can actually recover.
+		// For Docker: check if image exists. For Direct: check if permanentDir exists.
+		canRecover := false
+		if w.dockerAvailable {
+			checkCmd := exec.CommandContext(ctx, "docker", "inspect", job.ImageTag)
+			if err := checkCmd.Run(); err == nil {
+				canRecover = true
+			}
+		} else {
+			permanentDir := filepath.Join(w.cfg.DeployDir, job.ProjectID[:8])
+			if _, err := os.Stat(permanentDir); err == nil {
+				canRecover = true
+			}
+		}
 
-	// Capture the actual commit SHA and message from the cloned repo and
-	// persist them to the deployments table.
-	if sha, msg, err := getRepoCommitInfo(workDir); err == nil && sha != "" {
-		job.CommitSHA = sha
-		w.db.Model(&models.Deployment{}).
-			Where("id = ?", job.DeploymentID).
-			Updates(map[string]interface{}{
-				"commit_sha": sha + " " + msg,
-			})
+		if !canRecover {
+			w.appendLog(job.DeploymentID, "warn", "system", "Recovery assets not found (image or directory) -- falling back to full build")
+			needsClone = true
+			// We MUST clear IsRecovery for sub-methods (deployContainer/deployDirect)
+			// so they don't try to "skip" steps again.
+			job.IsRecovery = false
+		} else {
+			w.appendLog(job.DeploymentID, "info", "system", "Recovery mode: skipping repository clone")
+		}
+	}
+
+	if needsClone {
+		w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Cloning %s@%s", job.RepoURL, job.Branch))
+		if err := w.cloneRepo(ctx, job, workDir); err != nil {
+			os.RemoveAll(workDir)
+			w.fail(job.DeploymentID, fmt.Sprintf("clone failed: %v", err))
+			return
+		}
+		w.appendLog(job.DeploymentID, "info", "system", "Repository cloned successfully")
+	}
+
+	// Capture commit info (only if not recovery)
+	if !job.IsRecovery {
+		if sha, msg, err := getRepoCommitInfo(workDir); err == nil && sha != "" {
+			job.CommitSHA = sha
+			w.db.Model(&models.Deployment{}).
+				Where("id = ?", job.DeploymentID).
+				Updates(map[string]interface{}{
+					"commit_sha": sha + " " + msg,
+				})
+		}
 	}
 
 	var containerID, deployURL string
@@ -244,13 +275,17 @@ func (w *BuildWorker) processJob(ctx context.Context, job *models.DeploymentJob)
 			}
 		}
 
-		w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Building Docker image: %s", job.ImageTag))
-		if err := w.buildImage(ctx, job, workDir); err != nil {
-			os.RemoveAll(workDir)
-			w.fail(job.DeploymentID, fmt.Sprintf("build failed: %v", err))
-			return
+		if job.IsRecovery {
+			w.appendLog(job.DeploymentID, "info", "system", "Recovery mode: skipping image build")
+		} else {
+			w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Building Docker image: %s", job.ImageTag))
+			if err := w.buildImage(ctx, job, workDir); err != nil {
+				os.RemoveAll(workDir)
+				w.fail(job.DeploymentID, fmt.Sprintf("build failed: %v", err))
+				return
+			}
+			w.appendLog(job.DeploymentID, "info", "system", "Docker image built successfully")
 		}
-		w.appendLog(job.DeploymentID, "info", "system", "Docker image built successfully")
 
 		w.appendLog(job.DeploymentID, "info", "system", "Deploying container...")
 		containerID, deployURL, deployErr = w.deployContainer(ctx, job)
@@ -322,21 +357,18 @@ func (w *BuildWorker) processJob(ctx context.Context, job *models.DeploymentJob)
 // It copies the built source to a permanent directory, installs deps, builds,
 // starts the process and stores the OS process handle for later cleanup.
 func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJob, workDir string) (string, string, error) {
-	// Kill existing process for this project (redeploy)
-	processManager.Lock()
-	if existing, ok := processManager.procs[job.ProjectID]; ok {
-		_ = existing.Kill()
-		delete(processManager.procs, job.ProjectID)
-		w.appendLog(job.DeploymentID, "info", "system", "Stopped previous deployment process")
-	}
-	processManager.Unlock()
+	// For zero-downtime, we don't kill the old process yet.
+	// The new process will start on a separate port (job.ExternalPort).
 
 	// Determine framework and commands
 	buildCmd := job.BuildCommand
 	startCmd := job.StartCommand
-	port := job.Port
+	port := job.ExternalPort
 	if port == 0 {
-		port = 3000
+		port = job.Port
+		if port == 0 {
+			port = 3000
+		}
 	}
 
 	pm := ""
@@ -578,8 +610,9 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 	}
 
 	// Install dependencies
-	// Use explicit install command if set, otherwise auto-detect per language.
-	if job.InstallCommand != "" {
+	if job.IsRecovery {
+		w.appendLog(job.DeploymentID, "info", "system", "Recovery mode: skipping dependency installation")
+	} else if job.InstallCommand != "" {
 		w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Installing dependencies: %s", job.InstallCommand))
 		shell, shellFlag := "sh", "-c"
 		if runtime.GOOS == "windows" {
@@ -667,7 +700,9 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 	}
 
 	// Run build command
-	if buildCmd != "" {
+	if job.IsRecovery {
+		w.appendLog(job.DeploymentID, "info", "system", "Recovery mode: skipping build step")
+	} else if buildCmd != "" {
 		w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Building: %s", buildCmd))
 		shell, shellFlag := "sh", "-c"
 		if runtime.GOOS == "windows" {
@@ -696,13 +731,34 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 			runDir = workDir
 		}
 	}
-	if runtime.GOOS != "windows" {
+	// On Windows, the process is usually run from workDir (in CloneDir) because
+	// of junction point issues. However, for session restore to work across
+	// restarts where CloneDir might be wiped, we attempt to use DeployDir.
+	permanentDir := filepath.Join(w.cfg.DeployDir, job.ProjectID[:8])
+
+	if job.IsRecovery {
+		w.appendLog(job.DeploymentID, "info", "system", "Recovery: attempting to use existing deployment directory")
+		if _, err := os.Stat(permanentDir); err == nil {
+			runDir = permanentDir
+			if job.RunDir != "" {
+				runDir = filepath.Join(permanentDir, job.RunDir)
+			}
+		}
+	} else if runtime.GOOS != "windows" {
 		// On Linux/macOS copy is fine (no Windows junctions).
-		permanentDir := filepath.Join(w.cfg.DeployDir, job.ProjectID[:8])
 		_ = os.RemoveAll(permanentDir)
 		if err := copyDirSkipModules(workDir, permanentDir); err != nil {
 			w.appendLog(job.DeploymentID, "warn", "system", fmt.Sprintf("Could not copy to run dir (%v) -- running from build dir", err))
 		} else {
+			runDir = permanentDir
+			if job.RunDir != "" {
+				runDir = filepath.Join(permanentDir, job.RunDir)
+			}
+		}
+	} else {
+		// On Windows (non-recovery): copy to permanentDir if possible so future restarts can recover
+		_ = os.RemoveAll(permanentDir)
+		if err := copyDirSkipModules(workDir, permanentDir); err == nil {
 			runDir = permanentDir
 			if job.RunDir != "" {
 				runDir = filepath.Join(permanentDir, job.RunDir)
@@ -746,8 +802,27 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 		env = append(env, k+"="+v)
 	}
 
+	// If the user provided a start command with a hardcoded port that differs from
+	// our assigned ExternalPort (common in zero-downtime), try to override it.
+	if job.ExternalPort != 0 {
+		// Replace common port flags: -p 3000, --port 3000, --port=3000
+		re := regexp.MustCompile(`(?i)(--port[ =]|-p\s+)([0-9]{2,5})`)
+		newStartCmd := re.ReplaceAllStringFunc(startCmd, func(match string) string {
+			// Extract the prefix
+			submatches := re.FindStringSubmatch(match)
+			if len(submatches) >= 2 {
+				return submatches[1] + fmt.Sprintf("%d", job.ExternalPort)
+			}
+			return match
+		})
+		if newStartCmd != startCmd {
+			w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Adjusted start command port from %d to %d for zero-downtime", port, job.ExternalPort))
+			startCmd = newStartCmd
+		}
+	}
+
 	// Start the process
-	w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Starting process: %s (port %d)", startCmd, port))
+	w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Starting process: %s (ExternalPort: %d)", startCmd, port))
 	shell, shellFlag := "sh", "-c"
 	if runtime.GOOS == "windows" {
 		shell, shellFlag = "cmd", "/c"
@@ -765,7 +840,7 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 	}
 
 	processManager.Lock()
-	processManager.procs[job.ProjectID] = proc.Process
+	processManager.procs[job.DeploymentID] = proc.Process
 	processManager.Unlock()
 
 	// Wait briefly to see if it crashes immediately.
@@ -781,24 +856,48 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 	// Background goroutine: when the process eventually exits, update the
 	// deployment status so the UI reflects the crash rather than staying "running".
 	depID := job.DeploymentID
-	projID := job.ProjectID
 	go func() {
 		err := <-done
 		processManager.Lock()
-		delete(processManager.procs, projID)
+		delete(processManager.procs, depID)
 		processManager.Unlock()
 		if err != nil {
 			w.appendLog(depID, "error", "system", fmt.Sprintf("Process exited unexpectedly: %v", err))
 			w.updateStatus(depID, "failed", err.Error())
-		} else {
-			w.appendLog(depID, "info", "system", "Process exited (exit code 0)")
-			w.updateStatus(depID, "failed", "process exited with code 0")
 		}
 	}()
 
-	deployURL := fmt.Sprintf("http://localhost:%d", port)
-	processID := fmt.Sprintf("proc-%d", proc.Process.Pid)
-	return processID, deployURL, nil
+	deployURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+
+	// Health check and Zero-downtime swap
+	if w.healthCheck(ctx, deployURL) {
+		w.appendLog(job.DeploymentID, "info", "system", "Health check passed! Cleaning up old deployments...")
+		// Mark current as running
+		w.updateStatus(job.DeploymentID, "running", "")
+
+		// Kill other 'running' deployments for this project
+		var oldDeployments []models.Deployment
+		w.db.Where("project_id = ? AND status = ? AND id != ?", job.ProjectID, "running", job.DeploymentID).Find(&oldDeployments)
+		for _, old := range oldDeployments {
+			w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Stopping old process: %s", old.ID))
+			processManager.Lock()
+			if p, ok := processManager.procs[old.ID]; ok {
+				_ = p.Kill()
+				delete(processManager.procs, old.ID)
+			}
+			processManager.Unlock()
+			w.db.Model(&models.Deployment{}).Where("id = ?", old.ID).Update("status", "stopped")
+		}
+	} else {
+		w.appendLog(job.DeploymentID, "error", "system", "Health check failed! Rolling back...")
+		_ = proc.Process.Kill()
+		processManager.Lock()
+		delete(processManager.procs, job.DeploymentID)
+		processManager.Unlock()
+		return "", "", fmt.Errorf("health check failed")
+	}
+
+	return fmt.Sprintf("%d", proc.Process.Pid), deployURL, nil
 }
 
 // copyDirSkipModules recursively copies src to dst, skipping node_modules and .git.
@@ -1313,28 +1412,22 @@ func buildCacheDir(cloneDir, projectID string) string {
 }
 
 func (w *BuildWorker) deployContainer(ctx context.Context, job *models.DeploymentJob) (string, string, error) {
-	// Stop and remove existing containers for this project
-	existingName := fmt.Sprintf("pushpaka-%s", job.ProjectID[:8])
-
-	stopCmd := exec.CommandContext(ctx, "docker", "rm", "-f", existingName)
-	_ = stopCmd.Run() // Ignore error if container doesn't exist
-
-	restartPolicy := job.RestartPolicy
-	if restartPolicy == "" {
-		restartPolicy = "unless-stopped"
-	}
+	// For zero-downtime, we don't kill the old container yet.
+	// We use a unique name for the new container.
+	containerName := fmt.Sprintf("pushpaka-%s-%s", job.ProjectID[:8], job.DeploymentID[:8])
+	w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Starting new container: %s", containerName))
 
 	// Build docker run arguments
 	args := []string{
 		"run", "-d",
-		"--name", existingName,
-		"--restart", restartPolicy,
+		"--name", containerName,
+		"--restart", "always",
 		"--network", w.cfg.TraefikNetwork,
-		"-p", fmt.Sprintf("%d", job.Port),
+		"-p", fmt.Sprintf("%d:%d", job.ExternalPort, job.Port),
 		// Traefik labels
 		"--label", "traefik.enable=true",
-		"--label", fmt.Sprintf("traefik.http.routers.%s.rule=PathPrefix(`/p/%s`)", existingName, job.ProjectID[:8]),
-		"--label", fmt.Sprintf("traefik.http.services.%s.loadbalancer.server.port=%d", existingName, job.Port),
+		"--label", fmt.Sprintf("traefik.http.routers.%s.rule=PathPrefix(`/p/%s`)", containerName, job.ProjectID[:8]),
+		"--label", fmt.Sprintf("traefik.http.services.%s.loadbalancer.server.port=%d", containerName, job.Port),
 	}
 
 	// Resource limits
@@ -1360,7 +1453,38 @@ func (w *BuildWorker) deployContainer(ctx context.Context, job *models.Deploymen
 	}
 
 	containerID := strings.TrimSpace(string(out))
-	deployURL := fmt.Sprintf("http://localhost/p/%s", job.ProjectID[:8])
+	deployURL := fmt.Sprintf("http://localhost:%d", job.ExternalPort)
+
+	// Health check and Zero-downtime swap
+	if w.healthCheck(ctx, deployURL) {
+		w.appendLog(job.DeploymentID, "info", "system", "Health check passed! Cleaning up old deployments...")
+		// Mark current as running (it might have been building/queued)
+		w.updateStatus(job.DeploymentID, "running", "")
+
+		// Kill other 'running' deployments for this project
+		var oldDeployments []models.Deployment
+		w.db.Where("project_id = ? AND status = ? AND id != ?", job.ProjectID, "running", job.DeploymentID).Find(&oldDeployments)
+		for _, old := range oldDeployments {
+			w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Stopping old deployment: %s", old.ID))
+			
+			// Try the new naming scheme
+			newOldContainerName := fmt.Sprintf("pushpaka-%s-%s", old.ProjectID[:8], old.ID[:8])
+			_ = exec.CommandContext(ctx, "docker", "stop", newOldContainerName).Run()
+			_ = exec.CommandContext(ctx, "docker", "rm", newOldContainerName).Run()
+
+			// Fallback to legacy naming if needed
+			legacyName := old.ProjectID[:8]
+			_ = exec.CommandContext(ctx, "docker", "stop", legacyName).Run()
+			_ = exec.CommandContext(ctx, "docker", "rm", legacyName).Run()
+
+			w.db.Model(&models.Deployment{}).Where("id = ?", old.ID).Update("status", "stopped")
+		}
+	} else {
+		w.appendLog(job.DeploymentID, "error", "system", "Health check failed! Rolling back...")
+		_ = exec.CommandContext(ctx, "docker", "stop", containerName).Run()
+		_ = exec.CommandContext(ctx, "docker", "rm", containerName).Run()
+		return "", "", fmt.Errorf("health check failed")
+	}
 
 	return containerID, deployURL, nil
 }
@@ -1447,4 +1571,29 @@ func (lw *logWriter) Write(p []byte) (int, error) {
 		}
 	}
 	return len(p), nil
+}
+
+func (w *BuildWorker) healthCheck(ctx context.Context, deployURL string) bool {
+	w.appendLog("", "info", "system", fmt.Sprintf("Health check: %s", deployURL))
+	// Give the app a moment to start
+	time.Sleep(2 * time.Second)
+
+	// Try for up to 30 seconds
+	for i := 0; i < 15; i++ {
+		select {
+		case <-ctx.Done():
+			return false
+		default:
+			// Just a simple GET request
+			resp, err := http.Get(deployURL)
+			if err == nil {
+				resp.Body.Close()
+				if resp.StatusCode < 500 {
+					return true
+				}
+			}
+			time.Sleep(2 * time.Second)
+		}
+	}
+	return false
 }

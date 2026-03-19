@@ -6,13 +6,22 @@ import { Sparkles, X, Send, Loader2, Bot, User, ChevronDown, Minimize2 } from 'l
 import DOMPurify from 'dompurify'
 
 interface Message {
-  role: 'user' | 'assistant'
+  role: 'user' | 'assistant' | 'tool'
   content: string
   error?: boolean
+  tool_calls?: any[]
+  tool_call_id?: string
+}
+
+interface PendingToolCall {
+  tool_call_id: string
+  tool_name: string
+  args: Record<string, any>
 }
 
 interface AIChatbotProps {
   deploymentId?: string
+  projectId?: string
 }
 
 const WELCOME = `Hi! I'm **Pushpaka Assistant** — your AI co-pilot for cloud deployments. ✨
@@ -59,7 +68,7 @@ function renderMarkdown(text: string): string {
   return html
 }
 
-export default function AIChatbot({ deploymentId }: AIChatbotProps) {
+export default function AIChatbot({ deploymentId, projectId }: AIChatbotProps) {
   const [open, setOpen] = useState(false)
   const [minimized, setMinimized] = useState(false)
   const [messages, setMessages] = useState<Message[]>([
@@ -68,15 +77,25 @@ export default function AIChatbot({ deploymentId }: AIChatbotProps) {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [pulse, setPulse] = useState(false)
+  const [pendingCall, setPendingCall] = useState<PendingToolCall | null>(null)
+  const [autonomous, setAutonomous] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    aiApi.getConfig().then(res => {
+      if (res.data?.autonomous_agent) {
+        setAutonomous(true)
+      }
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     if (open && !minimized) {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
       setTimeout(() => inputRef.current?.focus(), 100)
     }
-  }, [messages, open, minimized])
+  }, [messages, open, minimized, pendingCall])
 
   // Subtle pulse on the button when closed to draw attention
   useEffect(() => {
@@ -91,16 +110,32 @@ export default function AIChatbot({ deploymentId }: AIChatbotProps) {
     if (!msg || loading) return
 
     setInput('')
-    setMessages((prev) => [...prev, { role: 'user', content: msg }])
+    const newMessages: Message[] = [...messages, { role: 'user', content: msg }]
+    setMessages(newMessages)
     setLoading(true)
+    setPendingCall(null)
 
     try {
-      const res = await aiApi.chat(msg, deploymentId)
-      const reply = res.data?.reply || 'No response from AI.'
-      setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      const res = await aiApi.agentChat({
+        messages: newMessages,
+        project_id: projectId,
+        autonomous: autonomous,
+      })
+      
+      const { reply, pending_tool_call, messages: updatedMessages } = res.data
+      
+      if (updatedMessages) {
+        setMessages(updatedMessages)
+      } else if (reply) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      }
+      
+      if (pending_tool_call) {
+        setPendingCall(pending_tool_call)
+      }
     } catch (e: unknown) {
       const err = e as { response?: { data?: { error?: string } } }
-      const errMsg = err?.response?.data?.error || 'AI service unavailable. Ensure AI_API_KEY is configured.'
+      const errMsg = err?.response?.data?.error || 'AI service unavailable.'
       setMessages((prev) => [...prev, {
         role: 'assistant',
         content: errMsg,
@@ -109,7 +144,61 @@ export default function AIChatbot({ deploymentId }: AIChatbotProps) {
     } finally {
       setLoading(false)
     }
-  }, [input, loading, deploymentId])
+  }, [input, loading, projectId, autonomous, messages])
+
+  const executeTool = async () => {
+    if (!pendingCall || loading) return
+    setLoading(true)
+    const callToExecute = pendingCall
+    setPendingCall(null)
+
+    try {
+      // Simulate adding the tool call approval object structure that OpenAI expects
+      const res = await aiApi.agentExecute({
+        messages,
+        project_id: projectId,
+        autonomous: autonomous,
+        approved_tool_call: {
+          id: callToExecute.tool_call_id,
+          type: 'function',
+          function: {
+            name: callToExecute.tool_name,
+            arguments: JSON.stringify(callToExecute.args)
+          }
+        }
+      })
+      
+      const { reply, pending_tool_call, messages: updatedMessages } = res.data
+      
+      if (updatedMessages) {
+        setMessages(updatedMessages)
+      } else if (reply) {
+        setMessages((prev) => [...prev, { role: 'assistant', content: reply }])
+      }
+      
+      if (pending_tool_call) {
+        setPendingCall(pending_tool_call)
+      }
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { error?: string } } }
+      const errMsg = err?.response?.data?.error || 'Tool execution failed.'
+      setMessages((prev) => [...prev, {
+        role: 'assistant',
+        content: errMsg,
+        error: true,
+      }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const cancelTool = () => {
+    setPendingCall(null)
+    setMessages((prev) => [...prev, {
+      role: 'assistant',
+      content: 'I cancelled the operation.',
+    }])
+  }
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -202,7 +291,7 @@ export default function AIChatbot({ deploymentId }: AIChatbotProps) {
             <>
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.map((msg, i) => (
+                {messages.filter(m => m.role !== 'tool' && !m.tool_calls).map((msg, i) => (
                   <div
                     key={i}
                     className={`flex gap-2.5 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}
@@ -248,6 +337,26 @@ export default function AIChatbot({ deploymentId }: AIChatbotProps) {
                     </div>
                   </div>
                 ))}
+                
+                {pendingCall && !loading && (
+                  <div className="flex gap-2.5">
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0" style={{ background: 'linear-gradient(135deg, #4338ca, #6366f1)' }}>
+                      <Bot size={12} className="text-white" />
+                    </div>
+                    <div className="rounded-2xl rounded-tl-sm px-4 py-3 border border-orange-500/30 bg-orange-500/10">
+                      <p className="text-sm text-orange-200 mb-2">
+                        I need your permission to run <code className="bg-black/20 px-1 py-0.5 rounded text-xs">{pendingCall.tool_name}</code>
+                      </p>
+                      <pre className="text-xs text-orange-300 font-mono bg-black/40 p-2 rounded mb-3">
+                        {JSON.stringify(pendingCall.args, null, 2)}
+                      </pre>
+                      <div className="flex gap-2">
+                        <button onClick={executeTool} className="btn-primary text-xs py-1.5 flex-1">Approve</button>
+                        <button onClick={cancelTool} className="btn-secondary text-xs py-1.5 flex-1">Deny</button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {loading && (
                   <div className="flex gap-2.5">

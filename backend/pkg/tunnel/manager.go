@@ -77,7 +77,6 @@ func (m *Manager) Unregister(workerID string, session *yamux.Session) {
 		delete(m.sessions, workerID)
 	}
 }
-
 // GetSession retrieves the active Yamux session for a worker to open a proxied transport.
 func (m *Manager) GetSession(workerID string) (*yamux.Session, error) {
 	m.mu.RLock()
@@ -89,4 +88,15 @@ func (m *Manager) GetSession(workerID string) (*yamux.Session, error) {
 	}
 
 	return session, nil
+}
+
+// CloseAll terminates all active Yamux sessions (used during shutdown).
+func (m *Manager) CloseAll() {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for id, session := range m.sessions {
+		session.Close()
+		delete(m.sessions, id)
+	}
 }

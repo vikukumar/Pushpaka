@@ -22,6 +22,7 @@ import (
 	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/database"
 	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/Pushpaka/pkg/tunnel"
 	"github.com/vikukumar/Pushpaka/queue"
 	"github.com/vikukumar/Pushpaka/ui"
 )
@@ -148,6 +149,69 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		log.Warn().Msg("REDIS_URL not set and no in-process queue -- deployment triggers disabled")
 	}
 
+	// Repositories
+	projectRepo := repositories.NewProjectRepository(db)
+	deploymentRepo := repositories.NewDeploymentRepository(db)
+	domainRepo := repositories.NewDomainRepository(db)
+	envRepo := repositories.NewEnvVarRepository(db)
+	logRepo := repositories.NewLogRepository(db)
+	auditRepo := repositories.NewAuditRepository(db)
+	notifRepo := repositories.NewNotificationRepository(db)
+	webhookRepo := repositories.NewWebhookRepository(db)
+	aiConfigRepo := repositories.NewAIConfigRepository(db)
+	userRepo := repositories.NewUserRepository(db)
+
+	// Services
+	authSvc := services.NewAuthService(userRepo, cfg)
+	projectSvc := services.NewProjectService(projectRepo)
+	deploymentSvc := services.NewDeploymentService(deploymentRepo, projectRepo, envRepo, domainRepo, rdb, opts.InProcessQueue, cfg.BaseURL)
+	logSvc := services.NewLogService(logRepo)
+	domainSvc := services.NewDomainService(domainRepo, projectRepo)
+	envSvc := services.NewEnvService(envRepo, projectRepo)
+	auditSvc := services.NewAuditService(auditRepo)
+	notifSvc := services.NewNotificationService(notifRepo, cfg)
+	oauthSvc := services.NewOAuthService(userRepo, cfg, authSvc, db)
+	webhookSvc := services.NewWebhookService(webhookRepo, projectRepo, deploymentSvc, cfg)
+	aiSvc := services.NewAIService(cfg)
+	aiExecutor := services.NewAIToolsExecutor(deploymentSvc, logSvc, aiSvc)
+
+	reg := &router.ServiceRegistry{
+		AuthSvc:        authSvc,
+		ProjectSvc:     projectSvc,
+		DeploymentSvc:  deploymentSvc,
+		LogSvc:         logSvc,
+		DomainSvc:      domainSvc,
+		EnvSvc:         envSvc,
+		AuditSvc:       auditSvc,
+		NotifSvc:       notifSvc,
+		OAuthSvc:       oauthSvc,
+		WebhookSvc:     webhookSvc,
+		AISvc:          aiSvc,
+		WorkerSvc:      services.NewWorkerNodeService(workerNodeRepo, systemCfgRepo),
+		AIExecutor:     aiExecutor,
+		UserRepo:       userRepo,
+		ProjectRepo:    projectRepo,
+		DeploymentRepo: deploymentRepo,
+		LogRepo:        logRepo,
+		DomainRepo:     domainRepo,
+		EnvRepo:        envRepo,
+		AuditRepo:      auditRepo,
+		NotifRepo:      notifRepo,
+		WebhookRepo:    webhookRepo,
+		AIConfigRepo:   aiConfigRepo,
+		WorkerRepo:     workerNodeRepo,
+		SystemRepo:     systemCfgRepo,
+	}
+
+	// Background Tasks
+	go deploymentSvc.StartAutoSyncLoop(ctx)
+
+	// Graceful Shutdown
+	go func() {
+		<-ctx.Done()
+		deploymentSvc.Shutdown()
+	}()
+
 	// Detect whether the frontend was compiled into the binary.
 	// In dev mode ui/dist only contains a placeholder, so uiFS stays nil.
 	var uiFS fs.FS
@@ -159,7 +223,7 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	}
 
 	// Main User API Router
-	r := router.New(cfg, db, rdb, uiFS, opts.InProcessQueue)
+	r := router.New(cfg, db, rdb, uiFS, opts.InProcessQueue, reg)
 
 	// Worker Management Router
 	workerNodeSvc := services.NewWorkerNodeService(workerNodeRepo, systemCfgRepo)
@@ -203,10 +267,11 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	case <-ctx.Done():
 	}
 
-	shutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	log.Info().Msg("shutting down API and Worker servers...")
+	tunnel.GlobalManager.CloseAll()
 	if err := workerSrv.Shutdown(shutCtx); err != nil {
 		log.Error().Err(err).Msg("worker server shutdown error")
 	}

@@ -14,10 +14,10 @@ require (
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/rs/zerolog v1.34.0
 	golang.org/x/crypto v0.49.0
-	gorm.io/driver/mysql v1.5.7
-	gorm.io/driver/postgres v1.5.11
-	gorm.io/driver/sqlserver v1.5.4
-	gorm.io/gorm v1.25.12
+	gorm.io/driver/mysql v1.6.0
+	gorm.io/driver/postgres v1.6.0
+	gorm.io/driver/sqlserver v1.6.3
+	gorm.io/gorm v1.31.1
 )
 
 require (
@@ -61,8 +61,8 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect; Updated
-	github.com/prometheus/common v0.66.1 // indirect; Updated
-	github.com/prometheus/procfs v0.16.1 // indirect; Updated
+	github.com/prometheus/common v0.67.5 // indirect; Updated
+	github.com/prometheus/procfs v0.20.1 // indirect; Updated
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect

@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
@@ -7,7 +7,7 @@ import { projectsApi, webhooksApi } from '@/lib/api'
 import { Project, WebhookConfig } from '@/types'
 import { Header } from '@/components/layout/Header'
 import toast from 'react-hot-toast'
-import { Trash2, AlertTriangle, Lock, Eye, EyeOff, Save, Cpu, Link2, Plus, X, Copy, Check, GitBranch, FolderOpen } from 'lucide-react'
+import { Trash2, AlertTriangle, Lock, Eye, EyeOff, Save, Cpu, Link2, Plus, X, Copy, Check, GitBranch, FolderOpen, RefreshCw } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
 
 const FRAMEWORKS = [
@@ -50,6 +50,10 @@ export default function ProjectSettingsPage() {
   const [runDir, setRunDir] = useState('')
   const [savingBuild, setSavingBuild] = useState(false)
 
+  // Auto-sync
+  const [autoSyncEnabled, setAutoSyncEnabled] = useState(false)
+  const [syncInterval, setSyncInterval] = useState('60')
+
   // Resource limits
   const [cpuLimit, setCpuLimit] = useState('')
   const [memoryLimit, setMemoryLimit] = useState('')
@@ -83,6 +87,8 @@ export default function ProjectSettingsPage() {
       setBuildCmd(project.build_command ?? '')
       setStartCmd(project.start_command ?? '')
       setRunDir(project.run_dir ?? '')
+      setAutoSyncEnabled(project.auto_sync_enabled ?? false)
+      setSyncInterval(project.sync_interval_secs ? String(project.sync_interval_secs) : '60')
     }
   }, [project, isPrivate])
 
@@ -107,6 +113,8 @@ export default function ProjectSettingsPage() {
         build_command: buildCmd,
         start_command: startCmd,
         run_dir: runDir,
+        auto_sync_enabled: autoSyncEnabled,
+        sync_interval_secs: parseInt(syncInterval, 10) || 0,
       })
       toast.success('Build configuration saved')
       queryClient.invalidateQueries({ queryKey: ['project', id] })
@@ -328,6 +336,54 @@ export default function ProjectSettingsPage() {
               className="btn-primary text-xs py-1.5"
             >
               {savingBuild ? 'Saving...' : <><Save size={13} /> Save Build Configuration</>}
+            </button>
+          </div>
+        </div>
+
+        {/* Git Automation */}
+        <div className="card">
+          <div className="flex items-center gap-2 mb-4">
+            <RefreshCw size={16} className="text-brand-400" />
+            <h3 className="text-sm font-semibold text-slate-300">Git Automation</h3>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-surface-border bg-surface-elevated">
+              <div className="flex-1">
+                <div className="text-sm font-medium text-slate-300">Auto-Sync Repository</div>
+                <div className="text-xs text-slate-500">Automatically check for new commits and deploy them</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAutoSyncEnabled(!autoSyncEnabled)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoSyncEnabled ? 'bg-brand-600' : 'bg-slate-700'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${autoSyncEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {autoSyncEnabled && (
+              <div className="animate-in fade-in slide-in-from-top-1 duration-200">
+                <label className="label text-xs">Sync Interval (seconds)</label>
+                <div className="flex items-center gap-3 mt-1">
+                  <input
+                    type="number"
+                    className="input w-32 text-sm"
+                    value={syncInterval}
+                    onChange={(e) => setSyncInterval(e.target.value)}
+                    min={10}
+                  />
+                  <span className="text-xs text-slate-500">seconds (minimum 10s)</span>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleSaveBuild}
+              disabled={savingBuild}
+              className="btn-primary text-xs py-1.5"
+            >
+              {savingBuild ? 'Saving...' : <><Save size={13} /> Save Automation Settings</>}
             </button>
           </div>
         </div>
