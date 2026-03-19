@@ -125,7 +125,7 @@ function NotificationsSection() {
 
       {tab === 'smtp' && (
         <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-slate-400 mb-1">Host</label>
               <input
@@ -147,7 +147,7 @@ function NotificationsSection() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-slate-400 mb-1">Username</label>
               <input
@@ -178,7 +178,7 @@ function NotificationsSection() {
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-slate-400 mb-1">From address</label>
               <input
@@ -445,7 +445,7 @@ export default function SettingsPage() {
     <div className="flex flex-col min-h-screen">
       <Header title="Account Settings" subtitle="Manage your account and preferences" />
 
-      <div className="p-6 max-w-2xl space-y-5">
+      <div className="p-4 md:p-6 max-w-2xl mx-auto w-full space-y-5">
         {/* Profile */}
         <div className="card">
           <div className="flex items-center gap-3 mb-5">

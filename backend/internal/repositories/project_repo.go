@@ -20,6 +20,7 @@ func (r *ProjectRepository) Create(p *models.Project) error {
 }
 
 func (r *ProjectRepository) FindByUserID(userID string) ([]models.Project, error) {
+	basemodel.EnsureSynced[models.Project](r.db)
 	var projects []models.Project
 	err := r.db.Where("user_id = ?", userID).Order("created_at desc").Find(&projects).Error
 	return projects, err
@@ -35,6 +36,7 @@ func (r *ProjectRepository) Update(p *models.Project) error {
 
 // UpdateStatus updates only the status field of a project.
 func (r *ProjectRepository) UpdateStatus(id, status string) error {
+	basemodel.EnsureSynced[models.Project](r.db)
 	return r.db.Model(&models.Project{}).Where("id = ?", id).Update("status", status).Error
 }
 

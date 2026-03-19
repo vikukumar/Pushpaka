@@ -80,26 +80,6 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		err := db.AutoMigrate(
 			&models.User{},
 			&models.Project{},
-			&models.Domain{},
-			&models.EnvVar{},
-			&models.AuditLog{},
-			&models.Deployment{},
-			&models.DeploymentAction{},
-			&models.DeploymentBackup{},
-			&models.DeploymentCodeSignature{},
-			&models.DeploymentInstance{},
-			&models.DeploymentLog{},
-			&models.DeploymentSyncHistory{},
-			&models.GitAutoSyncConfig{},
-			&models.GitChange{},
-			&models.GitSyncTrack{},
-			&models.NotificationConfig{},
-			&models.WebhookConfig{},
-			&models.AIConfig{},
-			&models.RAGDocument{},
-			&models.AIMonitorAlert{},
-			&models.AITokenUsage{},
-			&models.K8sConfig{},
 			&models.SystemConfig{},
 			&models.WorkerNode{},
 		)
@@ -160,6 +140,7 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	webhookRepo := repositories.NewWebhookRepository(db)
 	aiConfigRepo := repositories.NewAIConfigRepository(db)
 	userRepo := repositories.NewUserRepository(db)
+	editorRepo := repositories.NewEditorStateRepository(db)
 
 	// Services
 	authSvc := services.NewAuthService(userRepo, cfg)
@@ -202,6 +183,7 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		AIConfigRepo:   aiConfigRepo,
 		WorkerRepo:     workerNodeRepo,
 		SystemRepo:     systemCfgRepo,
+		EditorRepo:     editorRepo,
 	}
 
 	// Background Tasks

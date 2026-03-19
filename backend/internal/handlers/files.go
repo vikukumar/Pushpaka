@@ -77,7 +77,7 @@ func (h *FileHandler) projectDir(c *gin.Context) (string, bool) {
 
 // safePath resolves a relative user-supplied path within the project directory,
 // preventing path traversal attacks.
-func safePath(root, rel string) (string, bool) {
+func SafePath(root, rel string) (string, bool) {
 	// 1. Clean the root and get its absolute path.
 	absRoot, err := filepath.Abs(filepath.Clean(root))
 	if err != nil {
@@ -146,9 +146,13 @@ func buildTree(root, dir string, depth int) (*FileEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+	rel := strings.TrimPrefix(dir, root)
+	if rel != "" && (rel[0] == '/' || rel[0] == '\\') {
+		rel = rel[1:]
+	}
 	node := &FileEntry{
 		Name:  filepath.Base(dir),
-		Path:  "/" + filepath.ToSlash(strings.TrimPrefix(dir, root+string(filepath.Separator))),
+		Path:  "/" + filepath.ToSlash(rel),
 		IsDir: true,
 	}
 	for _, e := range entries {
@@ -200,7 +204,7 @@ func (h *FileHandler) ReadFile(c *gin.Context) {
 		return
 	}
 	rel := c.Param("path") // already cleaned by Gin, starts with "/"
-	abs, safe := safePath(root, rel)
+	abs, safe := SafePath(root, rel)
 	if !safe {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
 		return
@@ -215,8 +219,8 @@ func (h *FileHandler) ReadFile(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "path is a directory"})
 		return
 	}
-	if info.Size() > 512*1024 {
-		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "file too large for editor (>512 KB)"})
+	if info.Size() > 5*1024*1024 {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "file too large for editor (>5 MB)"})
 		return
 	}
 
@@ -226,15 +230,24 @@ func (h *FileHandler) ReadFile(c *gin.Context) {
 		return
 	}
 
-	// Detect if it looks binary (contains null bytes in first 512 bytes)
-	probe := content
-	if len(probe) > 512 {
-		probe = probe[:512]
-	}
-	for _, b := range probe {
-		if b == 0 {
-			c.JSON(http.StatusUnsupportedMediaType, gin.H{"error": "binary file — cannot open in editor"})
-			return
+	// Allow common image extensions to bypass strict null-byte check
+	ext := strings.ToLower(filepath.Ext(rel))
+	isImage := ext == ".png" || ext == ".jpg" || ext == ".jpeg" || ext == ".gif" || ext == ".ico" || ext == ".webp"
+
+	if !isImage {
+		// Detect if it looks binary (contains null bytes in first 512 bytes)
+		probe := content
+		if len(probe) > 512 {
+			probe = probe[:512]
+		}
+		for _, b := range probe {
+			if b == 0 {
+				c.JSON(http.StatusUnsupportedMediaType, gin.H{
+					"error":     "binary file — cannot open in editor",
+					"is_binary": true,
+				})
+				return
+			}
 		}
 	}
 
@@ -253,7 +266,7 @@ func (h *FileHandler) SaveFile(c *gin.Context) {
 		return
 	}
 	rel := c.Param("path")
-	abs, safe := safePath(root, rel)
+	abs, safe := SafePath(root, rel)
 	if !safe {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
 		return
@@ -285,6 +298,116 @@ func (h *FileHandler) SaveFile(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"saved": true, "path": rel})
+}
+
+// CreateFile   POST /api/v1/projects/:id/files/*path
+func (h *FileHandler) CreateFile(c *gin.Context) {
+	root, ok := h.projectDir(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+
+	// Ensure parent exists
+	if err := os.MkdirAll(filepath.Dir(abs), fs.ModePerm); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "cannot create directory: " + err.Error()})
+		return
+	}
+
+	// Check if exists
+	if _, err := os.Stat(abs); err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "file already exists"})
+		return
+	}
+
+	if err := os.WriteFile(abs, []byte(""), 0644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "create failed: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"created": true, "path": rel})
+}
+
+// CreateDirectory POST /api/v1/projects/:id/directories/*path
+func (h *FileHandler) CreateDirectory(c *gin.Context) {
+	root, ok := h.projectDir(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+
+	if err := os.MkdirAll(abs, fs.ModePerm); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "mkdir failed: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"created": true, "path": rel})
+}
+
+// DeleteFile   DELETE /api/v1/projects/:id/files/*path
+func (h *FileHandler) DeleteFile(c *gin.Context) {
+	root, ok := h.projectDir(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+
+	if err := os.RemoveAll(abs); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "delete failed: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"deleted": true, "path": rel})
+}
+
+// RenameFile   PATCH /api/v1/projects/:id/files/*path
+func (h *FileHandler) RenameFile(c *gin.Context) {
+	root, ok := h.projectDir(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+
+	var body struct {
+		NewPath string `json:"newPath" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "newPath required"})
+		return
+	}
+
+	newAbs, safe := SafePath(root, body.NewPath)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid destination path"})
+		return
+	}
+
+	if err := os.Rename(abs, newAbs); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "rename failed: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"renamed": true, "oldPath": rel, "newPath": body.NewPath})
 }
 
 // SyncFiles   POST /api/v1/projects/:id/files/sync
@@ -364,4 +487,192 @@ func injectToken(repoURL, token string) string {
 		}
 	}
 	return repoURL
+}
+
+// --- System-wide File Management ---
+
+// systemRoot resolves the global deploy directory.
+func (h *FileHandler) systemRoot(c *gin.Context) (string, bool) {
+	// For now, allow all authenticated users (or restrict to admins if role is available)
+	return h.deployDir, true
+}
+
+// ListSystemFiles GET /api/v1/system/files
+func (h *FileHandler) ListSystemFiles(c *gin.Context) {
+	root, ok := h.systemRoot(c)
+	if !ok {
+		return
+	}
+	tree, err := buildTree(root, root, 0)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"files": tree.Children})
+}
+
+// ReadSystemFile GET /api/v1/system/files/*path
+func (h *FileHandler) ReadSystemFile(c *gin.Context) {
+	root, ok := h.systemRoot(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+
+	info, err := os.Stat(abs)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
+		return
+	}
+	if info.IsDir() {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "path is a directory"})
+		return
+	}
+	if info.Size() > 10*1024*1024 { // 10MB
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "file too large (>10 MB)"})
+		return
+	}
+
+	content, err := os.ReadFile(abs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"path":    rel,
+		"content": string(content),
+		"size":    info.Size(),
+	})
+}
+
+// SaveSystemFile PUT /api/v1/system/files/*path
+func (h *FileHandler) SaveSystemFile(c *gin.Context) {
+	root, ok := h.systemRoot(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+
+	var body struct {
+		Content string `json:"content" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "content required"})
+		return
+	}
+
+	if err := os.MkdirAll(filepath.Dir(abs), 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "mkdir failed"})
+		return
+	}
+
+	if err := os.WriteFile(abs, []byte(body.Content), 0644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "write failed"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"saved": true})
+}
+
+// CreateSystemFile POST /api/v1/system/files/*path
+func (h *FileHandler) CreateSystemFile(c *gin.Context) {
+	root, ok := h.systemRoot(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+	if err := os.MkdirAll(filepath.Dir(abs), 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "mkdir failed"})
+		return
+	}
+	if err := os.WriteFile(abs, []byte(""), 0644); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "create failed"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"created": true})
+}
+
+// CreateSystemDirectory POST /api/v1/system/directories/*path
+func (h *FileHandler) CreateSystemDirectory(c *gin.Context) {
+	root, ok := h.systemRoot(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+	if err := os.MkdirAll(abs, 0755); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "mkdir failed"})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"created": true})
+}
+
+// DeleteSystemFile DELETE /api/v1/system/files/*path
+func (h *FileHandler) DeleteSystemFile(c *gin.Context) {
+	root, ok := h.systemRoot(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+	if err := os.RemoveAll(abs); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "delete failed"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"deleted": true})
+}
+
+// RenameSystemFile PATCH /api/v1/system/files/*path
+func (h *FileHandler) RenameSystemFile(c *gin.Context) {
+	root, ok := h.systemRoot(c)
+	if !ok {
+		return
+	}
+	rel := c.Param("path")
+	abs, safe := SafePath(root, rel)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid path"})
+		return
+	}
+	var body struct {
+		NewPath string `json:"newPath" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "newPath required"})
+		return
+	}
+	newAbs, safe := SafePath(root, body.NewPath)
+	if !safe {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid destination"})
+		return
+	}
+	if err := os.Rename(abs, newAbs); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "rename failed"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"renamed": true})
 }

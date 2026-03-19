@@ -24,7 +24,7 @@ front-dev:
 
 front-build:
 	node scripts/patch-layout.js remove
-	cd frontend && STATIC_EXPORT=1 pnpm build || (node scripts/patch-layout.js restore && exit 1)
+	cd frontend && STATIC_EXPORT=1 pnpm build || (node ../scripts/patch-layout.js restore && exit 1)
 	node scripts/patch-layout.js restore
 	node scripts/copy-frontend.js
 

@@ -11,6 +11,7 @@ import { Deployment, DeploymentLog } from '@/types'
 import { timeAgo, formatDate } from '@/lib/utils'
 import { ExternalLink, GitBranch, GitCommit, Clock, Loader2, RotateCcw, Sparkles, Terminal, Trash2, ChevronDown, ChevronUp, AlertTriangle, Wrench, RefreshCw, Rocket } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useConfirm } from '@/components/ui/Modal'
 
 // ---------------------------------------------------------------------------
 // Error pattern detection
@@ -127,6 +128,7 @@ export default function DeploymentDetailPage() {
   const [fixLoading, setFixLoading] = useState<string | null>(null)
   const [fixes, setFixes] = useState<Record<string, string>>({})
   const [showMonitor, setShowMonitor] = useState(true)
+  const { confirm, Component: ConfirmModal } = useConfirm()
 
   const { data: deployment, isLoading: deployLoading } = useQuery<Deployment>({
     queryKey: ['deployment', id],
@@ -240,7 +242,13 @@ export default function DeploymentDetailPage() {
   }
 
   const handleDelete = async () => {
-    if (!confirm('Delete this deployment record? The container will not be stopped.')) return
+    const ok = await confirm({
+      title: 'Delete Deployment',
+      message: 'Are you sure you want to delete this deployment record? The container will not be stopped.',
+      confirmText: 'Delete',
+      type: 'error'
+    })
+    if (!ok) return
     setDeleting(true)
     try {
       await deploymentsApi.delete(id)
@@ -496,6 +504,7 @@ export default function DeploymentDetailPage() {
           deploymentId={id}
         />
       </div>
+      {ConfirmModal}
     </div>
   )
 }

@@ -499,6 +499,7 @@ func (s *DeploymentService) SyncRepo(userID, projectID string) (*models.Deployme
 	latest, err := s.deploymentRepo.FindLatestByProjectID(projectID)
 	if err == nil && latest != nil && latest.CommitSHA == latestSHA {
 		// Already up to date
+		log.Debug().Str("project_id", projectID).Str("sha", latestSHA).Msg("Sync skipped: already up to date")
 		return nil, errors.New("already up to date")
 	}
 

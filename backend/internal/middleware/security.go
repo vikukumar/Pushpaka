@@ -18,11 +18,11 @@ func SecureHeaders() gin.HandlerFunc {
 		c.Header("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 		c.Header("Content-Security-Policy",
 			"default-src 'self'; "+
-				"script-src 'self' 'unsafe-inline'; "+
-				"style-src 'self' 'unsafe-inline'; "+
-				"font-src 'self' data:; "+
-				"img-src 'self' data: blob:; "+
-				"connect-src 'self' ws: wss:")
+				"script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "+
+				"style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; "+
+				"font-src 'self' data: https://fonts.gstatic.com; "+
+				"img-src 'self' data: blob: https://cdn.jsdelivr.net; "+
+				"connect-src 'self' ws: wss: https://cdn.jsdelivr.net")
 		c.Next()
 	}
 }

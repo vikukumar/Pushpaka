@@ -235,8 +235,43 @@ export const filesApi = {
     apiClient.get(`/projects/${projectId}/files${path}`),
   save: (projectId: string, path: string, content: string) =>
     apiClient.put(`/projects/${projectId}/files${path}`, { content }),
+  createFile: (projectId: string, path: string) =>
+    apiClient.post(`/projects/${projectId}/files${path}`, {}),
+  createDirectory: (projectId: string, path: string) =>
+    apiClient.post(`/projects/${projectId}/directories${path}`, {}),
+  delete: (projectId: string, path: string) =>
+    apiClient.delete(`/projects/${projectId}/files${path}`),
+  rename: (projectId: string, path: string, newPath: string) =>
+    apiClient.patch(`/projects/${projectId}/files${path}`, { newPath }),
   sync: (projectId: string) =>
-    apiClient.post(`/projects/${projectId}/files/sync`, {}),
+    apiClient.post(`/projects/${projectId}/editor-sync`, {}),
+}
+
+// Git operations
+export const gitApi = {
+  status: (projectId: string) => apiClient.get(`/projects/${projectId}/git/status`),
+  commit: (projectId: string, message: string) =>
+    apiClient.post(`/projects/${projectId}/git/commit`, { message }),
+  push: (projectId: string) => apiClient.post(`/projects/${projectId}/git/push`),
+  pull: (projectId: string) => apiClient.post(`/projects/${projectId}/git/pull`),
+}
+
+// Editor State Persistence
+export const editorStateApi = {
+  get: (projectId: string) => apiClient.get(`/projects/${projectId}/editor/state`),
+  save: (projectId: string, data: { open_tabs: string; active_tab: string; sidebar: string }) =>
+    apiClient.post(`/projects/${projectId}/editor/state`, data),
+}
+
+// Global System File Management
+export const systemFilesApi = {
+  list: () => apiClient.get('/system/files'),
+  read: (path: string) => apiClient.get(`/system/files${path}`),
+  save: (path: string, content: string) => apiClient.put(`/system/files${path}`, { content }),
+  createFile: (path: string) => apiClient.post(`/system/files${path}`, {}),
+  createDirectory: (path: string) => apiClient.post(`/system/directories${path}`, {}),
+  delete: (path: string) => apiClient.delete(`/system/files${path}`),
+  rename: (path: string, newPath: string) => apiClient.patch(`/system/files${path}`, { newPath }),
 }
 
 // Workers Management

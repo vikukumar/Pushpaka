@@ -15,8 +15,8 @@ interface SidebarCtx {
 
 export const SidebarContext = createContext<SidebarCtx>({
   open: false,
-  toggle: () => {},
-  close: () => {},
+  toggle: () => { },
+  close: () => { },
 })
 
 export function useSidebar() {
@@ -24,17 +24,36 @@ export function useSidebar() {
 }
 
 const mobileNavItems = [
-  { href: '/dashboard',             icon: LayoutDashboard, label: 'Home' },
-  { href: '/dashboard/projects',    icon: FolderGit2,      label: 'Projects' },
-  { href: '/dashboard/deployments', icon: Rocket,          label: 'Deploy' },
-  { href: '/dashboard/settings',    icon: Settings,        label: 'Settings' },
+  { href: '/dashboard', icon: LayoutDashboard, label: 'Home' },
+  { href: '/dashboard/projects', icon: FolderGit2, label: 'Projects' },
+  { href: '/dashboard/deployments', icon: Rocket, label: 'Deploy' },
+  { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ]
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, _hasHydrated } = useAuthStore()
+  const { isAuthenticated, token, clearAuth, _hasHydrated } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Validate token expiration
+  useEffect(() => {
+    if (_hasHydrated && isAuthenticated && token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        const isExpired = payload.exp * 1000 < Date.now()
+        if (isExpired) {
+          console.warn('[Auth] Token expired, clearing session...')
+          clearAuth()
+          router.replace('/login')
+        }
+      } catch (e) {
+        console.error('[Auth] Malformed token, clearing session...')
+        clearAuth()
+        router.replace('/login')
+      }
+    }
+  }, [_hasHydrated, isAuthenticated, token, clearAuth, router])
 
   useEffect(() => {
     if (_hasHydrated && !isAuthenticated) {
@@ -76,13 +95,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             <span title="love">❤️</span>
             <span>by</span>
             <a
-              href="https://github.com/VIKSHRO"
+              href="https://github.com/vikukumar"
               target="_blank"
               rel="noopener noreferrer"
               className="font-semibold hover:text-brand-400 transition-colors"
               style={{ color: '#818cf8' }}
             >
-              VIKSHRO
+              Vikash Kumar
             </a>
             <span className="mx-1 opacity-40">·</span>
             <span>© {new Date().getFullYear()} Pushpaka</span>

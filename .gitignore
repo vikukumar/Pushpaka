@@ -95,3 +95,5 @@ Chart.lock
 *_err*.txt
 *err*.txt
 out.txt
+
+*.bak

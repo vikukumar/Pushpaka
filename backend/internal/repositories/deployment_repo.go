@@ -22,6 +22,7 @@ func (r *DeploymentRepository) Create(d *models.Deployment) error {
 }
 
 func (r *DeploymentRepository) FindByProjectID(projectID string, limit, offset int) ([]models.Deployment, error) {
+	basemodel.EnsureSynced[models.Deployment](r.db)
 	var deployments []models.Deployment
 	err := r.db.Where("project_id = ?", projectID).Order("created_at desc").Limit(limit).Offset(offset).Find(&deployments).Error
 	return deployments, err
@@ -38,6 +39,7 @@ func (r *DeploymentRepository) FindByID(id string) (*models.Deployment, error) {
 }
 
 func (r *DeploymentRepository) UpdateStatus(id string, status models.DeploymentStatus, errorMsg string) error {
+	basemodel.EnsureSynced[models.Deployment](r.db)
 	return r.db.Model(&models.Deployment{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"status":     status,
 		"error_msg":  errorMsg,

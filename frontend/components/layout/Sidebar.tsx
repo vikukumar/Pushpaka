@@ -20,6 +20,8 @@ import {
   Server,
   ChevronDown,
   ChevronRight,
+  FileCode,
+  Files as FilesIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/lib/auth'
@@ -45,6 +47,8 @@ const mainNavItems: NavItem[] = [
   { href: '/dashboard/deployments', label: 'Deployments',  icon: Rocket },
   { href: '/dashboard/domains',     label: 'Domains',      icon: Globe },
   { href: '/dashboard/activity',    label: 'Activity',     icon: Activity },
+  { href: '/dashboard/editor',      label: 'Code',         icon: FileCode },
+  { href: '/dashboard/files',       label: 'Files',        icon: FilesIcon },
   { href: '/dashboard/audit',       label: 'Audit Log',    icon: Shield },
 ]
 

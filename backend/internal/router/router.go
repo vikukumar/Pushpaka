@@ -55,6 +55,7 @@ type ServiceRegistry struct {
 	AIConfigRepo   *repositories.AIConfigRepository
 	WorkerRepo     *repositories.WorkerNodeRepository
 	SystemRepo     *repositories.SystemConfigRepository
+	EditorRepo     *repositories.EditorStateRepository
 }
 
 // New builds the Gin engine. Pass a non-nil uiFS to serve the embedded
@@ -124,6 +125,7 @@ func New(
 	workerHandler := handlers.NewWorkerHandler(workerSvc)
 	terminalHandler := handlers.NewTerminalHandler(deploymentRepo, cfg)
 	fileHandler := handlers.NewFileHandler(projectRepo, deploymentRepo, cfg)
+	gitHandler := handlers.NewGitHandler(projectRepo, deploymentRepo, cfg)
 	infraHandler := handlers.NewInfraHandler()
 	// Avoid the nil-interface trap: a nil *queue.InProcess assigned directly to
 	// WorkerStatsProvider creates a non-nil interface with a nil concrete value,
@@ -136,6 +138,8 @@ func New(
 	go deploymentSvc.RecoverRunningDeployments(context.Background())
 
 	healthHandler := handlers.NewHealthHandler(db, rdb, workerStats)
+	editorHandler := handlers.NewEditorStateHandler(reg.EditorRepo)
+	editorWSHandler := handlers.NewEditorWSHandler(projectRepo, deploymentRepo, cfg)
 
 	// Auth middleware
 	authMW := middleware.JWT(authSvc)
@@ -281,12 +285,40 @@ func New(
 				workers.POST("/pat", workerHandler.GetZonePAT)
 			}
 
-			// In-browser code editor (file browser + read + save)
+			// In-browser code editor (file browser + read + save + manipulations)
 			protected.GET("/projects/:id/files", fileHandler.ListFiles)
 			protected.GET("/projects/:id/files/*path", fileHandler.ReadFile)
 			protected.PUT("/projects/:id/files/*path", fileHandler.SaveFile)
+			protected.POST("/projects/:id/files/*path", fileHandler.CreateFile)
+			protected.DELETE("/projects/:id/files/*path", fileHandler.DeleteFile)
+			protected.PATCH("/projects/:id/files/*path", fileHandler.RenameFile)
+			protected.POST("/projects/:id/directories/*path", fileHandler.CreateDirectory)
+
 			// Sync (re-clone) project source to the editor working directory
-			protected.POST("/projects/:id/files/sync", fileHandler.SyncFiles)
+			protected.POST("/projects/:id/editor-sync", fileHandler.SyncFiles)
+
+			// System-wide Global File Management (/deploy root)
+			system := protected.Group("/system")
+			{
+				system.GET("/files", fileHandler.ListSystemFiles)
+				system.GET("/files/*path", fileHandler.ReadSystemFile)
+				system.PUT("/files/*path", fileHandler.SaveSystemFile)
+				system.POST("/files/*path", fileHandler.CreateSystemFile)
+				system.DELETE("/files/*path", fileHandler.DeleteSystemFile)
+				system.PATCH("/files/*path", fileHandler.RenameSystemFile)
+				system.POST("/directories/*path", fileHandler.CreateSystemDirectory)
+			}
+
+			// Git operations
+			protected.GET("/projects/:id/git/status", gitHandler.Status)
+			protected.POST("/projects/:id/git/commit", gitHandler.Commit)
+			protected.POST("/projects/:id/git/push", gitHandler.Push)
+			protected.POST("/projects/:id/git/pull", gitHandler.Pull)
+
+			// Editor State Persistence
+			protected.GET("/projects/:id/editor/state", editorHandler.GetState)
+			protected.POST("/projects/:id/editor/state", editorHandler.SaveState)
+			protected.GET("/editor/ws", editorWSHandler.Connect)
 		}
 	}
 

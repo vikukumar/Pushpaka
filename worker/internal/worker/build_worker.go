@@ -191,7 +191,7 @@ func (w *BuildWorker) processJob(ctx context.Context, job *models.DeploymentJob)
 	logger.Info().Bool("docker", w.dockerAvailable).Msg("starting build")
 
 	// Update status to building
-	w.updateStatus(job.DeploymentID, "building", "")
+	w.updateStatus(job.DeploymentID, string(models.DeploymentBuilding), "")
 	w.appendLog(job.DeploymentID, "info", "system", "Build started")
 
 	if !w.dockerAvailable {
@@ -255,7 +255,8 @@ func (w *BuildWorker) processJob(ctx context.Context, job *models.DeploymentJob)
 			w.db.Model(&models.Deployment{}).
 				Where("id = ?", job.DeploymentID).
 				Updates(map[string]interface{}{
-					"commit_sha": sha + " " + msg,
+					"commit_sha": sha,
+					"commit_msg": msg,
 				})
 		}
 	}
@@ -303,6 +304,18 @@ func (w *BuildWorker) processJob(ctx context.Context, job *models.DeploymentJob)
 		w.fail(job.DeploymentID, msg)
 		w.fireNotification(job, "failed", "", msg)
 		return
+	}
+
+	// Persist source code to the permanent deployment directory so the editor can see it.
+	// This is done for both Docker and Direct deployments.
+	permanentDir := filepath.Join(w.cfg.DeployDir, job.ProjectID[:8])
+	if !job.IsRecovery {
+		w.appendLog(job.DeploymentID, "info", "system", "Persisting source code for editor...")
+		_ = os.MkdirAll(filepath.Dir(permanentDir), 0755)
+		_ = os.RemoveAll(permanentDir)
+		if err := copyDirSkipModules(workDir, permanentDir); err != nil {
+			w.appendLog(job.DeploymentID, "warn", "system", fmt.Sprintf("failed to persist source for editor: %v", err))
+		}
 	}
 
 	w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Deployment ID: %s", containerID))
@@ -744,21 +757,12 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 				runDir = filepath.Join(permanentDir, job.RunDir)
 			}
 		}
-	} else if runtime.GOOS != "windows" {
-		// On Linux/macOS copy is fine (no Windows junctions).
-		_ = os.RemoveAll(permanentDir)
-		if err := copyDirSkipModules(workDir, permanentDir); err != nil {
-			w.appendLog(job.DeploymentID, "warn", "system", fmt.Sprintf("Could not copy to run dir (%v) -- running from build dir", err))
-		} else {
-			runDir = permanentDir
-			if job.RunDir != "" {
-				runDir = filepath.Join(permanentDir, job.RunDir)
-			}
-		}
 	} else {
-		// On Windows (non-recovery): copy to permanentDir if possible so future restarts can recover
-		_ = os.RemoveAll(permanentDir)
-		if err := copyDirSkipModules(workDir, permanentDir); err == nil {
+		// Non-recovery: we already persisted to permanentDir in processJob
+		// before calling this (or we will if we move the call there).
+		// For now, let's keep the runDir pointing to where the build happened
+		// if permanentDir copy was successful.
+		if _, err := os.Stat(permanentDir); err == nil {
 			runDir = permanentDir
 			if job.RunDir != "" {
 				runDir = filepath.Join(permanentDir, job.RunDir)
@@ -861,9 +865,22 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 		processManager.Lock()
 		delete(processManager.procs, depID)
 		processManager.Unlock()
+
+		// If the context is cancelled, the worker is shutting down.
+		// We don't mark as "failed" because the exit was likely induced by the shutdown signal.
+		// Keeping status as "running" allows the service to recover it on next startup.
+		if ctx.Err() != nil {
+			w.appendLog(depID, "info", "system", "Worker shutting down: process stopped (will recover on restart)")
+			return
+		}
+
 		if err != nil {
 			w.appendLog(depID, "error", "system", fmt.Sprintf("Process exited unexpectedly: %v", err))
-			w.updateStatus(depID, "failed", err.Error())
+			w.updateStatus(depID, string(models.DeploymentFailed), err.Error())
+		} else {
+			// Normal exit (status 0) - mark as stopped so the UI is accurate.
+			w.appendLog(depID, "info", "system", "Process exited normally")
+			w.updateStatus(depID, string(models.DeploymentStopped), "")
 		}
 	}()
 
@@ -873,7 +890,7 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 	if w.healthCheck(ctx, deployURL) {
 		w.appendLog(job.DeploymentID, "info", "system", "Health check passed! Cleaning up old deployments...")
 		// Mark current as running
-		w.updateStatus(job.DeploymentID, "running", "")
+		w.updateStatus(job.DeploymentID, string(models.DeploymentRunning), "")
 
 		// Kill other 'running' deployments for this project
 		var oldDeployments []models.Deployment
@@ -886,7 +903,7 @@ func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJo
 				delete(processManager.procs, old.ID)
 			}
 			processManager.Unlock()
-			w.db.Model(&models.Deployment{}).Where("id = ?", old.ID).Update("status", "stopped")
+			w.db.Model(&models.Deployment{}).Where("id = ?", old.ID).Update("status", string(models.DeploymentStopped))
 		}
 	} else {
 		w.appendLog(job.DeploymentID, "error", "system", "Health check failed! Rolling back...")
@@ -1492,7 +1509,7 @@ func (w *BuildWorker) deployContainer(ctx context.Context, job *models.Deploymen
 func (w *BuildWorker) fail(deploymentID, errMsg string) {
 	log.Error().Str("deployment_id", deploymentID).Str("error", errMsg).Msg("deployment failed")
 	w.appendLog(deploymentID, "error", "system", "FAILED: "+errMsg)
-	w.updateStatus(deploymentID, "failed", errMsg)
+	w.updateStatus(deploymentID, string(models.DeploymentFailed), errMsg)
 }
 
 // fireNotification calls the internal notification callback on the API server
@@ -1531,13 +1548,23 @@ func (w *BuildWorker) fireNotification(job *models.DeploymentJob, status, deploy
 }
 
 func (w *BuildWorker) updateStatus(deploymentID, status, errMsg string) {
+	now := time.Now().UTC()
+	updates := map[string]interface{}{
+		"status":     status,
+		"error_msg":  errMsg,
+		"updated_at": now,
+	}
+
+	// If we're starting (building or running) and haven't recorded StartedAt yet, do it now.
+	if status == string(models.DeploymentBuilding) || status == string(models.DeploymentRunning) {
+		w.db.Model(&models.Deployment{}).
+			Where("id = ? AND started_at IS NULL", deploymentID).
+			Update("started_at", now)
+	}
+
 	err := w.db.Model(&models.Deployment{}).
 		Where("id = ?", deploymentID).
-		Updates(map[string]interface{}{
-			"status":     status,
-			"error_msg":  errMsg,
-			"updated_at": time.Now().UTC(),
-		}).Error
+		Updates(updates).Error
 	if err != nil {
 		log.Error().Err(err).Msg("failed to update deployment status")
 	}

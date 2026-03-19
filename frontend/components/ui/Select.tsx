@@ -78,12 +78,7 @@ export function Select({ value, onChange, options, placeholder, className, disab
         <div
           role="listbox"
           aria-labelledby={id}
-          className="absolute z-50 mt-1 w-full rounded-lg overflow-hidden py-0.5"
-          style={{
-            background: 'var(--select-dropdown-bg, #0f172a)',
-            border: '1px solid rgba(99,102,241,0.3)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.65), 0 2px 8px rgba(0,0,0,0.4)',
-          }}
+          className="absolute z-50 mt-1 w-full rounded-lg overflow-hidden py-0.5 animate-in fade-in slide-in-from-top-1 duration-200 shadow-xl border border-white/10 bg-slate-900/95 backdrop-blur-md"
         >
           {options.map((opt) => {
             const isSelected = opt.value === value
@@ -97,18 +92,15 @@ export function Select({ value, onChange, options, placeholder, className, disab
                   onChange(opt.value)
                   setOpen(false)
                 }}
-                style={{
-                  background: isSelected ? 'rgba(99,102,241,0.18)' : 'transparent',
-                }}
                 className={cn(
-                  'w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors',
+                  'w-full flex items-center justify-between gap-2 px-3 py-2 text-[12px] text-left transition-all',
                   isSelected
-                    ? 'text-brand-300 hover:bg-[rgba(99,102,241,0.25)]'
-                    : 'text-slate-300 hover:bg-[rgba(255,255,255,0.07)] hover:text-white',
+                    ? 'bg-brand-500/20 text-brand-300 font-medium'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white',
                 )}
               >
                 <span>{opt.label}</span>
-                {isSelected && <Check size={13} className="text-brand-400 shrink-0" />}
+                {isSelected && <Check size={12} className="text-brand-400 shrink-0" />}
               </button>
             )
           })}

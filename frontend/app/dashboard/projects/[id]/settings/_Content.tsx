@@ -9,6 +9,7 @@ import { Header } from '@/components/layout/Header'
 import toast from 'react-hot-toast'
 import { Trash2, AlertTriangle, Lock, Eye, EyeOff, Save, Cpu, Link2, Plus, X, Copy, Check, GitBranch, FolderOpen, RefreshCw } from 'lucide-react'
 import { Select } from '@/components/ui/Select'
+import { useConfirm } from '@/components/ui/Modal'
 
 const FRAMEWORKS = [
   { value: '', label: 'Auto-detect' },
@@ -66,6 +67,7 @@ export default function ProjectSettingsPage() {
   const [webhookBranch, setWebhookBranch] = useState('')
   const [creatingWebhook, setCreatingWebhook] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const { confirm, Component: ConfirmModal } = useConfirm()
 
   const { data: project } = useQuery<Project>({
     queryKey: ['project', id],
@@ -160,6 +162,13 @@ export default function ProjectSettingsPage() {
   }
 
   const handleDeleteWebhook = async (webhookId: string) => {
+    const ok = await confirm({
+      title: 'Delete Webhook',
+      message: 'Are you sure you want to remove this webhook?',
+      confirmText: 'Delete',
+      type: 'error'
+    })
+    if (!ok) return
     try {
       await webhooksApi.delete(webhookId)
       setWebhooks((prev) => prev.filter((w) => w.id !== webhookId))
@@ -195,7 +204,13 @@ export default function ProjectSettingsPage() {
   }
 
   const handleDelete = async () => {
-    if (!confirm(`Delete project "${project?.name}"? This cannot be undone.`)) return
+    const ok = await confirm({
+      title: 'Delete Project',
+      message: `Are you sure you want to delete "${project?.name}"? This action is permanent and cannot be undone.`,
+      confirmText: 'Delete',
+      type: 'error'
+    })
+    if (!ok) return
     try {
       await projectsApi.delete(id)
       toast.success('Project deleted')
@@ -605,6 +620,7 @@ export default function ProjectSettingsPage() {
           </div>
         </div>
       </div>
+      {ConfirmModal}
     </div>
   )
 }

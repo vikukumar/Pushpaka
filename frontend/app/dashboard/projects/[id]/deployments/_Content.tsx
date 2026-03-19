@@ -23,7 +23,7 @@ export default function ProjectDeploymentsPage() {
   const deployments: Deployment[] = data?.data || []
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col w-full">
       <Header title="Deployments" subtitle="All deployments for this project" />
 
       <div className="p-6">
@@ -52,14 +52,22 @@ export default function ProjectDeploymentsPage() {
                         {d.branch}
                       </span>
                       {d.commit_sha && (
-                        <span className="flex items-center gap-1.5 text-slate-500">
+                        <span className="flex items-center gap-1.5 text-slate-500 font-mono">
                           <GitCommit size={12} />
                           {d.commit_sha.slice(0, 7)}
                         </span>
                       )}
                     </div>
+                    {d.commit_msg && (
+                      <p className="text-sm text-white mt-1 font-medium truncate">{d.commit_msg}</p>
+                    )}
                     {d.error_msg && (
-                      <p className="text-xs text-red-400 mt-0.5 truncate">{d.error_msg}</p>
+                      <p className="text-xs text-red-400 mt-1 truncate">{d.error_msg}</p>
+                    )}
+                    {d.started_at && (
+                      <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wider">
+                        Started {timeAgo(d.started_at)}
+                      </p>
                     )}
                   </div>
                   <div className="text-xs text-slate-500 hidden md:block">{timeAgo(d.created_at)}</div>
