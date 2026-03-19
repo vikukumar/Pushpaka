@@ -16,20 +16,20 @@ import (
 
 // AITool represents an OpenAI-compatible tool definition.
 type AITool struct {
-	Type     string      `json:"type"`
-	Function AIToolFunc  `json:"function"`
+	Type     string     `json:"type"`
+	Function AIToolFunc `json:"function"`
 }
 
 type AIToolFunc struct {
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
 	Parameters  AIToolParams `json:"parameters"`
 }
 
 type AIToolParams struct {
-	Type       string                                 `json:"type"`
-	Properties map[string]AIToolParamProperty         `json:"properties"`
-	Required   []string                               `json:"required,omitempty"`
+	Type       string                         `json:"type"`
+	Properties map[string]AIToolParamProperty `json:"properties"`
+	Required   []string                       `json:"required,omitempty"`
 }
 
 type AIToolParamProperty struct {
@@ -62,7 +62,7 @@ type AIAgentRequest struct {
 
 // AIAgentMessage represents one chat turn in the agent conversation.
 type AIAgentMessage struct {
-	Role       string       `json:"role"`                  // user / assistant / tool
+	Role       string       `json:"role"` // user / assistant / tool
 	Content    string       `json:"content"`
 	ToolCallID string       `json:"tool_call_id,omitempty"` // for role=tool
 	ToolCalls  []AIToolCall `json:"tool_calls,omitempty"`   // for role=assistant
@@ -197,10 +197,23 @@ type AIToolsExecutor struct {
 	deploySvc *DeploymentService
 	logSvc    *LogService
 	aiSvc     *AIService
+	userCfg   *models.AIConfig
+	ragDocs   []models.RAGDocument
 }
 
 func NewAIToolsExecutor(deploySvc *DeploymentService, logSvc *LogService, aiSvc *AIService) *AIToolsExecutor {
 	return &AIToolsExecutor{deploySvc: deploySvc, logSvc: logSvc, aiSvc: aiSvc}
+}
+
+// WithUserConfig returns a new executor with user-specific context.
+func (e *AIToolsExecutor) WithUserConfig(userCfg *models.AIConfig, ragDocs []models.RAGDocument) *AIToolsExecutor {
+	return &AIToolsExecutor{
+		deploySvc: e.deploySvc,
+		logSvc:    e.logSvc,
+		aiSvc:     e.aiSvc,
+		userCfg:   userCfg,
+		ragDocs:   ragDocs,
+	}
 }
 
 // ExecuteToolCall runs a tool call and returns the string result to include in the conversation.
@@ -289,7 +302,7 @@ func (e *AIToolsExecutor) ExecuteToolCall(ctx context.Context, userID string, ca
 		for _, l := range logs {
 			sb.WriteString(l.Message + "\n")
 		}
-		analysis, err := e.aiSvc.AnalyzeLogs(sb.String())
+		analysis, err := e.aiSvc.AnalyzeLogsWithConfig(e.userCfg, e.ragDocs, sb.String())
 		if err != nil {
 			return fmt.Sprintf("AI analysis failed: %v", err), nil
 		}
@@ -389,7 +402,7 @@ Guidelines:
 			} `json:"choices"`
 			Error *struct{ Message string } `json:"error"`
 		}
-		
+
 		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 			return nil, fmt.Errorf("failed to decode response: %w", err)
 		}
@@ -437,7 +450,11 @@ Guidelines:
 
 		// Autonomous: execute all tool calls
 		for _, tc := range choice.Message.ToolCalls {
-			result, execErr := executor.ExecuteToolCall(ctx, userID, tc)
+			exec := executor
+			if userCfg != nil {
+				exec = executor.WithUserConfig(userCfg, ragDocs)
+			}
+			result, execErr := exec.ExecuteToolCall(ctx, userID, tc)
 			if execErr != nil {
 				result = fmt.Sprintf("error: %v", execErr)
 			}

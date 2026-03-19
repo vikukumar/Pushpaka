@@ -121,3 +121,12 @@ func (r *DeploymentRepository) FindDefaultByProjectID(projectID string) (*models
 	}
 	return &d, nil
 }
+
+// ListFailedRecent returns the latest failed deployments for a user.
+func (r *DeploymentRepository) ListFailedRecent(userID string, limit int) ([]models.Deployment, error) {
+	var deployments []models.Deployment
+	err := r.db.Where("user_id = ? AND (status = ? OR (status = ? AND error_msg != ''))",
+		userID, models.DeploymentFailed, models.DeploymentStopped).
+		Order("created_at desc").Limit(limit).Find(&deployments).Error
+	return deployments, err
+}

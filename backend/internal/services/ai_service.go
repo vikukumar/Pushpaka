@@ -175,6 +175,10 @@ func (s *AIService) openAICompleteWithConfig(userCfg *models.AIConfig, system, u
 	model := s.resolvedModel(userCfg)
 	apiKey := s.resolvedAPIKey(userCfg)
 
+	if apiKey == "" {
+		return "", errors.New("AI API key is missing. Please configure it in Settings.")
+	}
+
 	body := openAIRequest{
 		Model: model,
 		Messages: []openAIMessage{
@@ -183,9 +187,16 @@ func (s *AIService) openAICompleteWithConfig(userCfg *models.AIConfig, system, u
 		},
 		MaxTokens: 1024,
 	}
-	data, _ := json.Marshal(body)
+	data, err := json.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal request: %w", err)
+	}
 
-	req, _ := http.NewRequest("POST", endpoint+"/chat/completions", bytes.NewReader(data))
+	req, err := http.NewRequest("POST", endpoint+"/chat/completions", bytes.NewReader(data))
+	if err != nil {
+		return "", fmt.Errorf("failed to create request: %w", err)
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", "Bearer "+apiKey)
 	if strings.Contains(endpoint, "openrouter") {
@@ -200,7 +211,20 @@ func (s *AIService) openAICompleteWithConfig(userCfg *models.AIConfig, system, u
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("parsing AI response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var result openAIResponse
+		_ = json.Unmarshal(respBody, &result)
+		if result.Error != nil {
+			return "", fmt.Errorf("AI error (%d): %s", resp.StatusCode, result.Error.Message)
+		}
+		return "", fmt.Errorf("AI request failed with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
 	var result openAIResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return "", fmt.Errorf("parsing AI response: %w", err)
@@ -264,6 +288,9 @@ func (s *AIService) anthropicCompleteWithConfig(userCfg *models.AIConfig, system
 		model = "claude-3-haiku-20240307"
 	}
 	apiKey := s.resolvedAPIKey(userCfg)
+	if apiKey == "" {
+		return "", errors.New("Anthropic API key is missing. Please configure it in Settings.")
+	}
 
 	body := anthropicRequest{
 		Model:     model,
@@ -271,9 +298,15 @@ func (s *AIService) anthropicCompleteWithConfig(userCfg *models.AIConfig, system
 		System:    system,
 		Messages:  []anthropicMessage{{Role: "user", Content: user}},
 	}
-	data, _ := json.Marshal(body)
+	data, err := json.Marshal(body)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal Anthropic request: %w", err)
+	}
 
-	req, _ := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(data))
+	req, err := http.NewRequest("POST", "https://api.anthropic.com/v1/messages", bytes.NewReader(data))
+	if err != nil {
+		return "", fmt.Errorf("failed to create Anthropic request: %w", err)
+	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("x-api-key", apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
@@ -285,7 +318,20 @@ func (s *AIService) anthropicCompleteWithConfig(userCfg *models.AIConfig, system
 	}
 	defer resp.Body.Close()
 
-	respBody, _ := io.ReadAll(resp.Body)
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("reading Anthropic response body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var result anthropicResponse
+		_ = json.Unmarshal(respBody, &result)
+		if result.Error != nil {
+			return "", fmt.Errorf("Anthropic error (%d): %s", resp.StatusCode, result.Error.Message)
+		}
+		return "", fmt.Errorf("Anthropic request failed with status %d: %s", resp.StatusCode, string(respBody))
+	}
+
 	var result anthropicResponse
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return "", fmt.Errorf("parsing Anthropic response: %w", err)

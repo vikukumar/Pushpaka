@@ -30,10 +30,15 @@ var termUpgrader = websocket.Upgrader{
 type TerminalHandler struct {
 	deploymentRepo *repositories.DeploymentRepository
 	deployDir      string
+	cloneDir       string
 }
 
 func NewTerminalHandler(deploymentRepo *repositories.DeploymentRepository, cfg *config.Config) *TerminalHandler {
-	return &TerminalHandler{deploymentRepo: deploymentRepo, deployDir: cfg.DeployDir}
+	return &TerminalHandler{
+		deploymentRepo: deploymentRepo,
+		deployDir:      cfg.DeployDir,
+		cloneDir:       cfg.CloneDir,
+	}
 }
 
 // Connect opens an interactive terminal into a running deployment's container,
@@ -84,13 +89,25 @@ func (h *TerminalHandler) dockerTerminal(conn *websocket.Conn, containerID strin
 // localTerminal falls back to a shell in the project's running directory.
 // This is used when Docker is not available (e.g. direct Node/Python/Go deployments).
 func (h *TerminalHandler) localTerminal(conn *websocket.Conn, projectID string) {
-	// The worker copies files to deployDir/<projectID[:8]>
+	// 1. Try the permanent deploy directory (Worker copies files to deployDir/<projectID[:8]>)
 	workDir := filepath.Join(h.deployDir, projectID[:8])
 	if _, err := os.Stat(workDir); err != nil {
+		// 2. Fall back to the latest deployment's clone directory (common on Windows)
+		if h.cloneDir != "" {
+			latest, lErr := h.deploymentRepo.FindLatestByProjectID(projectID)
+			if lErr == nil {
+				clonePath := filepath.Join(h.cloneDir, latest.ID)
+				if _, sErr := os.Stat(clonePath); sErr == nil {
+					workDir = clonePath
+					goto proceed
+				}
+			}
+		}
 		writeWSError(conn, "no deployed directory found — deploy the project first")
 		return
 	}
 
+proceed:
 	// Announce the fallback mode to the user
 	banner := fmt.Sprintf(
 		"\r\n\x1b[33m⚠  No container — connected to local deploy directory: %s\x1b[0m\r\n\r\n",

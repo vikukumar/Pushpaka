@@ -56,10 +56,10 @@ type DeploymentJob struct {
 	InstallCommand string            `json:"install_command,omitempty"`
 	BuildCommand   string            `json:"build_command"`
 	StartCommand   string            `json:"start_command"`
-	RunDir          string            `json:"run_dir,omitempty"`
-	Port            int               `json:"port"`
-	ExternalPort    int               `json:"external_port"` // The host port to bind to
-	EnvVars         map[string]string `json:"env_vars"`
+	RunDir         string            `json:"run_dir,omitempty"`
+	Port           int               `json:"port"`
+	ExternalPort   int               `json:"external_port"` // The host port to bind to
+	EnvVars        map[string]string `json:"env_vars"`
 	ImageTag       string            `json:"image_tag"`
 	// GitToken is the PAT for private-repo cloning. Never logged or stored in deployment records.
 	GitToken string `json:"git_token,omitempty"`

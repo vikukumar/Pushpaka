@@ -58,10 +58,12 @@ export default function DashboardPage() {
   const { data: projectsData } = useQuery({
     queryKey: ['projects'],
     queryFn: () => projectsApi.list().then((r) => r.data),
+    refetchInterval: 10000, // Sync every 10s as requested
   })
   const { data: deploymentsData } = useQuery({
     queryKey: ['deployments'],
     queryFn: () => deploymentsApi.list(10).then((r) => r.data),
+    refetchInterval: 5000, // Live updates every 5s
   })
 
   const projects: Project[]    = projectsData?.data    || []
@@ -75,7 +77,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen animate-fade-in">
       <Header title="Overview" subtitle="Your deployment platform" />
 
       <div className="p-6 space-y-6 animate-fade-in">

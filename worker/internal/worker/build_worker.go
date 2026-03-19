@@ -1466,7 +1466,7 @@ func (w *BuildWorker) deployContainer(ctx context.Context, job *models.Deploymen
 		w.db.Where("project_id = ? AND status = ? AND id != ?", job.ProjectID, "running", job.DeploymentID).Find(&oldDeployments)
 		for _, old := range oldDeployments {
 			w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Stopping old deployment: %s", old.ID))
-			
+
 			// Try the new naming scheme
 			newOldContainerName := fmt.Sprintf("pushpaka-%s-%s", old.ProjectID[:8], old.ID[:8])
 			_ = exec.CommandContext(ctx, "docker", "stop", newOldContainerName).Run()

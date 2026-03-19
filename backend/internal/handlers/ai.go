@@ -255,7 +255,12 @@ func (h *AIHandler) AgentExecute(c *gin.Context) {
 	}
 
 	// 1. Execute the approved tool
-	resultStr, err := h.aiExecutor.ExecuteToolCall(c.Request.Context(), userID, req.ApprovedToolCall)
+	exec := h.aiExecutor
+	if userCfg != nil {
+		ragDocs, _ := h.aiConfigRepo.ListRAG(userID)
+		exec = h.aiExecutor.WithUserConfig(userCfg, ragDocs)
+	}
+	resultStr, err := exec.ExecuteToolCall(c.Request.Context(), userID, req.ApprovedToolCall)
 	if err != nil {
 		resultStr = fmt.Sprintf("Error executing tool: %v", err)
 	}

@@ -101,6 +101,7 @@ export const deploymentsApi = {
     apiClient.post('/deployments', data),
   rollback: (id: string) => apiClient.post(`/deployments/${id}/rollback`),
   restart: (id: string) => apiClient.post(`/deployments/${id}/restart`),
+  promote: (id: string) => apiClient.patch(`/deployments/${id}/promote`),
   delete: (id: string) => apiClient.delete(`/deployments/${id}`),
 }
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/url"
 	"os/exec"
 	"strings"
 	"sync"
@@ -450,10 +451,22 @@ func (s *DeploymentService) SyncRepo(userID, projectID string) (*models.Deployme
 	}
 
 	// 1. Get the latest SHA from remote
-	cmd := exec.Command("git", "ls-remote", project.RepoURL, project.Branch)
-	output, err := cmd.Output()
+	cloneURL := project.RepoURL
+	if project.GitToken != "" {
+		if u, err := url.Parse(cloneURL); err == nil && (u.Scheme == "https" || u.Scheme == "http") {
+			u.User = url.User(project.GitToken)
+			cloneURL = u.String()
+		}
+	}
+
+	cmd := exec.Command("git", "ls-remote", cloneURL, project.Branch)
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("git ls-remote failed: %w", err)
+		errMsg := string(output)
+		if project.GitToken != "" {
+			errMsg = strings.ReplaceAll(errMsg, project.GitToken, "***")
+		}
+		return nil, fmt.Errorf("git ls-remote failed: %s", errMsg)
 	}
 
 	parts := strings.Fields(string(output))
@@ -463,7 +476,7 @@ func (s *DeploymentService) SyncRepo(userID, projectID string) (*models.Deployme
 	latestSHA := parts[0]
 
 	// 2. Try to get the commit message
-	// If we have a local clone, we can fetch and get the message. 
+	// If we have a local clone, we can fetch and get the message.
 	// Otherwise, we'll try to get it during the build phase or leave it empty for now.
 	latestMsg := "Sync triggered (awaiting build to fetch message)"
 	if project.GitClonePath != "" {

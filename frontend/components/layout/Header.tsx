@@ -18,16 +18,7 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
 
   return (
     <header
-      className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 transition-all duration-300"
-      style={{
-        background: 'var(--header-bg)',
-        borderBottom: '1px solid var(--header-border)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        boxShadow: isDark
-          ? '0 1px 0 rgba(99,102,241,0.08), 0 4px 24px -4px rgba(0,0,0,0.5)'
-          : '0 1px 0 rgba(99,102,241,0.08), 0 4px 16px -4px rgba(99,102,241,0.08)',
-      }}
+      className="h-14 md:h-16 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20 transition-all duration-300 border-b border-[var(--header-border)] shadow-sm bg-[var(--header-bg)] backdrop-blur-md"
     >
       {/* Hamburger (mobile only) + Title */}
       <div className="flex items-center gap-3">

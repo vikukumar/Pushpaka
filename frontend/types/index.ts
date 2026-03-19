@@ -70,6 +70,7 @@ export interface Deployment {
   image_tag: string
   container_id: string
   url: string
+  is_default: boolean
   error_msg: string
   started_at: string | null
   finished_at: string | null

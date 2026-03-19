@@ -31,6 +31,7 @@ export default function ProjectDetailPage() {
   const { data: deploymentsData } = useQuery({
     queryKey: ['deployments', 'project', id],
     queryFn: () => deploymentsApi.list(5, 0, id).then((r) => r.data),
+    refetchInterval: 5000, // Live updates every 5s
   })
 
   const project = projectData
@@ -90,7 +91,7 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen animate-fade-in">
       <Header
         title={project.name}
         subtitle={project.repo_url}

@@ -16,9 +16,9 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	workerApp "github.com/vikukumar/Pushpaka/worker/app"
 	backendApp "github.com/vikukumar/Pushpaka/app"
 	"github.com/vikukumar/Pushpaka/queue"
+	workerApp "github.com/vikukumar/Pushpaka/worker/app"
 )
 
 func main() {

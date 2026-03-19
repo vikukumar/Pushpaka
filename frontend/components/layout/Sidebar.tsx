@@ -150,15 +150,10 @@ export function Sidebar() {
     <aside
       className={cn(
         'w-64 h-screen flex flex-col z-50 overflow-hidden transition-all duration-300',
-        'md:fixed md:left-0 md:top-0 md:translate-x-0',
+        'md:fixed md:left-0 md:top-0 md:translate-x-0 sidebar-glass',
         'fixed left-0 top-0',
         open ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
       )}
-      style={{
-        background: 'var(--sidebar-bg)',
-        borderRight: '1px solid var(--sidebar-border)',
-        boxShadow: '4px 0 32px rgba(0,0,0,0.4), 1px 0 0 rgba(99,102,241,0.05)',
-      }}
     >
       {/* Ambient glow */}
       <div

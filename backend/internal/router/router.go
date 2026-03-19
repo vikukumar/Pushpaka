@@ -14,8 +14,8 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
 	"github.com/vikukumar/Pushpaka/internal/config"
@@ -42,7 +42,7 @@ type ServiceRegistry struct {
 	AISvc         *services.AIService
 	WorkerSvc     *services.WorkerNodeService
 	AIExecutor    *services.AIToolsExecutor
-	
+
 	UserRepo       *repositories.UserRepository
 	ProjectRepo    *repositories.ProjectRepository
 	DeploymentRepo *repositories.DeploymentRepository
@@ -117,10 +117,10 @@ func New(
 	notifHandler := handlers.NewNotificationHandler(notifSvc)
 	oauthHandler := handlers.NewOAuthHandler(oauthSvc)
 	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
-	
+
 	// Create AI Handler
 	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo, aiConfigRepo, cfg, aiExecutor)
-	
+
 	workerHandler := handlers.NewWorkerHandler(workerSvc)
 	terminalHandler := handlers.NewTerminalHandler(deploymentRepo, cfg)
 	fileHandler := handlers.NewFileHandler(projectRepo, deploymentRepo, cfg)
@@ -296,14 +296,91 @@ func New(
 	r.Any("/app/:projectID", newDeploymentProxyHandler(deploymentRepo))
 
 	// Serve embedded frontend SPA (only when built with frontend assets).
+	var spaH http.Handler
 	if uiFS != nil {
-		spaH := newSPAHandler(uiFS)
-		r.NoRoute(func(c *gin.Context) {
-			spaH.ServeHTTP(c.Writer, c.Request)
-		})
+		spaH = newSPAHandler(uiFS)
 	}
 
+	// Root handler: 
+	// 1. Check for custom domain match -> Proxy to deployment
+	// 2. Serve SPA frontend
+	r.NoRoute(func(c *gin.Context) {
+		host := c.Request.Host
+		// Check if this host is a custom domain
+		domain, err := reg.DomainRepo.FindByDomain(host)
+		if err == nil && domain != nil {
+			// Proxy to project
+			proxyToProject(c, domain.ProjectID, reg.DeploymentRepo)
+			return
+		}
+
+		// SPA Fallback
+		if spaH != nil {
+			spaH.ServeHTTP(c.Writer, c.Request)
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"error": "path not found"})
+		}
+	})
+
 	return r
+}
+
+func proxyToProject(c *gin.Context, projectID string, repo *repositories.DeploymentRepository) {
+	// Prioritize the Default/Live deployment (Constant Endpoint)
+	d, err := repo.FindDefaultByProjectID(projectID)
+	if err != nil || d == nil {
+		// Fallback to any running deployment if no default is set
+		d, err = repo.FindRunningByProjectID(projectID)
+	}
+
+	if err != nil || d == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "no running deployment for this project"})
+		return
+	}
+	if d.ExternalPort == 0 {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "deployment has no exposed port yet"})
+		return
+	}
+
+	target, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", d.ExternalPort))
+	proxy := httputil.NewSingleHostReverseProxy(target)
+
+	// Custom error handler to log proxy failures (502)
+	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
+		log.Error().Err(err).
+			Str("project_id", projectID).
+			Int("port", d.ExternalPort).
+			Str("worker_id", d.WorkerID).
+			Msg("Deployment proxy error")
+		w.WriteHeader(http.StatusBadGateway)
+	}
+
+	if d.WorkerID != "" && d.WorkerID != "local" {
+		session, err := tunnel.GlobalManager.GetSession(d.WorkerID)
+		if err != nil {
+			c.JSON(http.StatusBadGateway, gin.H{"error": "remote worker tunnel is offline"})
+			return
+		}
+
+		// Inform the remote worker's yamux acceptor which local port to forward to
+		originalDirector := proxy.Director
+		proxy.Director = func(req *http.Request) {
+			originalDirector(req)
+			req.Header.Set("X-Pushpaka-Target-Port", fmt.Sprintf("%d", d.ExternalPort))
+		}
+
+		proxy.Transport = &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return session.Open()
+			},
+		}
+	}
+
+	// For domain-based proxying, we don't strip prefix, 
+	// unless we want to support something like mydomain.com/prefix/
+	// For now assume the domain points to the root of the app.
+	c.Request.Host = target.Host
+	proxy.ServeHTTP(c.Writer, c.Request)
 }
 
 // newSPAHandler returns an http.Handler that serves a Next.js static export.
@@ -515,58 +592,6 @@ func resolveFile(fsys fs.FS, segments []string, file string) string {
 func newDeploymentProxyHandler(repo *repositories.DeploymentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		projectID := c.Param("projectID")
-
-		// Prioritize the Default/Live deployment (Constant Endpoint)
-		d, err := repo.FindDefaultByProjectID(projectID)
-		if err != nil || d == nil {
-			// Fallback to any running deployment if no default is set
-			d, err = repo.FindRunningByProjectID(projectID)
-		}
-
-		if err != nil || d == nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "no running deployment for this project"})
-			return
-		}
-		if d.ExternalPort == 0 {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "deployment has no exposed port yet"})
-			return
-		}
-
-		target, _ := url.Parse(fmt.Sprintf("http://127.0.0.1:%d", d.ExternalPort))
-		proxy := httputil.NewSingleHostReverseProxy(target)
-
-		// Custom error handler to log proxy failures (502)
-		proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-			log.Error().Err(err).
-				Str("project_id", projectID).
-				Int("port", d.ExternalPort).
-				Str("worker_id", d.WorkerID).
-				Msg("Deployment proxy error")
-			w.WriteHeader(http.StatusBadGateway)
-		}
-
-		if d.WorkerID != "" && d.WorkerID != "local" {
-			session, err := tunnel.GlobalManager.GetSession(d.WorkerID)
-			if err != nil {
-				c.JSON(http.StatusBadGateway, gin.H{"error": "remote worker tunnel is offline"})
-				return
-			}
-
-			// Inform the remote worker's yamux acceptor which local port to forward to
-			originalDirector := proxy.Director
-			proxy.Director = func(req *http.Request) {
-				originalDirector(req)
-				req.Header.Set("X-Pushpaka-Target-Port", fmt.Sprintf("%d", d.ExternalPort))
-			}
-
-			proxy.Transport = &http.Transport{
-				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-					// Open a new byte stream over the multiplexed websocket connection
-					return session.Open()
-				},
-			}
-		}
-
 		// Strip the /app/:projectID prefix so the downstream app sees a clean path.
 		proxyPath := c.Param("proxyPath")
 		if proxyPath == "" {
@@ -574,8 +599,7 @@ func newDeploymentProxyHandler(repo *repositories.DeploymentRepository) gin.Hand
 		}
 		c.Request.URL.Path = proxyPath
 		c.Request.URL.RawPath = proxyPath
-		c.Request.Host = target.Host
 
-		proxy.ServeHTTP(c.Writer, c.Request)
+		proxyToProject(c, projectID, repo)
 	}
 }

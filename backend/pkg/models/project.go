@@ -50,22 +50,22 @@ type Project struct {
 }
 
 type CreateProjectRequest struct {
-	Name           string `json:"name"            binding:"required,min=2,max=64"`
-	RepoURL        string `json:"repo_url"        binding:"required,url"`
-	Branch         string `json:"branch"`
-	InstallCommand string `json:"install_command"`
-	BuildCommand   string `json:"build_command"`
-	StartCommand   string `json:"start_command"`
-	RunDir         string `json:"run_dir"`
-	Port           int    `json:"port"`
-	Framework      string `json:"framework"`
-	IsPrivate      bool   `json:"is_private"`
-	GitToken       string `json:"git_token"`
-	CPULimit       string `json:"cpu_limit"`
-	MemoryLimit    string `json:"memory_limit"`
-	RestartPolicy  string `json:"restart_policy"`
-	DeployTarget   string `json:"deploy_target"`
-	K8sNamespace   string `json:"k8s_namespace"`
+	Name             string `json:"name"            binding:"required,min=2,max=64"`
+	RepoURL          string `json:"repo_url"        binding:"required,url"`
+	Branch           string `json:"branch"`
+	InstallCommand   string `json:"install_command"`
+	BuildCommand     string `json:"build_command"`
+	StartCommand     string `json:"start_command"`
+	RunDir           string `json:"run_dir"`
+	Port             int    `json:"port"`
+	Framework        string `json:"framework"`
+	IsPrivate        bool   `json:"is_private"`
+	GitToken         string `json:"git_token"`
+	CPULimit         string `json:"cpu_limit"`
+	MemoryLimit      string `json:"memory_limit"`
+	RestartPolicy    string `json:"restart_policy"`
+	DeployTarget     string `json:"deploy_target"`
+	K8sNamespace     string `json:"k8s_namespace"`
 	MaxDeployments   int    `json:"max_deployments"` // Default: 2 (1 main + 1 testing)
 	MaxBackups       int    `json:"max_backups"`     // Default: 3
 	AutoSyncEnabled  bool   `json:"auto_sync_enabled"`
@@ -85,12 +85,12 @@ type UpdateProjectRequest struct {
 	Framework      string `json:"framework"`
 	IsPrivate      bool   `json:"is_private"`
 	// GitToken -- if empty the existing stored token is preserved.
-	GitToken       string `json:"git_token"`
-	CPULimit       string `json:"cpu_limit"`
-	MemoryLimit    string `json:"memory_limit"`
-	RestartPolicy  string `json:"restart_policy"`
-	DeployTarget   string `json:"deploy_target"`
-	K8sNamespace   string `json:"k8s_namespace"`
+	GitToken         string `json:"git_token"`
+	CPULimit         string `json:"cpu_limit"`
+	MemoryLimit      string `json:"memory_limit"`
+	RestartPolicy    string `json:"restart_policy"`
+	DeployTarget     string `json:"deploy_target"`
+	K8sNamespace     string `json:"k8s_namespace"`
 	MaxDeployments   int    `json:"max_deployments"`
 	MaxBackups       int    `json:"max_backups"`
 	AutoSyncEnabled  *bool  `json:"auto_sync_enabled"` // Pointer to distinguish false from unset

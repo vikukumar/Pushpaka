@@ -165,6 +165,7 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	authSvc := services.NewAuthService(userRepo, cfg)
 	projectSvc := services.NewProjectService(projectRepo)
 	deploymentSvc := services.NewDeploymentService(deploymentRepo, projectRepo, envRepo, domainRepo, rdb, opts.InProcessQueue, cfg.BaseURL)
+	projectSvc.SetDeploymentService(deploymentSvc)
 	logSvc := services.NewLogService(logRepo)
 	domainSvc := services.NewDomainService(domainRepo, projectRepo)
 	envSvc := services.NewEnvService(envRepo, projectRepo)
@@ -205,6 +206,10 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 
 	// Background Tasks
 	go deploymentSvc.StartAutoSyncLoop(ctx)
+
+	// AI Monitoring Service
+	aiMonitorSvc := services.NewAIMonitorService(aiSvc, aiConfigRepo, deploymentRepo, logRepo)
+	go aiMonitorSvc.Start(ctx)
 
 	// Graceful Shutdown
 	go func() {

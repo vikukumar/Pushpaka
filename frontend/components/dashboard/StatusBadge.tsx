@@ -12,8 +12,13 @@ const config: Record<DeploymentStatus, { label: string; dot: string; class: stri
 export function StatusBadge({ status }: { status: DeploymentStatus }) {
   const c = config[status] ?? config.stopped
   return (
-    <span className={cn(c.class)}>
-      <span className={cn('w-1.5 h-1.5 rounded-full', c.dot)} />
+    <span className={cn('px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-sm', c.class)}>
+      <span className={cn('w-1.5 h-1.5 rounded-full ring-2 ring-opacity-20', c.dot, 
+        status === 'running' ? 'ring-emerald-400' : 
+        status === 'building' ? 'ring-amber-400' : 
+        status === 'failed' ? 'ring-red-400' : 
+        status === 'queued' ? 'ring-blue-400' : 'ring-slate-400'
+      )} />
       {c.label}
     </span>
   )

@@ -9,7 +9,7 @@ import { StatusBadge } from '@/components/dashboard/StatusBadge'
 import { LogViewer } from '@/components/dashboard/LogViewer'
 import { Deployment, DeploymentLog } from '@/types'
 import { timeAgo, formatDate } from '@/lib/utils'
-import { ExternalLink, GitBranch, GitCommit, Clock, Loader2, RotateCcw, Sparkles, Terminal, Trash2, ChevronDown, ChevronUp, AlertTriangle, Wrench, RefreshCw } from 'lucide-react'
+import { ExternalLink, GitBranch, GitCommit, Clock, Loader2, RotateCcw, Sparkles, Terminal, Trash2, ChevronDown, ChevronUp, AlertTriangle, Wrench, RefreshCw, Rocket } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // ---------------------------------------------------------------------------
@@ -231,8 +231,9 @@ export default function DeploymentDetailPage() {
     try {
       const res = await aiApi.analyzeLogs(id)
       setAnalysis(res.data?.analysis ?? 'No analysis returned.')
-    } catch {
-      toast.error('AI analysis failed. Check AI_PROVIDER / AI_API_KEY env vars.')
+    } catch (e: any) {
+      const errMsg = e.response?.data?.error || 'AI analysis failed. Check your AI configuration in Settings.'
+      toast.error(errMsg)
     } finally {
       setAnalyzing(false)
     }
@@ -250,6 +251,17 @@ export default function DeploymentDetailPage() {
       toast.error('Failed to delete deployment')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const handlePromote = async () => {
+    try {
+      await deploymentsApi.promote(id)
+      toast.success('Deployment promoted to Default!')
+      queryClient.invalidateQueries({ queryKey: ['deployment', id] })
+      queryClient.invalidateQueries({ queryKey: ['project'] })
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || 'Promotion failed')
     }
   }
 
@@ -339,6 +351,16 @@ export default function DeploymentDetailPage() {
                 <RefreshCw size={14} />
                 Restart
               </button>
+              {deployment.status === 'running' && !deployment.is_default && (
+                <button
+                  className="btn-primary text-sm flex-1 sm:flex-none justify-center"
+                  onClick={handlePromote}
+                  title="Promote to Default (Live)"
+                >
+                  <Rocket size={14} />
+                  Promote
+                </button>
+              )}
               <button
                 className="btn-secondary text-sm flex-1 sm:flex-none justify-center"
                 onClick={handleAnalyze}

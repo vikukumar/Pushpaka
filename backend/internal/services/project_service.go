@@ -14,12 +14,21 @@ import (
 
 var ErrProjectNotFound = errors.New("project not found")
 
+type DeploymentSync interface {
+	SyncRepo(userID, projectID string) (*models.Deployment, error)
+}
+
 type ProjectService struct {
-	projectRepo *repositories.ProjectRepository
+	projectRepo   *repositories.ProjectRepository
+	deploymentSvc DeploymentSync
 }
 
 func NewProjectService(projectRepo *repositories.ProjectRepository) *ProjectService {
 	return &ProjectService{projectRepo: projectRepo}
+}
+
+func (s *ProjectService) SetDeploymentService(svc DeploymentSync) {
+	s.deploymentSvc = svc
 }
 
 func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest) (*models.Project, error) {
@@ -55,22 +64,22 @@ func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest)
 			CreatedAt: now,
 			UpdatedAt: now,
 		},
-		UserID:         userID,
-		Name:           req.Name,
-		RepoURL:        req.RepoURL,
-		Branch:         branch,
-		InstallCommand: req.InstallCommand,
-		BuildCommand:   req.BuildCommand,
-		StartCommand:   req.StartCommand,
-		RunDir:         req.RunDir,
-		Port:           port,
-		Framework:      req.Framework,
-		Status:         "inactive",
-		IsPrivate:      req.IsPrivate,
-		GitToken:       req.GitToken,
-		CPULimit:       req.CPULimit,
-		MemoryLimit:    req.MemoryLimit,
-		RestartPolicy:  restart,
+		UserID:           userID,
+		Name:             req.Name,
+		RepoURL:          req.RepoURL,
+		Branch:           branch,
+		InstallCommand:   req.InstallCommand,
+		BuildCommand:     req.BuildCommand,
+		StartCommand:     req.StartCommand,
+		RunDir:           req.RunDir,
+		Port:             port,
+		Framework:        req.Framework,
+		Status:           "inactive",
+		IsPrivate:        req.IsPrivate,
+		GitToken:         req.GitToken,
+		CPULimit:         req.CPULimit,
+		MemoryLimit:      req.MemoryLimit,
+		RestartPolicy:    restart,
 		DeployTarget:     req.DeployTarget,
 		K8sNamespace:     req.K8sNamespace,
 		AutoSyncEnabled:  req.AutoSyncEnabled,
@@ -80,6 +89,12 @@ func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest)
 	if err := s.projectRepo.Create(p); err != nil {
 		return nil, fmt.Errorf("creating project: %w", err)
 	}
+
+	// Trigger initial sync to fetch commit metadata
+	if s.deploymentSvc != nil {
+		go s.deploymentSvc.SyncRepo(userID, p.ID)
+	}
+
 	return p, nil
 }
 
@@ -142,6 +157,12 @@ func (s *ProjectService) Update(id, userID string, req *models.UpdateProjectRequ
 	if err := s.projectRepo.Update(p); err != nil {
 		return nil, fmt.Errorf("updating project: %w", err)
 	}
+
+	// Trigger sync if branch or repo changed
+	if s.deploymentSvc != nil {
+		go s.deploymentSvc.SyncRepo(userID, p.ID)
+	}
+
 	return p, nil
 }
 

@@ -65,10 +65,13 @@ func (h *FileHandler) projectDir(c *gin.Context) (string, bool) {
 			if _, err := os.Stat(clonePath); err == nil {
 				return clonePath, true
 			}
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"error": "no deployment found for this project — trigger a deployment first"})
+			return "", false
 		}
 	}
 
-	c.JSON(http.StatusNotFound, gin.H{"error": "no source files found — trigger a deployment first"})
+	c.JSON(http.StatusNotFound, gin.H{"error": "source files missing from server. deployDir: " + h.deployDir})
 	return "", false
 }
 

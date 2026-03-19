@@ -5,76 +5,85 @@
   /* = THEME CSS VARIABLES = */
   :root,
   .dark {
-    --bg-base:              #0b1120;
-    --bg-elevated:          #111c30;
-    --bg-card:              #162038;
-    --bg-card-gradient:     linear-gradient(150deg, #1a2844 0%, #111c30 45%, #14213a 100%);
-    --border-color:         rgba(99, 102, 241, 0.18);
-    --border-subtle:        rgba(99, 102, 241, 0.10);
-    --text-primary:         #e2e8f0;
+    --bg-base:              #020617; /* Deeper Slate */
+    --bg-elevated:          #0f172a;
+    --bg-card:              #1e293b;
+    --bg-card-gradient:     linear-gradient(165deg, #1e293b 0%, #0f172a 100%);
+    --border-color:         rgba(148, 163, 184, 0.1);
+    --border-subtle:        rgba(148, 163, 184, 0.05);
+    --text-primary:         #f8fafc;
     --text-secondary:       #94a3b8;
-    --text-muted:           #475569;
-    --header-bg:            rgba(11, 17, 32, 0.97);
-    --header-border:        rgba(99, 102, 241, 0.12);
-    --header-title:         linear-gradient(90deg, #f1f5f9 0%, #94a3b8 100%);
-    --sidebar-bg:           linear-gradient(175deg, #0e1c32 0%, #091520 60%, #0c1b2e 100%);
-    --sidebar-border:       rgba(99, 102, 241, 0.12);
-    --input-bg:             linear-gradient(135deg, #0e1c30 0%, #0b1728 100%);
-    --input-color:          #f1f5f9;
-    --input-placeholder:    #475569;
-    --label-color:          #cbd5e1;
-    --scroll-track:         #0b1120;
-    --scroll-thumb:         rgba(99, 102, 241, 0.25);
-    --scroll-thumb-h:       rgba(99, 102, 241, 0.5);
+    --text-muted:           #64748b;
+    --header-bg:            rgba(2, 6, 23, 0.85); /* Glassmorphism */
+    --header-border:        rgba(148, 163, 184, 0.1);
+    --header-title:         linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+    --sidebar-bg:           #020617;
+    --sidebar-border:       rgba(148, 163, 184, 0.1);
+    --input-bg:             #0f172a;
+    --input-color:          #f8fafc;
+    --input-placeholder:    #64748b;
+    --label-color:          #94a3b8;
+    --scroll-track:         #020617;
+    --scroll-thumb:         rgba(148, 163, 184, 0.2);
+    --scroll-thumb-h:       rgba(148, 163, 184, 0.3);
     --toast-bg:             #1e293b;
-    --toast-color:          #e2e8f0;
-    --toast-border:         #334155;
-    --card-sheen:           linear-gradient(90deg, transparent 5%, rgba(99,102,241,0.5) 30%, rgba(6,182,212,0.4) 70%, transparent 95%);
-    --card-ambient:         linear-gradient(135deg, rgba(99,102,241,0.04) 0%, transparent 45%, rgba(6,182,212,0.03) 100%);
-    --select-dropdown-bg:   #0d1525;
-    --surface-elevated:     #111c30;
+    --toast-color:          #f8fafc;
+    --toast-border:         rgba(148, 163, 184, 0.1);
+    --card-sheen:           linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%);
+    --card-ambient:         radial-gradient(circle at top left, rgba(99,102,241,0.05) 0%, transparent 70%);
+    --select-dropdown-bg:   #0f172a;
+    --surface-elevated:     #1e293b;
+    
+    --brand-primary:        #6366f1;
+    --brand-secondary:      #4f46e5;
+    --brand-glow:           rgba(99, 102, 241, 0.15);
   }
 
   .light {
-    --bg-base:              #f0f4ff;
+    --bg-base:              #f8fafc; /* Clean Slate/Gray */
     --bg-elevated:          #ffffff;
     --bg-card:              #ffffff;
-    --bg-card-gradient:     linear-gradient(150deg, #ffffff 0%, #fafbff 45%, #f5f7ff 100%);
-    --border-color:         rgba(99, 102, 241, 0.13);
-    --border-subtle:        rgba(99, 102, 241, 0.08);
+    --bg-card-gradient:     linear-gradient(165deg, #ffffff 0%, #f8fafc 100%);
+    --border-color:         rgba(15, 23, 42, 0.08);
+    --border-subtle:        rgba(15, 23, 42, 0.04);
     --text-primary:         #0f172a;
     --text-secondary:       #475569;
     --text-muted:           #94a3b8;
-    --header-bg:            rgba(255, 255, 255, 0.97);
-    --header-border:        rgba(99, 102, 241, 0.1);
-    --header-title:         linear-gradient(90deg, #1e1b4b 0%, #4338ca 100%);
-    --sidebar-bg:           linear-gradient(175deg, #1e1b4b 0%, #312e81 60%, #1e1b4b 100%);
-    --sidebar-border:       rgba(79, 70, 229, 0.25);
-    --input-bg:             linear-gradient(135deg, #f8faff 0%, #f1f5ff 100%);
+    --header-bg:            rgba(255, 255, 255, 0.85);
+    --header-border:        rgba(15, 23, 42, 0.08);
+    --header-title:         linear-gradient(135deg, #0f172a 0%, #334155 100%);
+    --sidebar-bg:           #ffffff;
+    --sidebar-border:       rgba(15, 23, 42, 0.08);
+    --input-bg:             #f1f5f9;
     --input-color:          #0f172a;
     --input-placeholder:    #94a3b8;
-    --label-color:          #374151;
-    --scroll-track:         #f0f4ff;
-    --scroll-thumb:         rgba(99, 102, 241, 0.2);
-    --scroll-thumb-h:       rgba(99, 102, 241, 0.4);
+    --label-color:          #475569;
+    --scroll-track:         #f8fafc;
+    --scroll-thumb:         rgba(15, 23, 42, 0.1);
+    --scroll-thumb-h:       rgba(15, 23, 42, 0.2);
     --toast-bg:             #ffffff;
     --toast-color:          #0f172a;
-    --toast-border:         rgba(99,102,241,0.15);
-    --card-sheen:           linear-gradient(90deg, transparent 5%, rgba(99,102,241,0.18) 30%, rgba(6,182,212,0.12) 70%, transparent 95%);
-    --card-ambient:         linear-gradient(135deg, rgba(99,102,241,0.03) 0%, transparent 45%, rgba(6,182,212,0.02) 100%);
+    --toast-border:         rgba(15, 23, 42, 0.08);
+    --card-sheen:           linear-gradient(90deg, transparent 0%, rgba(15,23,42,0.02) 50%, transparent 100%);
+    --card-ambient:         radial-gradient(circle at top left, rgba(99,102,241,0.03) 0%, transparent 70%);
     --select-dropdown-bg:   #ffffff;
     --surface-elevated:     #ffffff;
+
+    --brand-primary:        #4f46e5;
+    --brand-secondary:      #4338ca;
+    --brand-glow:           rgba(79, 70, 229, 0.1);
   }
 
   html {
     scroll-behavior: smooth;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
   body {
     background: var(--bg-base);
     color: var(--text-primary);
-    transition: background-color 0.25s ease, color 0.2s ease;
-    background: #0b1120;
+    transition: background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.3s ease;
+    min-height: 100vh;
   }
 
   * {
@@ -94,149 +103,113 @@
 }
 
 @layer components {
-  /* =
-     METALLIC CARD
-  = */
+  /* = ENTERPRISE CARD = */
   .card {
     position: relative;
     background: var(--bg-card-gradient);
     border: 1px solid var(--border-color);
-    border-radius: 0.875rem;
+    border-radius: 12px;
     padding: 1.5rem;
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.06),
-      inset 0 -1px 0 rgba(0, 0, 0, 0.2),
-      0 2px 8px rgba(0, 0, 0, 0.35),
-      0 8px 32px -4px rgba(0, 0, 0, 0.55),
-      0 0 0 1px rgba(99, 102, 241, 0.04);
-    transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     overflow: hidden;
   }
-  /* Top metallic sheen line */
   .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: var(--card-sheen);
-    pointer-events: none;
-    z-index: 1;
-  }
-  /* Ambient gradient tint */
-  .card::after {
     content: '';
     position: absolute;
     inset: 0;
     background: var(--card-ambient);
     pointer-events: none;
-    border-radius: inherit;
+  }
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--brand-primary);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 
-  /* =
-     BUTTONS
-  = */
+  /* = ENTERPRISE BUTTONS = */
   .btn-primary {
-    position: relative;
-    overflow: hidden;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     color: white;
-    background: linear-gradient(135deg, #3730a3 0%, #4f46e5 50%, #6366f1 100%);
-    border: 1px solid rgba(99, 102, 241, 0.5);
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.14),
-      0 2px 8px rgba(79, 70, 229, 0.4),
-      0 1px 2px rgba(0, 0, 0, 0.3);
-    transition: box-shadow 0.2s ease, transform 0.15s ease;
+    background: var(--brand-primary);
+    border: 1px solid var(--brand-secondary);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
-    text-decoration: none;
-    user-select: none;
-    white-space: nowrap;
-  }
-  .btn-primary::after {
-    content: '';
-    position: absolute;
-    top: 0; left: -100%;
-    width: 100%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
-    transition: left 0.5s ease;
-    pointer-events: none;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   }
   .btn-primary:hover {
-    box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.18),
-      0 4px 20px rgba(99, 102, 241, 0.55),
-      0 2px 4px rgba(0, 0, 0, 0.3);
+    background: var(--brand-secondary);
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
     transform: translateY(-1px);
   }
-  .btn-primary:hover::after { left: 100%; }
-  .btn-primary:active        { transform: translateY(0); }
-  .btn-primary:disabled      { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-primary:active {
+    transform: translateY(0);
+  }
 
   .btn-secondary {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--text-secondary);
-    background: var(--input-bg);
+    color: var(--text-primary);
+    background: var(--bg-elevated);
     border: 1px solid var(--border-color);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    transition: all 0.2s ease;
+    transition: all 0.2s;
     cursor: pointer;
-    text-decoration: none;
-    user-select: none;
   }
   .btn-secondary:hover {
-    color: var(--text-primary);
-    border-color: rgba(99, 102, 241, 0.38);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--bg-card);
+    border-color: var(--text-secondary);
   }
 
   .btn-danger {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border-radius: 8px;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #f87171;
-    background: rgba(220, 38, 38, 0.07);
-    border: 1px solid rgba(220, 38, 38, 0.2);
-    transition: all 0.2s ease;
-    cursor: pointer;
-    text-decoration: none;
-    user-select: none;
+    color: #ef4444;
+    background: transparent;
+    border: 1px solid #fee2e2;
+    transition: all 0.2s;
   }
+  .light .btn-danger { border-color: #fee2e2; }
+  .dark .btn-danger { border-color: #991b1b; background: rgba(220, 38, 38, 0.1); }
+  
   .btn-danger:hover {
-    color: #fca5a5;
-    background: rgba(220, 38, 38, 0.13);
-    border-color: rgba(220, 38, 38, 0.38);
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
   }
 
-  /* =
-     FORM INPUTS
-  = */
+  /* = MODERN INPUTS = */
   .input {
     width: 100%;
-    padding: 0.5rem 0.75rem;
-    border-radius: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: 8px;
     font-size: 0.875rem;
     color: var(--input-color);
     background: var(--input-bg);
     border: 1px solid var(--border-color);
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s, background 0.25s, color 0.25s;
+  }
+  .input:focus {
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 3px var(--brand-glow);
   }
   /* Native <select> ignores gradient backgrounds — use a flat colour fallback */
   select.input {
@@ -306,6 +279,44 @@
     border: 1px solid rgba(71, 85, 105, 0.35);
     color: #94a3b8;
   }
+
+  /* = UTILITIES & ANIMATIONS = */
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+  }
+  .animate-slide-up {
+    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-pulse-subtle {
+    animation: pulseSubtle 2.5s ease-in-out infinite;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulseSubtle {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(0.98); }
+  }
+
+  /* Glassmorphism Sidebar */
+  .sidebar-glass {
+    background: var(--header-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-right: 1px solid var(--border-color);
+  }
+
+  /* Smooth scrollbars for all */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scroll-thumb) transparent;
+  }
 }
 
 /* =
@@ -313,18 +324,10 @@
    inside box-shadow gradient easily, so we override here)
 = */
 .light .card {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 1px 3px rgba(99, 102, 241, 0.07),
-    0 4px 20px rgba(99, 102, 241, 0.06),
-    0 0 0 1px rgba(99, 102, 241, 0.05);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1);
 }
 .light .card:hover {
-  border-color: rgba(99, 102, 241, 0.2);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.9),
-    0 2px 8px rgba(99, 102, 241, 0.1),
-    0 8px 30px rgba(99, 102, 241, 0.08);
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.04);
 }
 
 /* Light mode: select dropdown needs dark text on white bg */
