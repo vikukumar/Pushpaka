@@ -13,9 +13,10 @@ import { GitBranch, GitCommit, ExternalLink, Rocket, Trash2, Lock } from 'lucide
 interface ProjectCardProps {
   project: Project
   latestDeployment?: Deployment
+  runningCount?: number
 }
 
-export function ProjectCard({ project, latestDeployment }: ProjectCardProps) {
+export function ProjectCard({ project, latestDeployment, runningCount = 0 }: ProjectCardProps) {
   const queryClient = useQueryClient()
   const [deleting, setDeleting] = useState(false)
 
@@ -35,15 +36,20 @@ export function ProjectCard({ project, latestDeployment }: ProjectCardProps) {
   }
 
   return (
-    <div className="card hover:border-brand-500/30 transition-all group">
+    <div className="card hover:border-brand-500/30 transition-all group animate-fade-in shadow-sm">
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1 min-w-0">
           <Link
             href={`/dashboard/projects/${project.id}`}
-            className="text-base font-semibold text-white hover:text-brand-300 transition-colors inline-flex items-center gap-1.5"
+            className="text-base font-semibold text-[var(--text-primary)] hover:text-[var(--brand-primary)] transition-colors inline-flex items-center gap-1.5"
           >
             {project.is_private && <Lock size={12} className="text-slate-500 shrink-0" />}
             {project.name}
+            {runningCount > 0 && (
+              <span className="ml-2 px-1.5 py-0.5 text-[9px] font-bold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-md animate-pulse-subtle">
+                {runningCount} Running
+              </span>
+            )}
           </Link>
           <p className="text-xs text-slate-500 mt-0.5 truncate">{project.repo_url}</p>
         </div>
@@ -96,7 +102,7 @@ export function ProjectCard({ project, latestDeployment }: ProjectCardProps) {
         )}
         <Link
           href={`/dashboard/projects/${project.id}/deployments`}
-          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors ml-auto"
+          className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-[var(--brand-primary)] transition-colors ml-auto"
         >
           <Rocket size={12} />
           {latestDeployment ? 'History' : 'No deployments'}

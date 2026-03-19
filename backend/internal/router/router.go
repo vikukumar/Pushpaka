@@ -301,7 +301,7 @@ func New(
 		spaH = newSPAHandler(uiFS)
 	}
 
-	// Root handler: 
+	// Root handler:
 	// 1. Check for custom domain match -> Proxy to deployment
 	// 2. Serve SPA frontend
 	r.NoRoute(func(c *gin.Context) {
@@ -376,7 +376,7 @@ func proxyToProject(c *gin.Context, projectID string, repo *repositories.Deploym
 		}
 	}
 
-	// For domain-based proxying, we don't strip prefix, 
+	// For domain-based proxying, we don't strip prefix,
 	// unless we want to support something like mydomain.com/prefix/
 	// For now assume the domain points to the root of the app.
 	c.Request.Host = target.Host

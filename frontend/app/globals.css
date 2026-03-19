@@ -3,52 +3,16 @@
 
 @layer base {
   /* = THEME CSS VARIABLES = */
-  :root,
-  .dark {
-    --bg-base:              #020617; /* Deeper Slate */
-    --bg-elevated:          #0f172a;
-    --bg-card:              #1e293b;
-    --bg-card-gradient:     linear-gradient(165deg, #1e293b 0%, #0f172a 100%);
-    --border-color:         rgba(148, 163, 184, 0.1);
-    --border-subtle:        rgba(148, 163, 184, 0.05);
-    --text-primary:         #f8fafc;
-    --text-secondary:       #94a3b8;
-    --text-muted:           #64748b;
-    --header-bg:            rgba(2, 6, 23, 0.85); /* Glassmorphism */
-    --header-border:        rgba(148, 163, 184, 0.1);
-    --header-title:         linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
-    --sidebar-bg:           #020617;
-    --sidebar-border:       rgba(148, 163, 184, 0.1);
-    --input-bg:             #0f172a;
-    --input-color:          #f8fafc;
-    --input-placeholder:    #64748b;
-    --label-color:          #94a3b8;
-    --scroll-track:         #020617;
-    --scroll-thumb:         rgba(148, 163, 184, 0.2);
-    --scroll-thumb-h:       rgba(148, 163, 184, 0.3);
-    --toast-bg:             #1e293b;
-    --toast-color:          #f8fafc;
-    --toast-border:         rgba(148, 163, 184, 0.1);
-    --card-sheen:           linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%);
-    --card-ambient:         radial-gradient(circle at top left, rgba(99,102,241,0.05) 0%, transparent 70%);
-    --select-dropdown-bg:   #0f172a;
-    --surface-elevated:     #1e293b;
-    
-    --brand-primary:        #6366f1;
-    --brand-secondary:      #4f46e5;
-    --brand-glow:           rgba(99, 102, 241, 0.15);
-  }
-
-  .light {
-    --bg-base:              #f8fafc; /* Clean Slate/Gray */
+  :root {
+    --bg-base:              #f8fafc;
     --bg-elevated:          #ffffff;
     --bg-card:              #ffffff;
     --bg-card-gradient:     linear-gradient(165deg, #ffffff 0%, #f8fafc 100%);
     --border-color:         rgba(15, 23, 42, 0.08);
     --border-subtle:        rgba(15, 23, 42, 0.04);
     --text-primary:         #0f172a;
-    --text-secondary:       #475569;
-    --text-muted:           #94a3b8;
+    --text-secondary:       #334155;
+    --text-muted:           #64748b;
     --header-bg:            rgba(255, 255, 255, 0.85);
     --header-border:        rgba(15, 23, 42, 0.08);
     --header-title:         linear-gradient(135deg, #0f172a 0%, #334155 100%);
@@ -72,6 +36,41 @@
     --brand-primary:        #4f46e5;
     --brand-secondary:      #4338ca;
     --brand-glow:           rgba(79, 70, 229, 0.1);
+  }
+
+  .dark {
+    --bg-base:              #020617;
+    --bg-elevated:          #0f172a;
+    --bg-card:              #1e293b;
+    --bg-card-gradient:     linear-gradient(165deg, #1e293b 0%, #0f172a 100%);
+    --border-color:         rgba(148, 163, 184, 0.1);
+    --border-subtle:        rgba(148, 163, 184, 0.05);
+    --text-primary:         #f8fafc;
+    --text-secondary:       #94a3b8;
+    --text-muted:           #64748b;
+    --header-bg:            rgba(2, 6, 23, 0.85);
+    --header-border:        rgba(148, 163, 184, 0.1);
+    --header-title:         linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%);
+    --sidebar-bg:           #020617;
+    --sidebar-border:       rgba(148, 163, 184, 0.1);
+    --input-bg:             #0f172a;
+    --input-color:          #f8fafc;
+    --input-placeholder:    #64748b;
+    --label-color:          #94a3b8;
+    --scroll-track:         #020617;
+    --scroll-thumb:         rgba(148, 163, 184, 0.2);
+    --scroll-thumb-h:       rgba(148, 163, 184, 0.3);
+    --toast-bg:             #1e293b;
+    --toast-color:          #f8fafc;
+    --toast-border:         rgba(148, 163, 184, 0.1);
+    --card-sheen:           linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.03) 50%, transparent 100%);
+    --card-ambient:         radial-gradient(circle at top left, rgba(99,102,241,0.05) 0%, transparent 70%);
+    --select-dropdown-bg:   #0f172a;
+    --surface-elevated:     #1e293b;
+    
+    --brand-primary:        #6366f1;
+    --brand-secondary:      #4f46e5;
+    --brand-glow:           rgba(99, 102, 241, 0.15);
   }
 
   html {
@@ -312,12 +311,37 @@
     border-right: 1px solid var(--border-color);
   }
 
+  /* = STAGGERED ANIMATIONS = */
+  .delay-100 { animation-delay: 0.1s; }
+  .delay-200 { animation-delay: 0.2s; }
+  .delay-300 { animation-delay: 0.3s; }
+  .delay-400 { animation-delay: 0.4s; }
+
+  /* Theme-aware backgrounds */
+  .bg-deployment-list {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-color);
+  }
+  .dark .bg-deployment-list {
+    background: linear-gradient(150deg, #1a2844 0%, #111c30 45%, #14213a 100%);
+    border: 1px solid rgba(99, 102, 241, 0.18);
+  }
+
   /* Smooth scrollbars for all */
   * {
     scrollbar-width: thin;
     scrollbar-color: var(--scroll-thumb) transparent;
   }
 }
+
+/* =
+   TEXT OVERRIDES FOR LIGHT MODE
+= */
+.light .text-slate-300 { color: #475569; }
+.light .text-slate-200 { color: #1e293b; }
+.light .text-slate-600 { color: #64748b; }
+.light .text-slate-500 { color: #64748b; }
+.light .text-slate-700 { color: #334155; }
 
 /* =
    LIGHT MODE -- card shadow overrides (can't use CSS var

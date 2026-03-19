@@ -93,6 +93,8 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
 - 🔀 **Multi-project** — unlimited projects per user
 - 👥 **Multi-user** — team-ready with role-based access (admin/user)
 - 🗑️ **Project management** — create, update settings, and delete projects from the dashboard
+- 🎯 **Promote to Default** — Mark any successful deployment as "Default" to provide a stable, constant endpoint for users and custom domains.
+- 📈 **Running Counts** — Instant visibility into the number of active deployments per project directly on the dashboard.
 
 ### Infrastructure
 - 🛰️ **Distributed Worker Engine** — scale execution across remote `Vaahan` or `Hybrid` nodes
@@ -107,9 +109,11 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
 - 📡 **Real-time logs** — WebSocket streaming during builds with level/stream filtering
 - 🌍 **Custom domains** — map any domain to any project
 - 🔑 **Environment variables** — secure write-only storage, keys visible, values never returned
-- 🌓 **Custom dark/light mode** — CSS-variable-based theming, localStorage persistence, system preference detection, animated toggle
+- 🌓 **Premium Enterprise UI** — Clean, responsive design with glassmorphism, staggered animations, and perfected dark/light modes.
 - 📦 **Single binary dev mode** — `pushpaka -dev` starts everything with SQLite + in-process queue
 - 🧰 **Package manager auto-detect** — build steps auto-detect `npm` / `yarn` / `pnpm` / `bun`, with PATH fallback
+- 🤖 **AI Assistant** — Integrated AI for intelligent log analysis, deployment troubleshooting, and live support.
+- 🔄 **Live Updates** — Real-time dashboard polling for instantaneous status feedback.
 
 ### Security
 - 🔒 **JWT v5 + API key authentication**
@@ -289,7 +293,9 @@ Full documentation: [docs/api.md](docs/api.md)
 | POST | `/api/v1/deployments` | Trigger deployment |
 | GET | `/api/v1/deployments/:id` | Get deployment |
 | POST | `/api/v1/deployments/:id/rollback` | Rollback to previous |
+| POST | `/api/v1/deployments/:id/promote` | Promote to Default (Constant Endpoint) |
 | GET | `/api/v1/logs/:id` | Get deployment logs |
+| POST | `/api/v1/deployments/:id/analyze` | AI Log Analysis & Fix Suggestions |
 | WS | `/api/v1/logs/:id/stream` | Stream logs live (WebSocket + JWT) |
 | POST | `/api/v1/domains` | Add custom domain |
 | POST | `/api/v1/env` | Set env variable |

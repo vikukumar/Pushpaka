@@ -98,13 +98,13 @@ function NavGroupSection({ group, close }: { group: NavGroup; close: () => void 
                 className={cn(
                   'relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium',
                   'transition-all duration-200 group overflow-hidden',
-                  isActive ? 'text-white' : 'text-slate-500 hover:text-slate-300'
+                  isActive ? 'text-[var(--text-primary)]' : 'text-slate-500 hover:text-slate-300'
                 )}
                 style={
                   isActive
                     ? {
-                        background: 'linear-gradient(90deg, rgba(99,102,241,0.22) 0%, rgba(99,102,241,0.07) 55%, transparent 100%)',
-                        boxShadow: 'inset 3px 0 0 #818cf8, inset 0 1px 0 rgba(255,255,255,0.04)',
+                        background: 'linear-gradient(90deg, var(--brand-glow) 0%, transparent 100%)',
+                        boxShadow: 'inset 3px 0 0 var(--brand-primary), inset 0 1px 0 var(--border-subtle)',
                       }
                     : undefined
                 }
@@ -164,7 +164,7 @@ export function Sidebar() {
       {/* Logo */}
       <div
         className="px-5 py-4 relative shrink-0 flex items-center justify-between"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        style={{ borderBottom: '1px solid var(--border-color)' }}
       >
         <Link href="/dashboard" onClick={close} className="flex items-center gap-3 group">
           <div
@@ -189,7 +189,7 @@ export function Sidebar() {
             <div
               className="font-bold tracking-tight text-[15px] leading-none"
               style={{
-                background: 'linear-gradient(90deg, #a5b4fc 0%, #818cf8 50%, #c4b5fd 100%)',
+                background: 'var(--header-title)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -202,7 +202,7 @@ export function Sidebar() {
             </div>
           </div>
         </Link>
-        <button onClick={close} className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/10 transition-colors">
+        <button onClick={close} className="md:hidden p-1.5 rounded-lg text-slate-500 hover:text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-colors">
           <X size={16} />
         </button>
       </div>
@@ -256,7 +256,7 @@ export function Sidebar() {
         })}
 
         {/* Divider */}
-        <div className="my-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+        <div className="my-2 border-t border-[var(--border-subtle)]" />
 
         {/* Groups */}
         {navGroups.map((group) => (
@@ -264,7 +264,7 @@ export function Sidebar() {
         ))}
 
         {/* Divider */}
-        <div className="my-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.05)' }} />
+        <div className="my-2 border-t border-[var(--border-subtle)]" />
 
         {/* Settings */}
         {(() => {
@@ -308,10 +308,9 @@ export function Sidebar() {
       </nav>
 
       {/* User section */}
-      <div className="p-3 relative shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+      <div className="p-3 relative shrink-0 border-t border-[var(--border-subtle)]">
         <div
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-default"
-          style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(99,102,241,0.07)' }}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-default border border-[var(--border-subtle)] bg-[var(--bg-elevated)]"
         >
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
@@ -320,8 +319,8 @@ export function Sidebar() {
             {user?.name?.[0]?.toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-slate-200 truncate">{user?.name}</div>
-            <div className="text-[11px] text-slate-600 truncate">{user?.email}</div>
+            <div className="text-sm font-medium text-[var(--text-primary)] truncate">{user?.name}</div>
+            <div className="text-[11px] text-slate-500 truncate">{user?.email}</div>
           </div>
           <button onClick={handleLogout} className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded shrink-0" title="Sign out">
             <LogOut size={14} />

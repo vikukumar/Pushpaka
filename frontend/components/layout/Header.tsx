@@ -24,7 +24,7 @@ export function Header({ title, subtitle, actions }: HeaderProps) {
       <div className="flex items-center gap-3">
         <button
           onClick={toggleSidebar}
-          className="md:hidden p-2 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/10 transition-colors"
+          className="md:hidden p-2 rounded-lg text-slate-500 hover:text-[var(--text-primary)] hover:bg-[var(--border-subtle)] transition-colors"
           aria-label="Open menu"
         >
           <Menu size={18} />

@@ -84,16 +84,19 @@ export default function DashboardPage() {
 
         {/* """ Stat cards """ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {statDefs.map(({ label, key, icon: Icon, gradient, glow, iconBg, iconBorder, orb }) => (
-            <div key={label} className="card relative overflow-hidden group">
+          {statDefs.map(({ label, key, icon: Icon, gradient, glow, iconBg, iconBorder, orb }, i) => (
+            <div 
+              key={label} 
+              className={`card relative overflow-hidden group animate-slide-up delay-${(i + 1) * 100}`}
+            >
               {/* Ambient orb */}
               <div
-                className="absolute -top-6 -right-6 w-20 h-20 rounded-full pointer-events-none"
+                className="absolute -top-6 -right-6 w-20 h-20 rounded-full pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity"
                 style={{ background: `radial-gradient(circle, ${orb} 0%, transparent 70%)` }}
               />
               {/* Icon */}
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 transition-transform group-hover:scale-110"
                 style={{
                   background: iconBg,
                   border: `1px solid ${iconBorder}`,
@@ -124,7 +127,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
           {/* Projects */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-4 animate-slide-up delay-400">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Projects</h2>
               <Link href="/dashboard/projects/new" className="btn-primary text-xs py-1.5 px-3">
@@ -147,6 +150,7 @@ export default function DashboardPage() {
                     key={project.id}
                     project={project}
                     latestDeployment={deployments.find((d) => d.project_id === project.id)}
+                    runningCount={deployments.filter(d => d.project_id === project.id && d.status === 'running').length}
                   />
                 ))}
               </div>
@@ -154,7 +158,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Recent Deployments */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className="lg:col-span-1 space-y-4 animate-slide-up delay-400">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-slate-300 uppercase tracking-wider">Deployments</h2>
               <Link href="/dashboard/deployments" className="text-[11px] text-slate-600 hover:text-slate-300 transition-colors">
@@ -167,34 +171,18 @@ export default function DashboardPage() {
                 <p className="text-slate-500 text-sm">No deployments yet</p>
               </div>
             ) : (
-              <div
-                className="rounded-xl overflow-hidden"
-                style={{
-                  background: 'linear-gradient(150deg, #1a2844 0%, #111c30 45%, #14213a 100%)',
-                  border: '1px solid rgba(99,102,241,0.18)',
-                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.05)',
-                }}
-              >
+              <div className="rounded-xl overflow-hidden bg-deployment-list transition-all shadow-sm">
                 {deployments.slice(0, 7).map((d, i) => {
                   const project = projects.find((p) => p.id === d.project_id)
                   return (
                     <Link
                       key={d.id}
                       href={`/dashboard/deployments/${d.id}`}
-                      className="flex items-center gap-3 px-4 py-3 transition-all duration-150 group"
-                      style={{
-                        borderTop: i > 0 ? '1px solid rgba(99,102,241,0.07)' : 'none',
-                      }}
-                      onMouseEnter={(e) => {
-                        ;(e.currentTarget as HTMLElement).style.background = 'rgba(99,102,241,0.06)'
-                      }}
-                      onMouseLeave={(e) => {
-                        ;(e.currentTarget as HTMLElement).style.background = 'transparent'
-                      }}
+                      className="flex items-center gap-3 px-4 py-3 transition-all duration-150 group border-b border-[var(--border-subtle)] last:border-0 hover:bg-[var(--brand-glow)]"
                     >
                       <StatusBadge status={d.status} />
                       <div className="flex-1 min-w-0">
-                        <div className="text-xs font-medium text-slate-200 truncate">
+                        <div className="text-xs font-medium text-slate-200 truncate group-hover:text-[var(--brand-primary)] transition-colors">
                           {project?.name || 'Unknown'}
                         </div>
                         <div className="text-[10px] text-slate-600">{timeAgo(d.created_at)}</div>
@@ -208,7 +196,7 @@ export default function DashboardPage() {
           </div>
 
           {/* System Status */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 animate-slide-up delay-400">
             <SystemStatus />
           </div>
         </div>

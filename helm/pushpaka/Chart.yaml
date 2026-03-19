@@ -10,12 +10,12 @@ keywords:
   - git
   - docker
   - traefik
-home: https://github.com/vikukumar/Pushpaka
+home: https://pushpaka.vikshro.in/
 sources:
   - https://github.com/vikukumar/Pushpaka
 maintainers:
-  - name: Viku Kumar
-    email: vikukumar@example.com
+  - name: Vikash Kumar
+    email: vikashkumar0037@gmail.com
 icon: https://raw.githubusercontent.com/vikukumar/Pushpaka/main/branding/logo.svg
 dependencies:
   - name: traefik
