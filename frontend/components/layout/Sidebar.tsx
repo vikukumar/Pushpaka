@@ -62,6 +62,7 @@ const navGroups: NavGroup[] = [
     label: 'Infrastructure',
     icon: Server,
     items: [
+      { href: '/dashboard/infra/workers', label: 'Workers',        icon: Server },
       { href: '/dashboard/infra/docker',  label: 'Docker',         icon: Container },
       { href: '/dashboard/infra/k8s',     label: 'Kubernetes',     icon: Server },
     ],

@@ -36,13 +36,13 @@ git clone https://github.com/vikukumar/Pushpaka.git
 cd Pushpaka
 
 # Build the project
-go build -o pushpaka ./cmd/main.go
+go build -o pushpaka ./cmd/pushpaka
 
 # Run in dev mode (SQLite, no external deps)
 ./pushpaka -dev
 
 # Or run with Docker
-docker-compose up -d</pre>
+docker-compose up -d --build</pre>
           </div>
 
           <h3 class="text-xl font-bold text-white mb-4">Access Dashboard</h3>
@@ -77,13 +77,10 @@ git clone https://github.com/vikukumar/Pushpaka.git
 cd Pushpaka
 
 # Build the project
-go build -o pushpaka.exe ./cmd/main.go
+go build -o pushpaka.exe ./cmd/pushpaka
 
 # Run in dev mode
-.\pushpaka.exe -dev
-
-# Or use the build script
-.\build.ps1</pre>
+.\pushpaka.exe -dev</pre>
           </div>
 
           <h3 class="text-xl font-bold text-white mb-4">Access Dashboard</h3>
@@ -144,7 +141,42 @@ Traefik UI:   http://localhost:8081 (if enabled)</pre>
         </div>
       </div>
 
-      <!-- Kubernetes Tab -->
+      <!-- Remote Worker Tab (Vaahan) -->
+      <div class="mb-12" id="worker-install">
+        <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+          <span>🛰️</span> Remote Worker (Vaahan)
+        </h2>
+        <div class="metallic-card p-8">
+          <h3 class="text-xl font-bold text-white mb-4">Deploying a Distributed Node</h3>
+          <p class="text-gray-300 mb-6">Connect remote hardware or cloud VMs back to your Pushpaka Management API instantly.</p>
+
+          <h3 class="text-xl font-bold text-white mb-4">Installation</h3>
+          <div class="code-block mb-6">
+            <pre>
+# Build the worker binary
+go build -o pushpaka-worker ./cmd/worker
+
+# Launch as a Vaahan (serverless) node
+./pushpaka-worker \
+  --mode vaahan \
+  --server ws://your-api-domain.com \
+  --zone-pat YOUR_ZONE_PAT</pre>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-4">Configuration Details</h3>
+          <ul class="space-y-3 text-gray-300">
+            <li>
+              <strong class="text-white">Zone PAT</strong> - Generate this in the Infrastructure > Workers dashboard.
+            </li>
+            <li>
+              <strong class="text-white">Management Server</strong> - Your main API address (WSS preferred).
+            </li>
+            <li>
+              <strong class="text-white">Reverse Tunneling</strong> - No inbound ports or public IP required on the worker node.
+            </li>
+          </ul>
+        </div>
+      </div>
       <div class="mb-12">
         <h2 class="text-3xl font-bold text-white mb-6 flex items-center gap-2">
           <span>☸️</span> Kubernetes
@@ -214,22 +246,21 @@ helm install pushpaka ./helm/pushpaka -n pushpaka</pre>
           <h3 class="text-xl font-bold text-white mb-4 mt-8">Example .env File</h3>
           <div class="code-block">
             <pre>
-# Database
-DATABASE_URL=sqlite:pushpaka.db
-# DATABASE_URL=postgresql://user:pass@localhost:5432/pushpaka
+# Database (GORM)
+DATABASE_DRIVER=postgres  # postgres, mysql, sqlserver, sqlite
+DATABASE_URL=postgresql://user:pass@localhost:5432/pushpaka
 
 # Cache & Queue
 REDIS_URL=redis://localhost:6379
 
 # Server
 PORT=8080
+WORKER_PORT=8081  # Dedicated management stream
 DASHBOARD_URL=http://localhost:3000
 
 # Components
 PUSHPAKA_COMPONENT=all
-
-# Logging
-LOG_LEVEL=debug</pre>
+ZONE_ID=pushpaka-default-zone</pre>
           </div>
         </div>
       </div>

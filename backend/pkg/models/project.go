@@ -1,41 +1,39 @@
 package models
 
+import "github.com/vikukumar/Pushpaka/pkg/basemodel"
+
 type Project struct {
-	ID           string `db:"id"            json:"id"`
-	UserID       string `db:"user_id"       json:"user_id"`
-	Name         string `db:"name"          json:"name"`
-	RepoURL      string `db:"repo_url"      json:"repo_url"`
-	Branch       string `db:"branch"        json:"branch"`
-	BuildCommand string `db:"build_command" json:"build_command"`
-	StartCommand string `db:"start_command" json:"start_command"`
-	Port         int    `db:"port"          json:"port"`
-	Framework    string `db:"framework"     json:"framework"`
-	Status       string `db:"status"        json:"status"`
+	basemodel.BaseModel
+	UserID       string `gorm:"index;type:varchar(255);not null" json:"user_id"`
+	Name         string `gorm:"type:varchar(255);not null" json:"name"`
+	RepoURL      string `gorm:"type:varchar(255);not null" json:"repo_url"`
+	Branch       string `gorm:"type:varchar(100)" json:"branch"`
+	BuildCommand string `gorm:"type:text" json:"build_command"`
+	StartCommand string `gorm:"type:text" json:"start_command"`
+	Port         int    `gorm:"default:3000" json:"port"`
+	Framework    string `gorm:"type:varchar(50)" json:"framework"`
+	Status       string `gorm:"type:varchar(50);default:'created'" json:"status"`
 	// GitToken is the personal access token for cloning private repositories.
 	// It is NEVER serialised into API responses (json:"-").
-	GitToken  string `db:"git_token"     json:"-"`
-	IsPrivate bool   `db:"is_private"    json:"is_private"`
+	GitToken  string `gorm:"type:text" json:"-"`
+	IsPrivate bool   `gorm:"default:false" json:"is_private"`
 	// Build configuration
-	InstallCommand string `db:"install_command" json:"install_command"`
+	InstallCommand string `gorm:"type:text" json:"install_command"`
 	// RunDir is the subdirectory within the repo to use as the working directory.
-	RunDir string `db:"run_dir" json:"run_dir"`
-	// Resource limits -- passed through to `docker run` flags.
-	// Empty string means "no limit" (Docker default).
-	// Examples: CPULimit="0.5" (half a core), MemoryLimit="512m".
-	CPULimit      string `db:"cpu_limit"      json:"cpu_limit"`
-	MemoryLimit   string `db:"memory_limit"   json:"memory_limit"`
-	RestartPolicy string `db:"restart_policy" json:"restart_policy"`
+	RunDir string `gorm:"type:varchar(255)" json:"run_dir"`
+	// Resource limits -- passed through to docker run flags.
+	CPULimit      string `gorm:"type:varchar(50)" json:"cpu_limit"`
+	MemoryLimit   string `gorm:"type:varchar(50)" json:"memory_limit"`
+	RestartPolicy string `gorm:"type:varchar(50)" json:"restart_policy"`
 	// DeployTarget determines where the project runs: "docker" (default) or "kubernetes".
-	DeployTarget string `db:"deploy_target"  json:"deploy_target"`
-	K8sNamespace string `db:"k8s_namespace"  json:"k8s_namespace"`
+	DeployTarget string `gorm:"type:varchar(50);default:'docker'"  json:"deploy_target"`
+	K8sNamespace string `gorm:"type:varchar(255)"  json:"k8s_namespace"`
 	// Deployment limits and backup configuration
-	MaxDeployments int    `db:"max_deployments" json:"max_deployments"` // Max simultaneous deployments (default: 2)
-	MaxBackups     int    `db:"max_backups"     json:"max_backups"`     // Max backup versions kept (default: 3)
-	CloneDirectory string `db:"clone_directory" json:"clone_directory"` // Base directory for git clones
-	GitClonePath   string `db:"git_clone_path"  json:"git_clone_path"`  // Current git clone directory for project
-	MainDeployID   string `db:"main_deploy_id"  json:"main_deploy_id"`  // Current main deployment ID
-	CreatedAt      Time   `db:"created_at" json:"created_at"`
-	UpdatedAt      Time   `db:"updated_at" json:"updated_at"`
+	MaxDeployments int    `gorm:"default:2" json:"max_deployments"` // Max simultaneous deployments (default: 2)
+	MaxBackups     int    `gorm:"default:3" json:"max_backups"`     // Max backup versions kept (default: 3)
+	CloneDirectory string `gorm:"type:varchar(255)" json:"clone_directory"` // Base directory for git clones
+	GitClonePath   string `gorm:"type:varchar(255)"  json:"git_clone_path"`  // Current git clone directory for project
+	MainDeployID   string `gorm:"type:varchar(255)"  json:"main_deploy_id"`  // Current main deployment ID
 }
 
 type CreateProjectRequest struct {

@@ -12,17 +12,29 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/joho/godotenv"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	workerApp "github.com/vikukumar/Pushpaka-worker/app"
+	workerApp "github.com/vikukumar/Pushpaka/worker/app"
 	backendApp "github.com/vikukumar/Pushpaka/app"
 	"github.com/vikukumar/Pushpaka/queue"
 )
 
-var version = "dev"
-
 func main() {
+	// Load .env file if it exists (non-fatal if missing)
+	_ = godotenv.Load()
+
+	// Build DATABASE_URL from individual env vars if not already set
+	if os.Getenv("DATABASE_URL") == "" && os.Getenv("DB_HOST") != "" {
+		buildDatabaseURL()
+	}
+
+	// Build REDIS_URL from individual env vars if not already set
+	if os.Getenv("REDIS_URL") == "" && os.Getenv("REDIS_HOST") != "" {
+		buildRedisURLENV()
+	}
+
 	dev := flag.Bool("dev", false, "dev mode: use SQLite + embedded worker (no Postgres/Redis required)")
 	configPath := flag.String("config", os.Getenv("PUSHPAKA_CONFIG_FILE"), "path to config.yaml")
 	mode := flag.String("mode", "", "config mode: development, staging, production")
@@ -86,7 +98,12 @@ func main() {
 		if err != nil {
 			log.Fatal().Err(err).Msg("failed to open shared database")
 		}
-		defer sharedDB.Close()
+
+		sqlDB, err := sharedDB.DB()
+		if err != nil {
+			log.Fatal().Err(err).Msg("failed to extract sql.DB from gorm")
+		}
+		defer sqlDB.Close()
 
 		q := queue.New(100)
 		log.Info().Bool("dev", *dev).Msg("all-in-one mode: in-process queue active, embedded workers starting")
@@ -125,7 +142,10 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := workerApp.Run(ctx); err != nil {
+			opts := workerApp.RunOptions{
+				Mode: "hybrid",
+			}
+			if err := workerApp.Run(ctx, opts); err != nil {
 				log.Error().Err(err).Msg("worker error")
 			}
 		}()
@@ -141,6 +161,84 @@ func main() {
 func setIfEmpty(key, val string) {
 	if os.Getenv(key) == "" {
 		os.Setenv(key, val)
+	}
+}
+
+// buildDatabaseURL constructs DATABASE_URL from individual DB_* env vars
+func buildDatabaseURL() {
+	driver := os.Getenv("DATABASE_DRIVER")
+	if driver == "" {
+		driver = "postgres"
+	}
+
+	if driver == "sqlite" {
+		dbpath := os.Getenv("DB_NAME")
+		if dbpath == "" {
+			dbpath = os.Getenv("DB_PATH")
+		}
+		if dbpath == "" {
+			dbpath = "pushpaka.db"
+		}
+		os.Setenv("DATABASE_URL", dbpath)
+		return
+	}
+
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	user := os.Getenv("DB_USER")
+	password := os.Getenv("DB_PASSWORD")
+	dbname := os.Getenv("DB_NAME")
+
+	var url string
+	switch driver {
+	case "mysql":
+		if port == "" {
+			port = "3306" // Default MySQL port
+		}
+		url = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, password, host, port, dbname)
+	case "sqlserver", "mssql":
+		if port == "" {
+			port = "1433" // Default SQL Server port
+		}
+		url = fmt.Sprintf("sqlserver://%s:%s@%s:%s?database=%s", user, password, host, port, dbname)
+	default:
+		// postgres
+		if port == "" {
+			port = "5432" // Default PostgreSQL port
+		}
+		sslmode := os.Getenv("DB_SSL_MODE")
+		if sslmode == "" {
+			sslmode = "prefer"
+		}
+		url = fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s", user, password, host, port, dbname, sslmode)
+	}
+
+	os.Setenv("DATABASE_URL", url)
+}
+
+// buildRedisURLENV constructs REDIS_URL from individual REDIS_* env vars
+func buildRedisURLENV() {
+	host := os.Getenv("REDIS_HOST")
+	if host == "" {
+		return
+	}
+
+	port := os.Getenv("REDIS_PORT")
+	if port == "" {
+		port = "6379"
+	}
+
+	password := os.Getenv("REDIS_PASSWORD")
+	db := os.Getenv("REDIS_DB")
+	if db == "" {
+		db = "0"
+	}
+
+	// Build redis URL
+	if password != "" {
+		os.Setenv("REDIS_URL", fmt.Sprintf("redis://:%s@%s:%s/%s", password, host, port, db))
+	} else {
+		os.Setenv("REDIS_URL", fmt.Sprintf("redis://%s:%s/%s", host, port, db))
 	}
 }
 

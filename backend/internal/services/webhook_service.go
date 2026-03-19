@@ -9,11 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -52,16 +54,18 @@ func (s *WebhookService) Create(userID string, req *models.CreateWebhookRequest)
 	b := make([]byte, 20)
 	rand.Read(b) //nolint:errcheck
 	secret := hex.EncodeToString(b)
-	now := models.NowUTC()
+	now := time.Now().UTC()
 	wh := &models.WebhookConfig{
-		ID:        uuid.New().String(),
+		BaseModel: basemodel.BaseModel{
+			ID:        uuid.New().String(),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
 		ProjectID: req.ProjectID,
 		UserID:    userID,
 		Secret:    secret,
-		Provider:  provider,
+		Provider:  req.Provider,
 		Branch:    req.Branch,
-		CreatedAt: now,
-		UpdatedAt: now,
 	}
 	if err := s.webhookRepo.Create(wh); err != nil {
 		return nil, fmt.Errorf("creating webhook: %w", err)

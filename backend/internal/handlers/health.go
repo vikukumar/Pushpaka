@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 )
@@ -22,12 +22,12 @@ type WorkerStatsProvider interface {
 }
 
 type HealthHandler struct {
-	db          *sqlx.DB
+	db          *gorm.DB
 	rdb         *redis.Client
 	workerStats WorkerStatsProvider
 }
 
-func NewHealthHandler(db *sqlx.DB, rdb *redis.Client, ws WorkerStatsProvider) *HealthHandler {
+func NewHealthHandler(db *gorm.DB, rdb *redis.Client, ws WorkerStatsProvider) *HealthHandler {
 	return &HealthHandler{db: db, rdb: rdb, workerStats: ws}
 }
 
@@ -36,7 +36,8 @@ func (h *HealthHandler) Health(c *gin.Context) {
 	dbOK := true
 	redisOK := true
 
-	if err := h.db.Ping(); err != nil {
+	sqlDB, err := h.db.DB()
+	if err != nil || sqlDB.Ping() != nil {
 		dbOK = false
 		status = "degraded"
 	}

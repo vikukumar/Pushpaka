@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -303,7 +303,7 @@ func (w *DeploymentManagementWorker) RestartDeploymentIfUnhealthy(ctx context.Co
 		// Update restart count
 		instance.RestartCount++
 		instance.HealthStatus = "attempting_restart"
-		instance.UpdatedAt = models.NowUTC()
+		instance.UpdatedAt = time.Now().UTC()
 
 		// TODO: Update instance in database
 		// return w.dmRepo.UpdateDeploymentInstance(instance)
@@ -311,7 +311,7 @@ func (w *DeploymentManagementWorker) RestartDeploymentIfUnhealthy(ctx context.Co
 		// Reset restart count if healthy
 		instance.RestartCount = 0
 		instance.HealthStatus = "healthy"
-		instance.UpdatedAt = models.NowUTC()
+		instance.UpdatedAt = time.Now().UTC()
 
 		// TODO: Update instance in database
 	}

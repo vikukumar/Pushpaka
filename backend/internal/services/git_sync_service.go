@@ -12,7 +12,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/vikukumar/Pushpaka/internal/models"
+
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -42,8 +44,13 @@ func (s *GitSyncService) InitializeSyncTracking(deployment *models.Deployment, p
 		return nil, fmt.Errorf("project does not have a git repository configured")
 	}
 
+	now := time.Now().UTC()
 	track := &models.GitSyncTrack{
-		ID:               uuid.New().String(),
+		BaseModel: basemodel.BaseModel{
+			ID:        uuid.New().String(),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
 		DeploymentID:     deployment.ID,
 		ProjectID:        project.ID,
 		Repository:       project.RepoURL,
@@ -51,8 +58,6 @@ func (s *GitSyncService) InitializeSyncTracking(deployment *models.Deployment, p
 		CurrentCommitSHA: deployment.CommitSHA,
 		LatestCommitSHA:  deployment.CommitSHA,
 		SyncStatus:       models.GitSyncSynced,
-		CreatedAt:        models.NowUTC(),
-		UpdatedAt:        models.NowUTC(),
 	}
 
 	if err := s.gitSyncRepo.CreateGitSyncTrack(track); err != nil {
@@ -103,6 +108,8 @@ func (s *GitSyncService) CheckForUpdates(track *models.GitSyncTrack) error {
 			// Store individual changes
 			for _, change := range diff.ChangedFiles {
 				change.ID = uuid.New().String()
+				change.CreatedAt = time.Now().UTC()
+				change.UpdatedAt = time.Now().UTC()
 				change.SyncTrackID = track.ID
 				if err := s.gitSyncRepo.CreateGitChange(&change); err != nil {
 					log.Printf("failed to store git change: %v", err)
@@ -111,7 +118,7 @@ func (s *GitSyncService) CheckForUpdates(track *models.GitSyncTrack) error {
 		}
 	}
 
-	track.UpdatedAt = models.NowUTC()
+	track.UpdatedAt = time.Now().UTC()
 	return s.gitSyncRepo.UpdateGitSyncTrack(track)
 }
 
@@ -130,30 +137,33 @@ func (s *GitSyncService) SyncDeployment(trackID string, userID string, force boo
 	// Check approval if required
 	if track.SyncApprovalRequired && !force && track.SyncApprovedBy == "" {
 		track.SyncStatus = models.GitSyncPending
-		track.UpdatedAt = models.NowUTC()
+		track.UpdatedAt = time.Now().UTC()
 		return s.gitSyncRepo.UpdateGitSyncTrack(track)
 	}
 
 	// Start sync
 	track.SyncStatus = models.GitSyncSyncing
-	track.LastSyncAttemptAt = &models.Time{Time: time.Now()}
-	track.UpdatedAt = models.NowUTC()
+	attemptTime := time.Now().UTC()
+	track.LastSyncAttemptAt = &attemptTime
+	track.UpdatedAt = time.Now().UTC()
 
 	if err := s.gitSyncRepo.UpdateGitSyncTrack(track); err != nil {
 		return fmt.Errorf("failed to update sync track: %w", err)
 	}
 
-	// Create sync history record
+	now := time.Now().UTC()
 	history := &models.DeploymentSyncHistory{
-		ID:            uuid.New().String(),
+		BaseModel: basemodel.BaseModel{
+			ID:        uuid.New().String(),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
 		DeploymentID:  track.DeploymentID,
 		ProjectID:     track.ProjectID,
 		FromCommitSHA: deployment.CommitSHA,
 		ToCommitSHA:   track.LatestCommitSHA,
 		SyncType:      "manual",
 		TriggeredBy:   userID,
-		CreatedAt:     models.NowUTC(),
-		UpdatedAt:     models.NowUTC(),
 	}
 
 	startTime := time.Now()
@@ -163,7 +173,7 @@ func (s *GitSyncService) SyncDeployment(trackID string, userID string, force boo
 	if err != nil {
 		track.SyncStatus = models.GitSyncFailed
 		track.LastSyncAttemptError = err.Error()
-		track.UpdatedAt = models.NowUTC()
+		track.UpdatedAt = time.Now().UTC()
 		s.gitSyncRepo.UpdateGitSyncTrack(track)
 
 		history.Status = "failed"
@@ -177,12 +187,12 @@ func (s *GitSyncService) SyncDeployment(trackID string, userID string, force boo
 	// Update deployment with new commit
 	deployment.CommitSHA = track.LatestCommitSHA
 	deployment.CommitMsg = track.LatestCommitMessage
-	deployment.UpdatedAt = models.NowUTC()
+	deployment.UpdatedAt = time.Now().UTC()
 
 	if err := s.deployRepo.Update(deployment); err != nil {
 		track.SyncStatus = models.GitSyncFailed
 		track.LastSyncAttemptError = fmt.Sprintf("failed to update deployment: %v", err)
-		track.UpdatedAt = models.NowUTC()
+		track.UpdatedAt = time.Now().UTC()
 		s.gitSyncRepo.UpdateGitSyncTrack(track)
 
 		history.Status = "failed"
@@ -194,8 +204,9 @@ func (s *GitSyncService) SyncDeployment(trackID string, userID string, force boo
 	// Sync successful
 	track.CurrentCommitSHA = track.LatestCommitSHA
 	track.SyncStatus = models.GitSyncSynced
-	track.LastSuccessfulSyncAt = &models.Time{Time: time.Now()}
-	track.UpdatedAt = models.NowUTC()
+	successTime := time.Now().UTC()
+	track.LastSuccessfulSyncAt = &successTime
+	track.UpdatedAt = time.Now().UTC()
 
 	if err := s.gitSyncRepo.UpdateGitSyncTrack(track); err != nil {
 		return fmt.Errorf("failed to update sync track: %w", err)
@@ -220,14 +231,15 @@ func (s *GitSyncService) ApproveSyncRequest(trackID string, userID string, appro
 
 	if approved {
 		track.SyncApprovedBy = userID
-		track.SyncApprovedAt = &models.Time{Time: time.Now()}
+		approvedTime := time.Now().UTC()
+		track.SyncApprovedAt = &approvedTime
 		// Auto-sync after approval
 		return s.SyncDeployment(trackID, userID, true)
 	}
 
 	// Rejected
 	track.SyncStatus = models.GitSyncOutOfSync
-	track.UpdatedAt = models.NowUTC()
+	track.UpdatedAt = time.Now().UTC()
 	return s.gitSyncRepo.UpdateGitSyncTrack(track)
 }
 
@@ -279,7 +291,7 @@ func (s *GitSyncService) getFetchLatestCommit(repo, branch string) (*models.GitC
 		SHA:       data.SHA,
 		Author:    data.Commit.Author.Name,
 		Message:   message,
-		Timestamp: models.NowUTC(),
+		Timestamp: time.Now().UTC(),
 	}, nil
 }
 
@@ -298,7 +310,7 @@ func (s *GitSyncService) getLocalLatestCommit(repo, branch string) (*models.GitC
 
 	return &models.GitCommitInfo{
 		SHA:       parts[0],
-		Timestamp: models.NowUTC(),
+		Timestamp: time.Now().UTC(),
 	}, nil
 }
 
@@ -329,7 +341,7 @@ func (s *GitSyncService) getGitDiff(repo, fromCommit, toCommit string) (*models.
 	summary := &models.GitDiffSummary{
 		LastCommit: models.GitCommitInfo{
 			SHA:       toCommit,
-			Timestamp: models.NowUTC(),
+			Timestamp: time.Now().UTC(),
 		},
 	}
 
@@ -384,10 +396,11 @@ func (s *GitSyncService) cloneRepository(repo, branch string) (string, error) {
 func (s *GitSyncService) EnableAutoSync(deploymentID string, config *models.GitAutoSyncConfig) error {
 	if config.ID == "" {
 		config.ID = uuid.New().String()
+		now := time.Now().UTC()
+		config.CreatedAt = now
 	}
 	config.DeploymentID = deploymentID
-	config.CreatedAt = models.NowUTC()
-	config.UpdatedAt = models.NowUTC()
+	config.UpdatedAt = time.Now().UTC()
 
 	return s.gitSyncRepo.CreateAutoSyncConfig(config)
 }
@@ -399,7 +412,7 @@ func (s *GitSyncService) GetAutoSyncConfig(deploymentID string) (*models.GitAuto
 
 // UpdateAutoSyncConfig updates auto-sync configuration
 func (s *GitSyncService) UpdateAutoSyncConfig(config *models.GitAutoSyncConfig) error {
-	config.UpdatedAt = models.NowUTC()
+	config.UpdatedAt = time.Now().UTC()
 	return s.gitSyncRepo.UpdateAutoSyncConfig(config)
 }
 

@@ -10,7 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -76,7 +77,7 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		branch = project.Branch
 	}
 
-	now := models.NowUTC()
+	now := time.Now().UTC()
 	imageTag := fmt.Sprintf("pushpaka/%s:%s", project.ID[:8], uuid.New().String()[:8])
 
 	// Determine the public URL for this deployment:
@@ -97,16 +98,18 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 	}
 
 	d := &models.Deployment{
-		ID:        uuid.New().String(),
+		BaseModel: basemodel.BaseModel{
+			ID:        uuid.New().String(),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
 		ProjectID: project.ID,
 		UserID:    userID,
 		CommitSHA: req.CommitSHA,
 		Branch:    branch,
-		Status:    models.DeploymentQueued,
+		Status:    "queued", 
 		ImageTag:  imageTag,
 		URL:       deployURL,
-		CreatedAt: now,
-		UpdatedAt: now,
 	}
 
 	if err := s.deploymentRepo.Create(d); err != nil {
@@ -116,8 +119,8 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 	// If no queue is available at all, mark the deployment failed immediately
 	// so the UI shows a clear error instead of spinning forever.
 	if s.rdb == nil && s.inQueue == nil {
-		failedAt := models.NowUTC()
-		d.Status = models.DeploymentFailed
+		failedAt := time.Now().UTC()
+		d.Status = "failed" 
 		d.ErrorMsg = "Deployment worker unavailable: start Pushpaka with -dev for " +
 			"the embedded worker, or configure REDIS_URL for a production worker."
 		d.FinishedAt = &failedAt

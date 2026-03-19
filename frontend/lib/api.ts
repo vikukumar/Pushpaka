@@ -220,3 +220,9 @@ export const filesApi = {
     apiClient.post(`/projects/${projectId}/files/sync`, {}),
 }
 
+// Workers Management
+export const workersApi = {
+  list: () => apiClient.get('/workers'),
+  getPat: () => apiClient.post('/workers/pat', {}),
+}
+

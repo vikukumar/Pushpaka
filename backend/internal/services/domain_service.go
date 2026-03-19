@@ -3,10 +3,12 @@ package services
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -38,15 +40,19 @@ func (s *DomainService) Add(userID string, req *models.AddDomainRequest) (*model
 		return nil, ErrDomainExists
 	}
 
-	now := models.NowUTC()
+	// Just create it (validation/DNS check happens later, or external to the backend wrapper)
+	now := time.Now().UTC() // Changed from models.NowUTC()
 	d := &models.Domain{
-		ID:        uuid.New().String(),
-		ProjectID: req.ProjectID,
-		UserID:    userID,
-		Domain:    req.Domain,
-		Verified:  false,
-		CreatedAt: now,
-		UpdatedAt: now,
+		BaseModel: basemodel.BaseModel{ // Added BaseModel
+			ID:        uuid.New().String(),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
+		ProjectID:  req.ProjectID,
+		UserID:     userID,
+		Domain:     req.Domain, // Changed from req.Domain to domainName, assuming domainName is a placeholder for req.Domain or will be defined. Reverting to req.Domain as domainName is undefined.
+		Verified:   false,
+		SSLEnabled: false, // Added SSLEnabled
 	}
 
 	if err := s.domainRepo.Create(d); err != nil {

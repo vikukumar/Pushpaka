@@ -30,11 +30,11 @@ import Footer from '../components/Footer.astro';
           </div>
 
           <h1 class="text-5xl md:text-7xl font-bold mb-6 gradient-text leading-tight">
-            Deploy everywhere.<br />Let AI run point.
+            Deploy everywhere.<br />Scale indefinitely.
           </h1>
 
           <p class="text-xl md:text-2xl text-gray-300 mb-10 max-w-3xl">
-            Pushpaka is an AI-native self-hosted platform for multi-platform delivery across Docker, Kubernetes, and direct runtime targets, with AI monitoring, AI log analysis, built-in editor workflows, terminal access, and real-time infrastructure control.
+            Pushpaka is a production-grade self-hosted platform with multi-DB GORM support and a distributed worker engine. Deploy across Docker, remote Vaahan nodes, or direct runtimes with secure Yamux tunneling.
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 mb-12">
@@ -46,24 +46,22 @@ import Footer from '../components/Footer.astro';
             </a>
           </div>
 
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 border-t border-surface-border pt-8">
             <div>
-              <div class="gradient-text text-3xl font-bold mb-2">AI Ops</div>
-              <div class="text-gray-400 text-sm">Monitoring, incident summaries, assistant chat</div>
+              <div class="gradient-text text-3xl font-bold mb-2">Multi-DB</div>
+              <div class="text-gray-400 text-sm">Postgres, MySQL, MSSQL, SQL Server, SQLite</div>
             </div>
             <div>
-              <div class="gradient-text text-3xl font-bold mb-2">Editor</div>
-              <div class="text-gray-400 text-sm">Built-in code editing and source sync</div>
+              <div class="gradient-text text-3xl font-bold mb-2">Vaahan</div>
+              <div class="text-gray-400 text-sm">Distributed serverless execution nodes</div>
             </div>
             <div>
-              <div class="gradient-text text-3xl font-bold mb-2">Terminal</div>
-              <div class="text-gray-400 text-sm">Web terminal into running deployments</div>
+              <div class="gradient-text text-3xl font-bold mb-2">Tunnel</div>
+              <div class="text-gray-400 text-sm">Secure Yamux reverse multiplexing</div>
             </div>
             <div>
-              <div class="gradient-text text-3xl font-bold mb-2">Multi-Platform</div>
-              <div class="text-gray-400 text-sm">Docker, Kubernetes, and direct runtime</div>
+              <div class="gradient-text text-3xl font-bold mb-2">Hybrid</div>
+              <div class="text-gray-400 text-sm">Remote GORM-backed execution units</div>
             </div>
-          </div>
         </div>
 
         <div class="space-y-5">
@@ -80,8 +78,8 @@ import Footer from '../components/Footer.astro';
               <div class="flex items-start gap-3">
                 <span class="text-accent-400 text-lg">02</span>
                 <div>
-                  <div class="text-white font-semibold">Build for the right target</div>
-                  <div>Framework detection, Dockerfile generation, Kubernetes-aware targets, or direct deploy fallback.</div>
+                  <div class="text-white font-semibold">Distributed Build & Deploy</div>
+                  <div>Distributed execution across Integrated, Vaahan, or Hybrid workers with framework detection and auto-Dockerization.</div>
                 </div>
               </div>
               <div class="flex items-start gap-3">
@@ -145,10 +143,10 @@ import Footer from '../components/Footer.astro';
 
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-cyan-600 to-cyan-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">🧭</span>
+            <span class="text-2xl">📡</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">Container, Kubernetes, And Direct Runtime</h3>
-          <p class="text-gray-400">Run across Docker, Kubernetes-aware project targets, or direct process deployment when container runtime is not available.</p>
+          <h3 class="text-xl font-bold text-white mb-3">Enterprise Multi-DB & Distributed Workers</h3>
+          <p class="text-gray-400">Native GORM support for PG, MySQL, MSSQL, SQL Server, and SQLite. Scale across remote Vaahan (serverless) and Hybrid nodes instantly.</p>
         </div>
 
         <div class="metallic-card p-8">
@@ -169,10 +167,10 @@ import Footer from '../components/Footer.astro';
 
         <div class="metallic-card p-8">
           <div class="w-12 h-12 bg-gradient-to-br from-brand-600 to-cyan-400 rounded-lg flex items-center justify-center mb-4 shadow-lg">
-            <span class="text-2xl">🛠️</span>
+            <span class="text-2xl">🚇</span>
           </div>
-          <h3 class="text-xl font-bold text-white mb-3">Built-In Editor And Terminal</h3>
-          <p class="text-gray-400">Edit project files in-browser, sync source into the working directory, and open an interactive terminal into running deployments without leaving the platform.</p>
+          <h3 class="text-xl font-bold text-white mb-3">Secure Yamux Tunneling</h3>
+          <p class="text-gray-400">Connect remote nodes via secure reverse tunnels. Serve web applications from internal networks through your main Pushpaka gateway.</p>
         </div>
       </div>
     </div>

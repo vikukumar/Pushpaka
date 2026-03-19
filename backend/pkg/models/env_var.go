@@ -1,22 +1,26 @@
 package models
 
+import (
+	"time"
+
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+)
+
 type EnvVar struct {
-	ID        string `db:"id"         json:"id"`
-	ProjectID string `db:"project_id" json:"project_id"`
-	UserID    string `db:"user_id"    json:"user_id"`
-	Key       string `db:"key"        json:"key"`
-	Value     string `db:"value"      json:"-"`
-	CreatedAt Time   `db:"created_at" json:"created_at"`
-	UpdatedAt Time   `db:"updated_at" json:"updated_at"`
+	basemodel.BaseModel
+	ProjectID string `gorm:"index;type:varchar(255);not null" json:"project_id"`
+	UserID    string `gorm:"index;type:varchar(255);not null" json:"user_id"`
+	Key       string `gorm:"type:varchar(255);not null" json:"key"`
+	Value     string `gorm:"type:text" json:"-"`
 }
 
 type EnvVarResponse struct {
-	ID        string `json:"id"`
-	ProjectID string `json:"project_id"`
-	Key       string `json:"key"`
-	HasValue  bool   `json:"has_value"`
-	CreatedAt Time   `json:"created_at"`
-	UpdatedAt Time   `json:"updated_at"`
+	ID        string    `json:"id"`
+	ProjectID string    `json:"project_id"`
+	Key       string    `json:"key"`
+	HasValue  bool      `json:"has_value"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type SetEnvRequest struct {

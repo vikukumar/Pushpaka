@@ -2,10 +2,12 @@ package services
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -29,15 +31,17 @@ func (s *EnvService) Set(userID string, req *models.SetEnvVarRequest) (*models.E
 		return nil, ErrProjectNotFound
 	}
 
-	now := models.NowUTC()
+	now := time.Now().UTC()
 	e := &models.EnvVar{
-		ID:        uuid.New().String(),
+		BaseModel: basemodel.BaseModel{
+			ID:        uuid.New().String(),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
 		ProjectID: req.ProjectID,
 		UserID:    userID,
 		Key:       req.Key,
 		Value:     req.Value,
-		CreatedAt: now,
-		UpdatedAt: now,
 	}
 
 	if err := s.envRepo.Upsert(e); err != nil {

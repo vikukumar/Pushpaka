@@ -87,3 +87,11 @@ dist/
 Chart.lock
 !backend/ui/dist/
 !backend/ui/dist/.gitkeep
+.pgsql
+.pgsql/
+.pgsql/*
+
+*_err*.txt
+*_err*.txt
+*err*.txt
+out.txt

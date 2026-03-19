@@ -130,3 +130,20 @@ export interface SystemInfo {
     in_container: boolean
   }
 }
+
+export interface WorkerNode {
+  id: string
+  name: string
+  type: 'integrated' | 'vaahan' | 'hybrid'
+  status: 'active' | 'offline' | 'disconnected'
+  ip_address: string
+  os: string
+  architecture: string
+  go_version: string
+  docker_version: string
+  node_version: string
+  memory_total: number
+  cpu_count: number
+  last_seen_at: string | null
+  created_at: string
+}

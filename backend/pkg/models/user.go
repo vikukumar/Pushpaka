@@ -1,14 +1,14 @@
 package models
 
+import "github.com/vikukumar/Pushpaka/pkg/basemodel"
+
 type User struct {
-	ID           string `db:"id"            json:"id"`
-	Email        string `db:"email"         json:"email"`
-	Name         string `db:"name"          json:"name"`
-	PasswordHash string `db:"password_hash" json:"-"`
-	APIKey       string `db:"api_key"       json:"-"`
-	Role         string `db:"role"          json:"role"`
-	CreatedAt    Time   `db:"created_at"    json:"created_at"`
-	UpdatedAt    Time   `db:"updated_at"    json:"updated_at"`
+	basemodel.BaseModel
+	Email        string `gorm:"uniqueIndex;type:varchar(255);not null" json:"email"`
+	Name         string `gorm:"type:varchar(255);not null" json:"name"`
+	PasswordHash string `gorm:"type:varchar(255);not null" json:"-"`
+	APIKey       string `gorm:"uniqueIndex;type:varchar(255)" json:"-"`
+	Role         string `gorm:"type:varchar(50);default:'user'" json:"role"`
 }
 
 type RegisterRequest struct {

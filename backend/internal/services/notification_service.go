@@ -11,8 +11,9 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -32,14 +33,16 @@ func (s *NotificationService) GetConfig(userID string) (*models.NotificationConf
 	}
 	if cfg == nil {
 		// Return a default (empty) config rather than nil
-		now := models.Time{Time: time.Now().UTC()}
+		now := time.Now().UTC()
 		cfg = &models.NotificationConfig{
+			BaseModel: basemodel.BaseModel{
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
 			UserID:          userID,
 			SMTPPort:        587,
 			NotifyOnSuccess: true,
 			NotifyOnFailure: true,
-			CreatedAt:       now,
-			UpdatedAt:       now,
 		}
 	}
 	return cfg, nil
@@ -51,7 +54,7 @@ func (s *NotificationService) UpsertConfig(userID string, req *models.UpsertNoti
 		return nil, err
 	}
 
-	now := models.Time{Time: time.Now().UTC()}
+	now := time.Now().UTC()
 	var cfg models.NotificationConfig
 
 	if existing != nil {
@@ -59,12 +62,14 @@ func (s *NotificationService) UpsertConfig(userID string, req *models.UpsertNoti
 		cfg.UpdatedAt = now
 	} else {
 		cfg = models.NotificationConfig{
-			ID:              uuid.New().String(),
+			BaseModel: basemodel.BaseModel{
+				ID:        uuid.New().String(),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
 			UserID:          userID,
 			NotifyOnSuccess: true,
 			NotifyOnFailure: true,
-			CreatedAt:       now,
-			UpdatedAt:       now,
 		}
 	}
 
@@ -105,7 +110,7 @@ func (s *NotificationService) Dispatch(userID string, event *models.Notification
 			return
 		}
 
-		isSuccess := event.Status == string(models.DeploymentRunning)
+		isSuccess := event.Status == "running"
 		if isSuccess && !cfg.NotifyOnSuccess {
 			return
 		}
@@ -135,7 +140,7 @@ func (s *NotificationService) DispatchInternal(event *models.NotificationEvent, 
 }
 
 func statusEmoji(status string) string {
-	if status == string(models.DeploymentRunning) {
+	if status == "running" {
 		return "succeeded"
 	}
 	return "failed"
@@ -164,7 +169,7 @@ func formatMessage(e *models.NotificationEvent) string {
 
 func sendSlack(webhookURL, title, body string, e *models.NotificationEvent) error {
 	color := "#36a64f" // green
-	if e.Status != string(models.DeploymentRunning) {
+	if e.Status != "running" {
 		color = "#d9534f" // red
 	}
 	payload := map[string]any{
@@ -183,7 +188,7 @@ func sendSlack(webhookURL, title, body string, e *models.NotificationEvent) erro
 
 func sendDiscord(webhookURL, title, body string, e *models.NotificationEvent) error {
 	color := 3066993 // green
-	if e.Status != string(models.DeploymentRunning) {
+	if e.Status != "running" {
 		color = 15158332 // red
 	}
 	payload := map[string]any{

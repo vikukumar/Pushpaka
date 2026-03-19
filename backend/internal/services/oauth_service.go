@@ -13,10 +13,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -27,10 +28,10 @@ type OAuthService struct {
 	userRepo *repositories.UserRepository
 	cfg      *config.Config
 	authSvc  *AuthService
-	db       *sqlx.DB
+	db       *gorm.DB
 }
 
-func NewOAuthService(userRepo *repositories.UserRepository, cfg *config.Config, authSvc *AuthService, db *sqlx.DB) *OAuthService {
+func NewOAuthService(userRepo *repositories.UserRepository, cfg *config.Config, authSvc *AuthService, db *gorm.DB) *OAuthService {
 	return &OAuthService{userRepo: userRepo, cfg: cfg, authSvc: authSvc, db: db}
 }
 
@@ -41,8 +42,7 @@ func (s *OAuthService) GenerateState(provider, redirect string) (string, error) 
 	}
 	state := hex.EncodeToString(b)
 	expiresAt := time.Now().UTC().Add(10 * time.Minute).Format(time.RFC3339)
-	q := s.db.Rebind(`INSERT INTO oauth_states (state, provider, redirect, expires_at) VALUES (?, ?, ?, ?)`)
-	if _, err := s.db.Exec(q, state, provider, redirect, expiresAt); err != nil {
+	if err := s.db.Exec(`INSERT INTO oauth_states (state, provider, redirect, expires_at) VALUES (?, ?, ?, ?)`, state, provider, redirect, expiresAt).Error; err != nil {
 		return "", fmt.Errorf("storing oauth state: %w", err)
 	}
 	return state, nil
@@ -50,11 +50,11 @@ func (s *OAuthService) GenerateState(provider, redirect string) (string, error) 
 
 func (s *OAuthService) ValidateState(state string) error {
 	var expiresAt string
-	err := s.db.Get(&expiresAt, s.db.Rebind(`SELECT expires_at FROM oauth_states WHERE state = ?`), state)
-	if err != nil {
+	err := s.db.Raw(`SELECT expires_at FROM oauth_states WHERE state = ?`, state).Scan(&expiresAt).Error
+	if err != nil || expiresAt == "" {
 		return ErrOAuthStateMismatch
 	}
-	s.db.Exec(s.db.Rebind(`DELETE FROM oauth_states WHERE state = ?`), state) //nolint:errcheck
+	s.db.Exec(`DELETE FROM oauth_states WHERE state = ?`, state) //nolint:errcheck
 	t, err := time.Parse(time.RFC3339, expiresAt)
 	if err != nil || time.Now().UTC().After(t) {
 		return ErrOAuthStateMismatch
@@ -166,16 +166,18 @@ func (s *OAuthService) ExchangeGitlab(code string) (*models.AuthResponse, error)
 func (s *OAuthService) findOrCreateUser(email, name, provider, providerID string) (*models.AuthResponse, error) {
 	user, err := s.userRepo.FindByEmail(email)
 	if err != nil {
-		now := models.NowUTC()
+		now := time.Now().UTC()
 		user = &models.User{
-			ID:           uuid.New().String(),
+			BaseModel: basemodel.BaseModel{
+				ID:        uuid.New().String(),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
 			Email:        email,
 			Name:         name,
 			PasswordHash: "$oauth$" + provider + "$" + providerID,
 			APIKey:       uuid.New().String(),
 			Role:         "user",
-			CreatedAt:    now,
-			UpdatedAt:    now,
 		}
 		if createErr := s.userRepo.Create(user); createErr != nil {
 			return nil, fmt.Errorf("creating oauth user: %w", createErr)

@@ -1,5 +1,11 @@
 package models
 
+import (
+	"time"
+
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+)
+
 // DeploymentStatus represents the state of a deployment
 type DeploymentStatus string
 
@@ -12,22 +18,21 @@ const (
 )
 
 type Deployment struct {
-	ID           string           `db:"id"            json:"id"`
-	ProjectID    string           `db:"project_id"    json:"project_id"`
-	UserID       string           `db:"user_id"       json:"user_id"`
-	CommitSHA    string           `db:"commit_sha"    json:"commit_sha"`
-	CommitMsg    string           `db:"commit_msg"    json:"commit_msg"`
-	Branch       string           `db:"branch"        json:"branch"`
-	Status       DeploymentStatus `db:"status"        json:"status"`
-	ImageTag     string           `db:"image_tag"     json:"image_tag"`
-	ContainerID  string           `db:"container_id"  json:"container_id"`
-	URL          string           `db:"url"           json:"url"`
-	ExternalPort int              `db:"external_port" json:"external_port"`
-	ErrorMsg     string           `db:"error_msg"     json:"error_msg"`
-	StartedAt    *Time            `db:"started_at"    json:"started_at"`
-	FinishedAt   *Time            `db:"finished_at"   json:"finished_at"`
-	CreatedAt    Time             `db:"created_at"    json:"created_at"`
-	UpdatedAt    Time             `db:"updated_at"    json:"updated_at"`
+	basemodel.BaseModel
+	ProjectID    string           `gorm:"index;type:varchar(255);not null" json:"project_id"`
+	UserID       string           `gorm:"index;type:varchar(255);not null" json:"user_id"`
+	WorkerID     string           `gorm:"index;type:varchar(255)" json:"worker_id"`
+	CommitSHA    string           `gorm:"type:varchar(255)" json:"commit_sha"`
+	CommitMsg    string           `gorm:"type:text" json:"commit_msg"`
+	Branch       string           `gorm:"type:varchar(100)" json:"branch"`
+	Status       DeploymentStatus `gorm:"type:varchar(50)" json:"status"`
+	ImageTag     string           `gorm:"type:varchar(255)" json:"image_tag"`
+	ContainerID  string           `gorm:"type:varchar(255)" json:"container_id"`
+	URL          string           `gorm:"type:varchar(255)" json:"url"`
+	ExternalPort int              `gorm:"default:0" json:"external_port"`
+	ErrorMsg     string           `gorm:"type:text" json:"error_msg"`
+	StartedAt    *time.Time       `json:"started_at"`
+	FinishedAt   *time.Time       `json:"finished_at"`
 }
 
 type DeployRequest struct {
@@ -40,6 +45,7 @@ type DeploymentJob struct {
 	DeploymentID   string            `json:"deployment_id"`
 	ProjectID      string            `json:"project_id"`
 	UserID         string            `json:"user_id"`
+	WorkerID       string            `json:"worker_id,omitempty"`
 	RepoURL        string            `json:"repo_url"`
 	Branch         string            `json:"branch"`
 	CommitSHA      string            `json:"commit_sha"`

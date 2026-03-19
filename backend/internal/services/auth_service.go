@@ -9,8 +9,9 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -40,16 +41,18 @@ func (s *AuthService) Register(req *models.RegisterRequest) (*models.AuthRespons
 		return nil, fmt.Errorf("hashing password: %w", err)
 	}
 
-	now := models.NowUTC()
+	now := time.Now().UTC()
 	user := &models.User{
-		ID:           uuid.New().String(),
+		BaseModel: basemodel.BaseModel{
+			ID:        uuid.New().String(),
+			CreatedAt: now,
+			UpdatedAt: now,
+		},
 		Email:        req.Email,
 		Name:         req.Name,
 		PasswordHash: string(hash),
 		APIKey:       uuid.New().String(),
 		Role:         "user",
-		CreatedAt:    now,
-		UpdatedAt:    now,
 	}
 
 	if err := s.userRepo.Create(user); err != nil {

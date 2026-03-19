@@ -1,21 +1,21 @@
 package models
 
+import "github.com/vikukumar/Pushpaka/pkg/basemodel"
+
 // NotificationConfig holds per-user notification channel settings.
 type NotificationConfig struct {
-	ID                string `db:"id"                   json:"id"`
-	UserID            string `db:"user_id"              json:"user_id"`
-	SlackWebhookURL   string `db:"slack_webhook_url"    json:"slack_webhook_url"`
-	DiscordWebhookURL string `db:"discord_webhook_url"  json:"discord_webhook_url"`
-	SMTPHost          string `db:"smtp_host"            json:"smtp_host"`
-	SMTPPort          int    `db:"smtp_port"            json:"smtp_port"`
-	SMTPUsername      string `db:"smtp_username"        json:"smtp_username"`
-	SMTPPassword      string `db:"smtp_password"        json:"-"`
-	SMTPFrom          string `db:"smtp_from"            json:"smtp_from"`
-	SMTPTo            string `db:"smtp_to"              json:"smtp_to"`
-	NotifyOnSuccess   bool   `db:"notify_on_success"    json:"notify_on_success"`
-	NotifyOnFailure   bool   `db:"notify_on_failure"    json:"notify_on_failure"`
-	CreatedAt         Time   `db:"created_at"           json:"created_at"`
-	UpdatedAt         Time   `db:"updated_at"           json:"updated_at"`
+	basemodel.BaseModel
+	UserID            string `gorm:"uniqueIndex;type:varchar(255);not null" json:"user_id"`
+	SlackWebhookURL   string `gorm:"type:text" json:"slack_webhook_url"`
+	DiscordWebhookURL string `gorm:"type:text" json:"discord_webhook_url"`
+	SMTPHost          string `gorm:"type:varchar(255)" json:"smtp_host"`
+	SMTPPort          int    `gorm:"default:0" json:"smtp_port"`
+	SMTPUsername      string `gorm:"type:varchar(255)" json:"smtp_username"`
+	SMTPPassword      string `gorm:"type:text" json:"-"`
+	SMTPFrom          string `gorm:"type:varchar(255)" json:"smtp_from"`
+	SMTPTo            string `gorm:"type:varchar(255)" json:"smtp_to"`
+	NotifyOnSuccess   bool   `gorm:"default:false" json:"notify_on_success"`
+	NotifyOnFailure   bool   `gorm:"default:false" json:"notify_on_failure"`
 }
 
 type UpsertNotificationConfigRequest struct {

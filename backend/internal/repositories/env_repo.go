@@ -1,42 +1,35 @@
 package repositories
 
 import (
-	"github.com/jmoiron/sqlx"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 type EnvVarRepository struct {
-	db *sqlx.DB
+	db *gorm.DB
 }
 
-func NewEnvVarRepository(db *sqlx.DB) *EnvVarRepository {
+func NewEnvVarRepository(db *gorm.DB) *EnvVarRepository {
 	return &EnvVarRepository{db: db}
 }
 
 func (r *EnvVarRepository) Upsert(e *models.EnvVar) error {
-	e.UpdatedAt = models.NowUTC()
-	query := `
-			INSERT INTO environment_variables (id, project_id, user_id, key, value, created_at, updated_at)
-			VALUES (:id, :project_id, :user_id, :key, :value, :created_at, :updated_at)
-			ON CONFLICT (project_id, key) DO UPDATE
-			SET value = excluded.value, updated_at = excluded.updated_at`
-	_, err := r.db.NamedExec(query, e)
-	return err
+	return r.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "project_id"}, {Name: "key"}},
+		DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
+	}).Create(e).Error
 }
 
 func (r *EnvVarRepository) FindByProjectID(projectID string) ([]models.EnvVar, error) {
 	var envVars []models.EnvVar
-	err := r.db.Select(&envVars,
-		r.db.Rebind(`SELECT * FROM environment_variables WHERE project_id = ? ORDER BY key ASC`),
-		projectID)
+	err := r.db.Where("project_id = ?", projectID).Order("key asc").Find(&envVars).Error
 	return envVars, err
 }
 
 func (r *EnvVarRepository) Delete(projectID, key, userID string) error {
-	_, err := r.db.Exec(
-		r.db.Rebind(`DELETE FROM environment_variables WHERE project_id = ? AND key = ? AND user_id = ?`),
-		projectID, key, userID)
-	return err
+	return r.db.Where("project_id = ? AND key = ? AND user_id = ?", projectID, key, userID).Delete(&models.EnvVar{}).Error
 }
 
 func (r *EnvVarRepository) FindMapByProjectID(projectID string) (map[string]string, error) {

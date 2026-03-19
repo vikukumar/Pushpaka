@@ -78,24 +78,31 @@ func LoadRedisConfig(mode string) *RedisConfig {
 	return cfg
 }
 
-// BuildPostgresURL constructs a PostgreSQL DSN from the config
-func (c *DatabaseConfig) BuildPostgresURL() string {
-	dsn := fmt.Sprintf(
-		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
-		c.User,
-		c.Password,
-		c.Host,
-		c.Port,
-		c.DBName,
-		c.SSLMode,
-	)
-
-	// Add certificate path if SSL is enabled and cert file is specified
-	if c.SSLMode != "disable" && c.SSLCertFile != "" {
-		dsn += "&sslrootcert=" + c.SSLCertFile
+// BuildDSN constructs a database connection string using the appropriate format for the driver
+func (c *DatabaseConfig) BuildDSN(driver string) string {
+	switch driver {
+	case "mysql":
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+			c.User, c.Password, c.Host, c.Port, c.DBName)
+	case "sqlserver", "mssql":
+		return fmt.Sprintf("sqlserver://%s:%s@%s:%d?database=%s",
+			c.User, c.Password, c.Host, c.Port, c.DBName)
+	case "sqlite":
+		// SQLite just needs a file path, usually we pass it in DB_NAME or DATABASE_URL
+		return c.DBName
+	case "mongodb":
+		return fmt.Sprintf("mongodb://%s:%s@%s:%d/%s", c.User, c.Password, c.Host, c.Port, c.DBName)
+	default:
+		// Default to PostgreSQL format
+		dsn := fmt.Sprintf(
+			"postgres://%s:%s@%s:%d/%s?sslmode=%s",
+			c.User, c.Password, c.Host, c.Port, c.DBName, c.SSLMode,
+		)
+		if c.SSLMode != "disable" && c.SSLCertFile != "" {
+			dsn += "&sslrootcert=" + c.SSLCertFile
+		}
+		return dsn
 	}
-
-	return dsn
 }
 
 // LoadSSLCertificate loads the SSL certificate for database connections

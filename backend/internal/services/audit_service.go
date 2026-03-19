@@ -6,7 +6,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -23,7 +24,10 @@ func (s *AuditService) Log(userID, action, resource, resourceID string, meta map
 	go func() {
 		metaBytes, _ := json.Marshal(meta)
 		entry := &models.AuditLog{
-			ID:         uuid.New().String(),
+			BaseModel: basemodel.BaseModel{
+				ID:        uuid.New().String(),
+				CreatedAt: time.Now().UTC(),
+			},
 			UserID:     userID,
 			Action:     action,
 			Resource:   resource,
@@ -31,7 +35,6 @@ func (s *AuditService) Log(userID, action, resource, resourceID string, meta map
 			Metadata:   string(metaBytes),
 			IPAddr:     ipAddr,
 			UserAgent:  userAgent,
-			CreatedAt:  models.Time{Time: time.Now().UTC()},
 		}
 		_ = s.repo.Create(entry)
 	}()

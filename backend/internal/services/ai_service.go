@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 // AIService provides a provider-agnostic interface to large-language models.

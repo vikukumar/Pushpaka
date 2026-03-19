@@ -18,11 +18,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka-worker/internal/config"
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/Pushpaka/worker/internal/config"
 )
 
 // JobReporter is called on job lifecycle events (may be nil).
@@ -39,40 +41,16 @@ var processManager = struct {
 
 const deployJobQueue = "pushpaka:deploy:queue"
 
-type DeploymentJob struct {
-	DeploymentID   string            `json:"deployment_id"`
-	ProjectID      string            `json:"project_id"`
-	UserID         string            `json:"user_id"`
-	RepoURL        string            `json:"repo_url"`
-	Branch         string            `json:"branch"`
-	CommitSHA      string            `json:"commit_sha"`
-	InstallCommand string            `json:"install_command,omitempty"`
-	BuildCommand   string            `json:"build_command"`
-	StartCommand   string            `json:"start_command"`
-	RunDir         string            `json:"run_dir,omitempty"`
-	Port           int               `json:"port"`
-	EnvVars        map[string]string `json:"env_vars"`
-	ImageTag       string            `json:"image_tag"`
-	// GitToken is the PAT for private-repo cloning. Never logged.
-	GitToken string `json:"git_token,omitempty"`
-	// Resource limits for the Docker container (empty = Docker defaults)
-	CPULimit      string `json:"cpu_limit,omitempty"`
-	MemoryLimit   string `json:"memory_limit,omitempty"`
-	RestartPolicy string `json:"restart_policy,omitempty"`
-	// NotificationURL is the internal callback URL to call after deployment.
-	NotificationURL string `json:"notification_url,omitempty"`
-}
-
 type BuildWorker struct {
 	id              int
-	db              *sqlx.DB
+	db              *gorm.DB
 	rdb             *redis.Client
 	cfg             *config.Config
 	dockerAvailable bool
 	reporter        JobReporter
 }
 
-func NewBuildWorker(id int, db *sqlx.DB, rdb *redis.Client, cfg *config.Config) *BuildWorker {
+func NewBuildWorker(id int, db *gorm.DB, rdb *redis.Client, cfg *config.Config) *BuildWorker {
 	return &BuildWorker{
 		id:              id,
 		db:              db,
@@ -157,7 +135,7 @@ func (w *BuildWorker) Run(ctx context.Context) {
 				continue
 			}
 
-			var job DeploymentJob
+			var job models.DeploymentJob
 			if err := json.Unmarshal([]byte(result[1]), &job); err != nil {
 				log.Error().Err(err).Msg("failed to unmarshal job")
 				continue
@@ -186,7 +164,7 @@ func (w *BuildWorker) RunInProcess(ctx context.Context, ch <-chan []byte, report
 			if !ok {
 				return
 			}
-			var job DeploymentJob
+			var job models.DeploymentJob
 			if err := json.Unmarshal(payload, &job); err != nil {
 				log.Error().Err(err).Msg("failed to unmarshal in-process job")
 				continue
@@ -202,7 +180,7 @@ func (w *BuildWorker) RunInProcess(ctx context.Context, ch <-chan []byte, report
 	}
 }
 
-func (w *BuildWorker) processJob(ctx context.Context, job *DeploymentJob) {
+func (w *BuildWorker) processJob(ctx context.Context, job *models.DeploymentJob) {
 	logger := log.With().
 		Str("deployment_id", job.DeploymentID).
 		Str("project_id", job.ProjectID).
@@ -244,10 +222,11 @@ func (w *BuildWorker) processJob(ctx context.Context, job *DeploymentJob) {
 	// persist them to the deployments table.
 	if sha, msg, err := getRepoCommitInfo(workDir); err == nil && sha != "" {
 		job.CommitSHA = sha
-		now := time.Now().UTC()
-		_, _ = w.db.Exec(
-			w.db.Rebind(`UPDATE deployments SET commit_sha=?, updated_at=? WHERE id=?`),
-			sha+" "+msg, now, job.DeploymentID)
+		w.db.Model(&models.Deployment{}).
+			Where("id = ?", job.DeploymentID).
+			Updates(map[string]interface{}{
+				"commit_sha": sha + " " + msg,
+			})
 	}
 
 	var containerID, deployURL string
@@ -306,18 +285,28 @@ func (w *BuildWorker) processJob(ctx context.Context, job *DeploymentJob) {
 	var dbErr error
 	if w.dockerAvailable {
 		// Docker: update container_id + URL (Traefik path)
-		_, dbErr = w.db.Exec(
-			w.db.Rebind(`UPDATE deployments SET status = 'running', container_id = ?, url = ?, finished_at = ?, updated_at = ? WHERE id = ?`),
-			containerID, deployURL, now, now, job.DeploymentID)
+		dbErr = w.db.Model(&models.Deployment{}).
+			Where("id = ?", job.DeploymentID).
+			Updates(map[string]interface{}{
+				"status":       models.DeploymentRunning,
+				"container_id": containerID,
+				"url":          deployURL,
+				"finished_at":  now,
+			}).Error
 	} else {
 		// Direct: keep existing proxy URL, just record container_id + external_port
 		extPort := job.Port
 		if extPort == 0 {
 			extPort = 3000
 		}
-		_, dbErr = w.db.Exec(
-			w.db.Rebind(`UPDATE deployments SET status = 'running', container_id = ?, external_port = ?, finished_at = ?, updated_at = ? WHERE id = ?`),
-			containerID, extPort, now, now, job.DeploymentID)
+		dbErr = w.db.Model(&models.Deployment{}).
+			Where("id = ?", job.DeploymentID).
+			Updates(map[string]interface{}{
+				"status":        models.DeploymentRunning,
+				"container_id":  containerID,
+				"external_port": extPort,
+				"finished_at":   now,
+			}).Error
 	}
 	if dbErr != nil {
 		logger.Error().Err(dbErr).Msg("failed to update deployment record")
@@ -332,7 +321,7 @@ func (w *BuildWorker) processJob(ctx context.Context, job *DeploymentJob) {
 // deployDirect runs the application in-process without Docker.
 // It copies the built source to a permanent directory, installs deps, builds,
 // starts the process and stores the OS process handle for later cleanup.
-func (w *BuildWorker) deployDirect(ctx context.Context, job *DeploymentJob, workDir string) (string, string, error) {
+func (w *BuildWorker) deployDirect(ctx context.Context, job *models.DeploymentJob, workDir string) (string, string, error) {
 	// Kill existing process for this project (redeploy)
 	processManager.Lock()
 	if existing, ok := processManager.procs[job.ProjectID]; ok {
@@ -879,7 +868,7 @@ func copyFile(src, dst string, mode os.FileMode) error {
 	return err
 }
 
-func (w *BuildWorker) cloneRepo(ctx context.Context, job *DeploymentJob, workDir string) error {
+func (w *BuildWorker) cloneRepo(ctx context.Context, job *models.DeploymentJob, workDir string) error {
 	cloneURL := job.RepoURL
 	if job.GitToken != "" {
 		// Embed PAT into the HTTPS URL for authenticated cloning:
@@ -936,7 +925,7 @@ func (w *BuildWorker) cloneRepo(ctx context.Context, job *DeploymentJob, workDir
 	return nil
 }
 
-func (w *BuildWorker) generateDockerfile(workDir string, job *DeploymentJob) error {
+func (w *BuildWorker) generateDockerfile(workDir string, job *models.DeploymentJob) error {
 	var content string
 
 	// Detect framework/language
@@ -1284,7 +1273,7 @@ func detectPythonEntry(workDir string, port int) string {
 	return "app.py" // fallback
 }
 
-func (w *BuildWorker) buildImage(ctx context.Context, job *DeploymentJob, workDir string) error {
+func (w *BuildWorker) buildImage(ctx context.Context, job *models.DeploymentJob, workDir string) error {
 	// Use a per-project named cache volume so repeated builds reuse node_modules,
 	// Go module cache, pip cache etc.  The cache volume is managed by Docker and
 	// persists between builds.
@@ -1323,7 +1312,7 @@ func buildCacheDir(cloneDir, projectID string) string {
 	return filepath.Join(cloneDir, ".buildcache", projectID[:8])
 }
 
-func (w *BuildWorker) deployContainer(ctx context.Context, job *DeploymentJob) (string, string, error) {
+func (w *BuildWorker) deployContainer(ctx context.Context, job *models.DeploymentJob) (string, string, error) {
 	// Stop and remove existing containers for this project
 	existingName := fmt.Sprintf("pushpaka-%s", job.ProjectID[:8])
 
@@ -1385,14 +1374,14 @@ func (w *BuildWorker) fail(deploymentID, errMsg string) {
 // fireNotification calls the internal notification callback on the API server
 // so that Slack/Discord/email alerts are fired without the worker needing
 // direct access to those credentials.
-func (w *BuildWorker) fireNotification(job *DeploymentJob, status, deployURL, errMsg string) {
+func (w *BuildWorker) fireNotification(job *models.DeploymentJob, status, deployURL, errMsg string) {
 	if job.NotificationURL == "" {
 		return
 	}
 
 	// Fetch project name from DB for a better notification message.
 	var projectName string
-	w.db.Get(&projectName, w.db.Rebind(`SELECT name FROM projects WHERE id = ?`), job.ProjectID) //nolint:errcheck
+	w.db.Model(&models.Project{}).Where("id = ?", job.ProjectID).Pluck("name", &projectName)
 
 	payload := map[string]any{
 		"deployment_id": job.DeploymentID,
@@ -1418,18 +1407,26 @@ func (w *BuildWorker) fireNotification(job *DeploymentJob, status, deployURL, er
 }
 
 func (w *BuildWorker) updateStatus(deploymentID, status, errMsg string) {
-	_, err := w.db.Exec(
-		w.db.Rebind(`UPDATE deployments SET status = ?, error_msg = ?, updated_at = ? WHERE id = ?`),
-		status, errMsg, time.Now().UTC(), deploymentID)
+	err := w.db.Model(&models.Deployment{}).
+		Where("id = ?", deploymentID).
+		Updates(map[string]interface{}{
+			"status":     status,
+			"error_msg":  errMsg,
+			"updated_at": time.Now().UTC(),
+		}).Error
 	if err != nil {
 		log.Error().Err(err).Msg("failed to update deployment status")
 	}
 }
 
 func (w *BuildWorker) appendLog(deploymentID, level, stream, message string) {
-	_, err := w.db.Exec(
-		w.db.Rebind(`INSERT INTO deployment_logs (id, deployment_id, level, stream, message, created_at) VALUES (?, ?, ?, ?, ?, ?)`),
-		uuid.New().String(), deploymentID, level, stream, message, time.Now().UTC())
+	err := w.db.Create(&models.DeploymentLog{
+		BaseModel:    basemodel.BaseModel{ID: uuid.New().String()},
+		DeploymentID: deploymentID,
+		Level:        level,
+		Stream:       stream,
+		Message:      message,
+	}).Error
 	if err != nil {
 		log.Error().Err(err).Msg("failed to append log")
 	}

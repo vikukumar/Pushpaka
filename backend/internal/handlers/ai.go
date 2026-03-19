@@ -9,7 +9,7 @@ import (
 
 	"github.com/vikukumar/Pushpaka/internal/config"
 	"github.com/vikukumar/Pushpaka/internal/middleware"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/internal/services"
 )

@@ -2,10 +2,12 @@ package services
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 )
 
@@ -23,12 +25,14 @@ func (s *LogService) GetByDeployment(deploymentID string) ([]models.DeploymentLo
 
 func (s *LogService) Append(deploymentID, level, stream, message string) error {
 	l := &models.DeploymentLog{
-		ID:           uuid.New().String(),
+		BaseModel: basemodel.BaseModel{
+			ID:        uuid.New().String(),
+			CreatedAt: time.Now().UTC(),
+		},
 		DeploymentID: deploymentID,
 		Level:        level,
 		Stream:       stream,
 		Message:      message,
-		CreatedAt:    models.NowUTC(),
 	}
 	if err := s.logRepo.Create(l); err != nil {
 		return fmt.Errorf("appending log: %w", err)

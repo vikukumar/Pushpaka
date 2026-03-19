@@ -9,13 +9,21 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jmoiron/sqlx"
+	"strings"
+
+	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
+	"gorm.io/gorm"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/database"
+	"github.com/vikukumar/Pushpaka/pkg/database"
+	"github.com/vikukumar/Pushpaka/internal/handlers"
+	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/internal/router"
+	"github.com/vikukumar/Pushpaka/internal/services"
 	"github.com/vikukumar/Pushpaka/queue"
 	"github.com/vikukumar/Pushpaka/ui"
 )
@@ -24,8 +32,8 @@ import (
 // Exposed so that callers embedding multiple components (e.g. the combined
 // binary) can open ONE shared connection pool and pass it to both the API
 // and the worker, preventing SQLite BUSY_SNAPSHOT errors in WAL mode.
-func OpenDB(driver, dsn string) (*sqlx.DB, error) {
-	return database.New(driver, dsn)
+func OpenDB(driver, dsn string) (*gorm.DB, error) {
+	return basemodel.Connect(driver, dsn, "development")
 }
 
 // RunOptions configures optional behaviour for Run.
@@ -37,7 +45,7 @@ type RunOptions struct {
 	// DB, when non-nil, is used instead of opening a new database connection.
 	// The caller is responsible for closing the DB after RunWithOptions returns.
 	// Used in all-in-one mode to share one SQLite pool between API and worker.
-	DB *sqlx.DB
+	DB *gorm.DB
 }
 
 // Run starts the Pushpaka API server with default options and blocks until ctx is cancelled.
@@ -49,17 +57,79 @@ func Run(ctx context.Context) error {
 func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	cfg := config.Load()
 
-	var db *sqlx.DB
+	var db *gorm.DB
 	if opts.DB != nil {
 		// Caller already opened a shared pool; we must not close it here.
 		db = opts.DB
 	} else {
 		var err error
-		db, err = database.New(cfg.DatabaseDriver, cfg.DatabaseURL)
+		db, err = basemodel.Connect(cfg.DatabaseDriver, cfg.DatabaseURL, cfg.AppEnv)
 		if err != nil {
 			return fmt.Errorf("database: %w", err)
 		}
-		defer db.Close()
+		defer func() {
+			sqlDB, err := db.DB()
+			if err == nil {
+				sqlDB.Close()
+			}
+		}()
+	}
+
+	// AutoMigrate Database Schema
+	err := db.AutoMigrate(
+		&models.User{},
+		&models.Project{},
+		&models.Domain{},
+		&models.EnvVar{},
+		&models.AuditLog{},
+		&models.Deployment{},
+		&models.DeploymentAction{},
+		&models.DeploymentBackup{},
+		&models.DeploymentCodeSignature{},
+		&models.DeploymentInstance{},
+		&models.DeploymentLog{},
+		&models.DeploymentSyncHistory{},
+		&models.GitAutoSyncConfig{},
+		&models.GitChange{},
+		&models.GitSyncTrack{},
+		&models.NotificationConfig{},
+		&models.WebhookConfig{},
+		&models.AIConfig{},
+		&models.RAGDocument{},
+		&models.AIMonitorAlert{},
+		&models.AITokenUsage{},
+		&models.K8sConfig{},
+		&models.SystemConfig{},
+		&models.WorkerNode{},
+	)
+	if err != nil {
+		// Specific guidance for PostgreSQL permission errors common in managed databases (Aiven, RDS, etc.)
+		if cfg.DatabaseDriver == "postgres" && strings.Contains(err.Error(), "42501") {
+			user := "your_user"
+			if cfg.DatabaseConfig != nil {
+				user = cfg.DatabaseConfig.User
+			}
+			return fmt.Errorf("database migration failed: permission denied for schema 'public'. \n\n" +
+				"FIX: Run the following SQL command in your database console as a superuser/owner:\n" +
+				"GRANT ALL ON SCHEMA public TO \"%s\";\n" +
+				"ALTER SCHEMA public OWNER TO \"%s\";\n\n" +
+				"Original Error: %w", user, user, err)
+		}
+		return fmt.Errorf("failed to auto migrate database: %w", err)
+	}
+
+	// Initialize System Configuration (ZoneID)
+	systemCfgRepo := repositories.NewSystemConfigRepository(db)
+	zoneID, err := systemCfgRepo.Get("ZONE_ID")
+	if err != nil {
+		zoneID = uuid.New().String()
+		if setErr := systemCfgRepo.Set("ZONE_ID", zoneID); setErr != nil {
+			log.Error().Err(setErr).Msg("failed to save new ZONE_ID")
+		} else {
+			log.Info().Str("zone_id", zoneID).Msg("generated new installation ZoneID")
+		}
+	} else {
+		log.Info().Str("zone_id", zoneID).Msg("loaded installation ZoneID")
 	}
 
 	// Redis is optional: skipped when REDIS_URL is empty or an in-process queue is used.
@@ -88,7 +158,14 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		}
 	}
 
+	// Main User API Router
 	r := router.New(cfg, db, rdb, uiFS, opts.InProcessQueue)
+
+	// Worker Management Router
+	workerNodeRepo := repositories.NewWorkerNodeRepository(db)
+	workerNodeSvc := services.NewWorkerNodeService(workerNodeRepo, systemCfgRepo)
+	workerHandler := handlers.NewWorkerHandler(workerNodeSvc)
+	workerR := router.NewWorkerRouter(cfg, workerHandler)
 
 	srv := &http.Server{
 		Addr:         ":" + cfg.Port,
@@ -98,10 +175,25 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	errCh := make(chan error, 1)
+	workerSrv := &http.Server{
+		Addr:         ":" + cfg.WorkerPort,
+		Handler:      workerR,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
+	errCh := make(chan error, 2)
 	go func() {
 		log.Info().Str("port", cfg.Port).Str("version", "v1.0.0").Msg("Pushpaka API starting")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errCh <- err
+		}
+	}()
+
+	go func() {
+		log.Info().Str("port", cfg.WorkerPort).Msg("Pushpaka Worker Management server starting")
+		if err := workerSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			errCh <- err
 		}
 	}()
@@ -115,6 +207,9 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	shutCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	log.Info().Msg("shutting down API server...")
+	log.Info().Msg("shutting down API and Worker servers...")
+	if err := workerSrv.Shutdown(shutCtx); err != nil {
+		log.Error().Err(err).Msg("worker server shutdown error")
+	}
 	return srv.Shutdown(shutCtx)
 }

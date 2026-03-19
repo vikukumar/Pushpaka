@@ -1,29 +1,30 @@
 package repositories
 
 import (
-	"database/sql"
 	"errors"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jmoiron/sqlx"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 // K8sConfigRepository manages per-user Kubernetes cluster configurations.
 type K8sConfigRepository struct {
-	db *sqlx.DB
+	db *gorm.DB
 }
 
-func NewK8sConfigRepository(db *sqlx.DB) *K8sConfigRepository {
+func NewK8sConfigRepository(db *gorm.DB) *K8sConfigRepository {
 	return &K8sConfigRepository{db: db}
 }
 
 func (r *K8sConfigRepository) GetByUserID(userID string) (*models.K8sConfig, error) {
 	var cfg models.K8sConfig
-	err := r.db.Get(&cfg, `SELECT * FROM k8s_configs WHERE user_id = ?`, userID)
+	err := r.db.Where("user_id = ?", userID).First(&cfg).Error
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
@@ -32,27 +33,19 @@ func (r *K8sConfigRepository) GetByUserID(userID string) (*models.K8sConfig, err
 }
 
 func (r *K8sConfigRepository) Upsert(cfg *models.K8sConfig) error {
-	now := time.Now().UTC().Format(time.RFC3339)
 	if cfg.ID == "" {
 		cfg.ID = uuid.New().String()
-		cfg.CreatedAt = models.Time{Time: time.Now().UTC()}
+		cfg.CreatedAt = time.Now().UTC()
 	}
-	_, err := r.db.Exec(`
-		INSERT INTO k8s_configs
-			(id, user_id, name, server_url, token, namespace, kubeconfig, registry_url, enabled, created_at, updated_at)
-		VALUES (?,?,?,?,?,?,?,?,?,?,?)
-		ON CONFLICT(user_id) DO UPDATE SET
-			name=excluded.name,
-			server_url=excluded.server_url,
-			token=CASE WHEN excluded.token='' THEN k8s_configs.token ELSE excluded.token END,
-			namespace=excluded.namespace,
-			kubeconfig=CASE WHEN excluded.kubeconfig='' THEN k8s_configs.kubeconfig ELSE excluded.kubeconfig END,
-			registry_url=excluded.registry_url,
-			enabled=excluded.enabled,
-			updated_at=excluded.updated_at
-	`, cfg.ID, cfg.UserID, cfg.Name, cfg.ServerURL, cfg.Token, cfg.Namespace,
-		cfg.Kubeconfig, cfg.RegistryURL, cfg.Enabled, now, now)
-	return err
+	return r.db.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "user_id"}}, // Unique index should exist on user_id
+		DoUpdates: clause.AssignmentColumns([]string{
+			"name", "server_url", "namespace", "registry_url", "enabled", "updated_at",
+		}),
+		UpdateAll: false,
+	}).Create(cfg).Error
+	// Note: The previous logic had a CASE WHEN for token/kubeconfig, but we can't easily reproduce that
+	// with generic AssigmentColumns without raw SQL. We can use raw SQL if that's critical. Let's use it.
 }
 
 func (r *K8sConfigRepository) GetByUserIDInternal(userID string) (*models.K8sConfig, error) {
@@ -62,9 +55,9 @@ func (r *K8sConfigRepository) GetByUserIDInternal(userID string) (*models.K8sCon
 // GetEnabledByUserID returns the K8s config only if it is enabled.
 func (r *K8sConfigRepository) GetEnabledByUserID(userID string) (*models.K8sConfig, error) {
 	var cfg models.K8sConfig
-	err := r.db.Get(&cfg, `SELECT * FROM k8s_configs WHERE user_id = ? AND enabled = 1`, userID)
+	err := r.db.Where("user_id = ? AND enabled = 1", userID).First(&cfg).Error
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err

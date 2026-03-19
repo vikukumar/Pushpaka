@@ -3,57 +3,47 @@ package repositories
 import (
 	"time"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"gorm.io/gorm"
+
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 type DomainRepository struct {
-	db *sqlx.DB
+	db *gorm.DB
 }
 
-func NewDomainRepository(db *sqlx.DB) *DomainRepository {
+func NewDomainRepository(db *gorm.DB) *DomainRepository {
 	return &DomainRepository{db: db}
 }
 
 func (r *DomainRepository) Create(d *models.Domain) error {
-	query := `
-		INSERT INTO domains (id, project_id, user_id, domain, verified, ssl_enabled, created_at, updated_at)
-		VALUES (:id, :project_id, :user_id, :domain, :verified, :ssl_enabled, :created_at, :updated_at)`
-	_, err := r.db.NamedExec(query, d)
-	return err
+	return basemodel.Add(r.db, d)
 }
 
 func (r *DomainRepository) FindByProjectID(projectID string) ([]models.Domain, error) {
 	var domains []models.Domain
-	err := r.db.Select(&domains,
-		r.db.Rebind(`SELECT * FROM domains WHERE project_id = ? ORDER BY created_at DESC`), projectID)
+	err := r.db.Where("project_id = ?", projectID).Order("created_at desc").Find(&domains).Error
 	return domains, err
 }
 
 func (r *DomainRepository) FindByUserID(userID string) ([]models.Domain, error) {
 	var domains []models.Domain
-	err := r.db.Select(&domains,
-		r.db.Rebind(`SELECT * FROM domains WHERE user_id = ? ORDER BY created_at DESC`), userID)
+	err := r.db.Where("user_id = ?", userID).Order("created_at desc").Find(&domains).Error
 	return domains, err
 }
 
 func (r *DomainRepository) FindByDomain(domain string) (*models.Domain, error) {
-	var d models.Domain
-	err := r.db.Get(&d, r.db.Rebind(`SELECT * FROM domains WHERE domain = ?`), domain)
-	if err != nil {
-		return nil, err
-	}
-	return &d, nil
+	return basemodel.First[models.Domain](r.db, "domain = ?", domain)
 }
 
 func (r *DomainRepository) SetVerified(id string, verified bool) error {
-	_, err := r.db.Exec(
-		r.db.Rebind(`UPDATE domains SET verified = ?, updated_at = ? WHERE id = ?`),
-		verified, time.Now().UTC(), id)
-	return err
+	return r.db.Model(&models.Domain{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"verified":   verified,
+		"updated_at": time.Now().UTC(),
+	}).Error
 }
 
 func (r *DomainRepository) Delete(id, userID string) error {
-	_, err := r.db.Exec(r.db.Rebind(`DELETE FROM domains WHERE id = ? AND user_id = ?`), id, userID)
-	return err
+	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&models.Domain{}).Error
 }

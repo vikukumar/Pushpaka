@@ -1,35 +1,30 @@
 package repositories
 
 import (
-	"github.com/jmoiron/sqlx"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"gorm.io/gorm"
+
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 type LogRepository struct {
-	db *sqlx.DB
+	db *gorm.DB
 }
 
-func NewLogRepository(db *sqlx.DB) *LogRepository {
+func NewLogRepository(db *gorm.DB) *LogRepository {
 	return &LogRepository{db: db}
 }
 
 func (r *LogRepository) Create(l *models.DeploymentLog) error {
-	query := `
-		INSERT INTO deployment_logs (id, deployment_id, level, message, stream, created_at)
-		VALUES (:id, :deployment_id, :level, :message, :stream, :created_at)`
-	_, err := r.db.NamedExec(query, l)
-	return err
+	return basemodel.Add(r.db, l)
 }
 
 func (r *LogRepository) FindByDeploymentID(deploymentID string) ([]models.DeploymentLog, error) {
 	var logs []models.DeploymentLog
-	err := r.db.Select(&logs,
-		r.db.Rebind(`SELECT * FROM deployment_logs WHERE deployment_id = ? ORDER BY created_at ASC`),
-		deploymentID)
+	err := r.db.Where("deployment_id = ?", deploymentID).Order("created_at asc").Find(&logs).Error
 	return logs, err
 }
 
 func (r *LogRepository) DeleteByDeploymentID(deploymentID string) error {
-	_, err := r.db.Exec(r.db.Rebind(`DELETE FROM deployment_logs WHERE deployment_id = ?`), deploymentID)
-	return err
+	return r.db.Where("deployment_id = ?", deploymentID).Delete(&models.DeploymentLog{}).Error
 }

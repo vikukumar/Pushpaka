@@ -11,6 +11,7 @@ import (
 
 type Config struct {
 	Port               string
+	WorkerPort         string // Dedicated port for worker sync API
 	DatabaseDriver     string // "postgres" (default) or "sqlite"
 	DatabaseURL        string
 	DatabaseConfig     *DatabaseConfig // Structured database config (alternative to DSN)
@@ -69,9 +70,12 @@ func Load() *Config {
 
 	// Build DatabaseURL from structured config if DATABASE_URL not explicitly set
 	databaseURL := getEnv("DATABASE_URL", "")
-	if databaseURL == "" && getEnv("DATABASE_DRIVER", "postgres") == "postgres" {
+	dbDriver := getEnv("DATABASE_DRIVER", "postgres")
+	if databaseURL == "" && dbDriver != "sqlite" {
 		dbCfg := LoadDatabaseConfig(appMode)
-		databaseURL = dbCfg.BuildPostgresURL()
+		databaseURL = dbCfg.BuildDSN(dbDriver)
+	} else if dbDriver == "sqlite" && databaseURL == "" {
+		databaseURL = getEnv("DB_NAME", "pushpaka-dev.db")
 	}
 
 	// Build RedisURL from structured config if REDIS_URL not explicitly set
@@ -83,6 +87,7 @@ func Load() *Config {
 
 	return &Config{
 		Port:               getEnv("PORT", "8080"),
+		WorkerPort:         getEnv("WORKER_PORT", "8081"),
 		DatabaseDriver:     getEnv("DATABASE_DRIVER", "postgres"),
 		DatabaseURL:        databaseURL,
 		DatabaseConfig:     LoadDatabaseConfig(appMode),

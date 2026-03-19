@@ -14,7 +14,7 @@
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?style=flat-square&logo=docker)](https://docker.com)
 [![License](https://img.shields.io/badge/license-MIT-22c55e?style=flat-square)](LICENSE)
 
-**Pushpaka** is a production-grade self-hosted cloud deployment platform — deploy applications from any Git repository (public or private) with automated container builds, real-time logs, custom domains, dark/light theming, and Traefik-powered routing. Runs as a **single binary in dev mode** (no Redis/Postgres required) or as a full distributed stack in production.
+**Pushpaka** is a production-grade self-hosted cloud deployment platform — deploy applications from any Git repository (public or private) with automated container builds, real-time logs, custom domains, dark/light theming, and Traefik-powered routing. Featuring a **Distributed Worker Engine** with secure **Yamux Tunneling** and enterprise **Multi-DB ORM** support.
 
 🌐 **[Visit Website](https://vikukumar.github.io/Pushpaka/)** - Modern, beautiful documentation site with installation guides, feature showcase, and release tracker.
 
@@ -31,9 +31,10 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
 1. **Connect** a Git repository (public or private with PAT)
 2. **Trigger** a deployment (manually or via API)
 3. **Build** — auto-detects framework and generates a Dockerfile, or uses your own
-4. **Deploy** the container (Docker) or in-place (no Docker required)
-5. **Route** traffic via Traefik + optional custom domains + auto-SSL
-6. **Monitor** with real-time WebSocket log streaming and live system status
+4. **Deploy** — distributed execution across **Integrated**, **Vaahan (Serverless)**, or **Hybrid** worker nodes
+5. **Tunnel** — secure reverse tunneling (Yamux) serves apps from remote workers without open ports
+6. **Route** — traffic via Traefik + optional custom domains + auto-SSL
+7. **Monitor** — real-time WebSocket log streaming, live system status, and worker telemetry
 
 ---
 
@@ -52,29 +53,31 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
            |  (Next.js 16)|  |  (Go 1.25/   |
            |   :3000      |  |   Gin 1.12)  |
            +--------------+  +----+---------+
-                                  |
-               +------------------+-------------------+
-               |                  |                   |
-     +---------v------+  +--------v-------+  +--------v-------+
-     |  PostgreSQL 17 |  |   Redis 8      |  |  Build Worker  |
-     |  (Data store)  |  |  (Job queue)   |  |  (Go process)  |
-     +----------------+  +----------------+  +--------+-------+
-                                                      |
-                                        +-------------v-----------+
-                                        |     Docker Engine       |
-                                        |  git -> build -> run    |
-                                        |  or direct deploy       |
-                                        +-------------------------+
+                                   |
+                +------------------+-------------------+
+                |                  |                   |
+      +---------v------+  +--------v-------+  +--------v-------+
+      |  Multi-DB GORM |  |   Redis 8      |  | Worker Manager |
+      | (PG/MY/MS/SQLI)|  |  (Job queue)   |  |   (Port 8081)  |
+      +----------------+  +----------------+  +--------+-------+
+                                                       |
+               +---------------------------------------+---------------------------------------+
+               |                                       |                                       |
+     +---------v----------+              +-------------v-----------+             +-------------v-----------+
+     | Integrated Worker  |              | Vaahan (Serverless)     |             | Hybrid Worker Node      |
+     | (In-process Gor)   |              | (SQLite + Tunnel)       |             | (GORM DB + Tunnel)      |
+     +--------------------+              +-------------------------+             +-------------------------+
+               |                                       |                                       |
+               +---------------------------------------+---------------------------------------+
+                                                       |
+                                         +-------------v-----------+
+                                         |     Docker Engine       |
+                                         |  git -> build -> run    |
+                                         |  or direct deploy       |
+                                         +-------------------------+
 
-  Dev mode (-dev flag, SQLite + in-process queue):
-  pushpaka -dev  =>  API + embedded workers + SQLite
-
-  All-in-one mode (default, any DB + in-process queue):
-  pushpaka  =>  API + embedded workers (in-process channel, no Redis needed for routing)
-
-  Split mode (horizontal scale):
-  PUSHPAKA_COMPONENT=api     =>  API only  (pushes jobs to Redis)
-  PUSHPAKA_COMPONENT=worker  =>  Workers only (reads from Redis)
+   Tunneling: Secure reverse multiplexing (Yamux) over WebSocket ensures remote workers
+   serve traffic through the main gateway without requiring public IP exposure.
 ```
 
 ---
@@ -92,11 +95,13 @@ Pushpaka brings the Vercel/Render/Railway experience to your own infrastructure.
 - 🗑️ **Project management** — create, update settings, and delete projects from the dashboard
 
 ### Infrastructure
-- 🔀 **Traefik v3 Reverse Proxy** — automatic TLS, routing, and load balancing
-- 🔐 **Let's Encrypt SSL** — free, automatic, and renewing
+- 🛰️ **Distributed Worker Engine** — scale execution across remote `Vaahan` or `Hybrid` nodes
+- 🚇 **Secure Reverse Tunneling** — serve apps from remote workers via Yamux-multiplexed WebSockets
+- 🗄️ **Multi-DB ORM** — native support for PostgreSQL, MySQL, SQL Server, MSSQL, and SQLite via GORM
+- 🔄 **Auto-Migrations** — schema synchronization on startup, no manual migration files required
 - 📊 **Prometheus metrics** — export to Grafana at `/api/v1/metrics`
 - ❤️ **Health checks** — `/health`, `/ready`, and live `/system` status endpoint
-- 🔧 **Worker stats** — live worker count, active jobs, idle count, queue mode
+- 🔧 **Worker Management** — dedicated dashboard to monitor node health, resources, and PAT rotation
 
 ### Developer Experience
 - 📡 **Real-time logs** — WebSocket streaming during builds with level/stream filtering
@@ -175,6 +180,33 @@ Dev mode automatically:
 
 ---
 
+## Worker Scaling
+
+Pushpaka supports three worker modes for enterprise scalability:
+
+| Mode | Name | Persistence | Connectivity |
+|------|------|-------------|--------------|
+| **Integrated** | Default | Shared with API | In-process |
+| **Vaahan** | Serverless | Embedded SQLite | WebSocket + Tunnel |
+| **Hybrid** | Remote | External GORM DB | WebSocket + Tunnel |
+
+### Running a Remote Worker (Vaahan)
+
+Remote workers connect back to the Management API using a Zone PAT.
+
+```bash
+# On the remote node
+cd cmd/worker
+pushpaka-worker \
+  --mode vaahan \
+  --server ws://your-api-domain.com \
+  --zone-pat YOUR_ZONE_PAT
+```
+
+Workers report their telemetry (CPU, RAM, Architecture) and available tools (Docker, Go, Node) back to the dashboard automatically.
+
+---
+
 ## Project Structure
 
 ```
@@ -208,7 +240,7 @@ pushpaka/
 ├── docs/                     # Full documentation
 ├── Dockerfile                # Multi-stage: Go workspace build -> alpine runtime
 ├── docker-compose.yml        # Production stack
-└── docker-compose.dev.yml    # Dev overrides (ports exposed, debug logging)
+├── docker-compose.dev.yml    # Dev overrides (ports exposed, debug logging)
 ```
 
 ---
@@ -220,10 +252,10 @@ pushpaka/
 | Backend language | Go | 1.25 |
 | HTTP framework | Gin | 1.12.0 |
 | WebSocket | gorilla/websocket | 1.5.3 |
-| JWT | golang-jwt/jwt | v5.3.1 |
-| ORM/SQL | sqlx | 1.4.0 |
-| Database (prod) | PostgreSQL | 17 |
-| Database (dev) | SQLite (modernc) | 1.46.1 |
+| Multiplexer | hashicorp/yamux | 0.1.2 |
+| ORM | GORM | 1.31.x |
+| Database (SQL) | PG / MySQL / MSSQL / SQLite | — |
+| Database (NoSQL) | MongoDB (v2 driver) | 2.5.0 |
 | Queue (prod) | Redis (go-redis v9) | 9.18.0 |
 | Queue (dev) | In-process channel | — |
 | Metrics | Prometheus client_golang | 1.23.2 |
@@ -302,15 +334,15 @@ Key environment variables (see [`.env.example`](.env.example)):
 
 ## Roadmap — v1.0.0 (Improvements)
 
-- [ ] GitHub / GitLab OAuth (one-click repo connect)
-- [ ] Webhook auto-deploy on `git push`
+- [x] GitHub / GitLab OAuth (one-click repo connect)
+- [x] Webhook auto-deploy on `git push`
 - [ ] Pull Request preview deployments
 - [ ] Blue-green zero-downtime deployments
-- [ ] Docker Swarm multi-node support
-- [ ] CPU/memory resource limits per project
-- [ ] Slack / Discord / email notifications
-- [ ] Web terminal (exec into containers)
-- [ ] Audit log viewer in dashboard
+- [x] Distributed Worker Engine (Vaahan/Hybrid)
+- [x] CPU/memory resource limits reporting
+- [x] Slack / Discord / email notifications
+- [x] Web terminal (exec into containers)
+- [x] Audit log viewer in dashboard
 - [ ] Build caching for faster deployments
 
 ---

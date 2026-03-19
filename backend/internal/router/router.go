@@ -1,9 +1,11 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -12,21 +14,22 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 
 	"github.com/vikukumar/Pushpaka/internal/config"
 	"github.com/vikukumar/Pushpaka/internal/handlers"
 	"github.com/vikukumar/Pushpaka/internal/middleware"
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/internal/services"
+	"github.com/vikukumar/Pushpaka/pkg/tunnel"
 	"github.com/vikukumar/Pushpaka/queue"
 )
 
 // New builds the Gin engine. Pass a non-nil uiFS to serve the embedded
 // Next.js static export under /; pass nil to skip frontend serving (dev mode).
 // inQueue is only non-nil in dev mode (embedded worker, no Redis).
-func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue *queue.InProcess) *gin.Engine {
+func New(cfg *config.Config, db *gorm.DB, rdb *redis.Client, uiFS fs.FS, inQueue *queue.InProcess) *gin.Engine {
 	if cfg.AppEnv == "production" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -55,6 +58,8 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	notifRepo := repositories.NewNotificationRepository(db)
 	webhookRepo := repositories.NewWebhookRepository(db)
 	aiConfigRepo := repositories.NewAIConfigRepository(db)
+	workerRepo := repositories.NewWorkerNodeRepository(db)
+	systemRepo := repositories.NewSystemConfigRepository(db)
 
 	// Services
 	authSvc := services.NewAuthService(userRepo, cfg)
@@ -68,6 +73,7 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	oauthSvc := services.NewOAuthService(userRepo, cfg, authSvc, db)
 	webhookSvc := services.NewWebhookService(webhookRepo, projectRepo, deploymentSvc, cfg)
 	aiSvc := services.NewAIService(cfg)
+	workerSvc := services.NewWorkerNodeService(workerRepo, systemRepo)
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authSvc)
@@ -81,6 +87,7 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 	oauthHandler := handlers.NewOAuthHandler(oauthSvc)
 	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
 	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo, aiConfigRepo, cfg)
+	workerHandler := handlers.NewWorkerHandler(workerSvc)
 	terminalHandler := handlers.NewTerminalHandler(deploymentRepo, cfg)
 	fileHandler := handlers.NewFileHandler(projectRepo, deploymentRepo, cfg)
 	infraHandler := handlers.NewInfraHandler()
@@ -223,6 +230,13 @@ func New(cfg *config.Config, db *sqlx.DB, rdb *redis.Client, uiFS fs.FS, inQueue
 			protected.GET("/k8s/deployments", infraHandler.K8sDeployments)
 			protected.GET("/k8s/services", infraHandler.K8sServices)
 			protected.POST("/k8s/deployments/:namespace/:name/rollout", infraHandler.K8sRollout)
+
+			// Worker Management Admin Routes
+			workers := protected.Group("/workers")
+			{
+				workers.GET("", workerHandler.ListNodes)
+				workers.POST("/pat", workerHandler.GetZonePAT)
+			}
 
 			// Deployment delete
 			protected.DELETE("/deployments/:id", deploymentHandler.Delete)
@@ -474,6 +488,28 @@ func newDeploymentProxyHandler(repo *repositories.DeploymentRepository) gin.Hand
 
 		target, _ := url.Parse(fmt.Sprintf("http://localhost:%d", d.ExternalPort))
 		proxy := httputil.NewSingleHostReverseProxy(target)
+
+		if d.WorkerID != "" && d.WorkerID != "local" {
+			session, err := tunnel.GlobalManager.GetSession(d.WorkerID)
+			if err != nil {
+				c.JSON(http.StatusBadGateway, gin.H{"error": "remote worker tunnel is offline"})
+				return
+			}
+			
+			// Inform the remote worker's yamux acceptor which local port to forward to
+			originalDirector := proxy.Director
+			proxy.Director = func(req *http.Request) {
+				originalDirector(req)
+				req.Header.Set("X-Pushpaka-Target-Port", fmt.Sprintf("%d", d.ExternalPort))
+			}
+			
+			proxy.Transport = &http.Transport{
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					// Open a new byte stream over the multiplexed websocket connection
+					return session.Open()
+				},
+			}
+		}
 
 		// Strip the /app/:projectID prefix so the downstream app sees a clean path.
 		proxyPath := c.Param("proxyPath")

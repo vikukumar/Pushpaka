@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,12 +10,17 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/vikukumar/Pushpaka-worker/app"
+	"github.com/vikukumar/Pushpaka/worker/app"
 )
 
 var version = "dev"
 
 func main() {
+	mode := flag.String("mode", "hybrid", "worker run mode: vaahan (serverless) or hybrid")
+	serverURL := flag.String("server", "ws://localhost:8081", "Pushpaka API Management Server URL")
+	zonePAT := flag.String("zone-pat", "", "Personal Access Token for the Zone")
+	flag.Parse()
+
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	if os.Getenv("APP_ENV") == "development" {
 		log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr})
@@ -23,7 +29,13 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
-	if err := app.Run(ctx); err != nil {
+	opts := app.RunOptions{
+		Mode:      *mode,
+		ServerURL: *serverURL,
+		ZonePAT:   *zonePAT,
+	}
+
+	if err := app.Run(ctx, opts); err != nil {
 		log.Fatal().Err(err).Msg("worker exited with error")
 	}
 }

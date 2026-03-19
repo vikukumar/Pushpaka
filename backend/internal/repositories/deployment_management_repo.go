@@ -1,50 +1,35 @@
 package repositories
 
 import (
-	"github.com/jmoiron/sqlx"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"errors"
+
+	"gorm.io/gorm"
+
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 type DeploymentManagementRepository struct {
-	db *sqlx.DB
+	db *gorm.DB
 }
 
-func NewDeploymentManagementRepository(db *sqlx.DB) *DeploymentManagementRepository {
+func NewDeploymentManagementRepository(db *gorm.DB) *DeploymentManagementRepository {
 	return &DeploymentManagementRepository{db: db}
 }
 
 // ============= Code Signature Operations =============
 
-// CreateCodeSignature creates a new code signature record
 func (r *DeploymentManagementRepository) CreateCodeSignature(sig *models.DeploymentCodeSignature) error {
-	query := `
-		INSERT INTO deployment_code_signatures (
-			id, deployment_id, project_id, commit_sha, commit_message, commit_author,
-			branch, code_hash, file_count, directory_path, created_at
-		) VALUES (
-			:id, :deployment_id, :project_id, :commit_sha, :commit_message, :commit_author,
-			:branch, :code_hash, :file_count, :directory_path, :created_at
-		)`
-	_, err := r.db.NamedExec(query, sig)
-	return err
+	return basemodel.Add(r.db, sig)
 }
 
-// GetCodeSignature retrieves a code signature by ID
 func (r *DeploymentManagementRepository) GetCodeSignature(id string) (*models.DeploymentCodeSignature, error) {
-	var sig models.DeploymentCodeSignature
-	err := r.db.Get(&sig, r.db.Rebind("SELECT * FROM deployment_code_signatures WHERE id = ?"), id)
-	if err != nil {
-		return nil, err
-	}
-	return &sig, nil
+	return basemodel.Get[models.DeploymentCodeSignature](r.db, id)
 }
 
-// GetCodeSignatureByDeployment retrieves latest code signature for a deployment
 func (r *DeploymentManagementRepository) GetCodeSignatureByDeployment(deploymentID string) (*models.DeploymentCodeSignature, error) {
 	var sig models.DeploymentCodeSignature
-	err := r.db.Get(&sig,
-		r.db.Rebind("SELECT * FROM deployment_code_signatures WHERE deployment_id = ? ORDER BY created_at DESC LIMIT 1"),
-		deploymentID)
+	err := r.db.Where("deployment_id = ?", deploymentID).Order("created_at desc").First(&sig).Error
 	if err != nil {
 		return nil, err
 	}
@@ -53,179 +38,96 @@ func (r *DeploymentManagementRepository) GetCodeSignatureByDeployment(deployment
 
 // ============= Deployment Instance Operations =============
 
-// CreateDeploymentInstance creates a new deployment instance
 func (r *DeploymentManagementRepository) CreateDeploymentInstance(inst *models.DeploymentInstance) error {
-	query := `
-		INSERT INTO deployment_instances (
-			id, deployment_id, project_id, role, status, container_id, process_id,
-			port, code_signature_id, instance_dir, started_at, last_health_check,
-			health_status, restart_count, error_log, created_at, updated_at
-		) VALUES (
-			:id, :deployment_id, :project_id, :role, :status, :container_id, :process_id,
-			:port, :code_signature_id, :instance_dir, :started_at, :last_health_check,
-			:health_status, :restart_count, :error_log, :created_at, :updated_at
-		)`
-	_, err := r.db.NamedExec(query, inst)
-	return err
+	return basemodel.Add(r.db, inst)
 }
 
-// GetDeploymentInstance retrieves deployment instance by ID
 func (r *DeploymentManagementRepository) GetDeploymentInstance(id string) (*models.DeploymentInstance, error) {
-	var inst models.DeploymentInstance
-	err := r.db.Get(&inst, r.db.Rebind("SELECT * FROM deployment_instances WHERE id = ?"), id)
-	if err != nil {
-		return nil, err
-	}
-	return &inst, nil
+	return basemodel.Get[models.DeploymentInstance](r.db, id)
 }
 
-// GetDeploymentInstances retrieves all instances for a deployment
 func (r *DeploymentManagementRepository) GetDeploymentInstances(deploymentID string) ([]models.DeploymentInstance, error) {
 	var instances []models.DeploymentInstance
-	err := r.db.Select(&instances,
-		r.db.Rebind("SELECT * FROM deployment_instances WHERE deployment_id = ? ORDER BY role, created_at"),
-		deploymentID)
+	err := r.db.Where("deployment_id = ?", deploymentID).Order("role, created_at").Find(&instances).Error
 	return instances, err
 }
 
-// GetMainDeploymentInstance retrieves the main (production) instance
 func (r *DeploymentManagementRepository) GetMainDeploymentInstance(projectID string) (*models.DeploymentInstance, error) {
 	var inst models.DeploymentInstance
-	err := r.db.Get(&inst,
-		r.db.Rebind("SELECT * FROM deployment_instances WHERE project_id = ? AND role = ? AND status = 'running' LIMIT 1"),
-		projectID, models.DeploymentRoleMain)
+	err := r.db.Where("project_id = ? AND role = ? AND status = 'running'", projectID, models.DeploymentRoleMain).First(&inst).Error
 	if err != nil {
 		return nil, err
 	}
 	return &inst, nil
 }
 
-// UpdateDeploymentInstance updates a deployment instance
 func (r *DeploymentManagementRepository) UpdateDeploymentInstance(inst *models.DeploymentInstance) error {
-	query := `
-		UPDATE deployment_instances SET
-			status = :status, container_id = :container_id, process_id = :process_id,
-			port = :port, code_signature_id = :code_signature_id, started_at = :started_at,
-			stopped_at = :stopped_at, last_health_check = :last_health_check,
-			health_status = :health_status, restart_count = :restart_count,
-			error_log = :error_log, updated_at = :updated_at
-		WHERE id = :id`
-	_, err := r.db.NamedExec(query, inst)
-	return err
+	return basemodel.Modify(r.db, inst)
 }
 
-// DeleteDeploymentInstance deletes a deployment instance
 func (r *DeploymentManagementRepository) DeleteDeploymentInstance(id string) error {
-	_, err := r.db.Exec(r.db.Rebind("DELETE FROM deployment_instances WHERE id = ?"), id)
-	return err
+	return r.db.Where("id = ?", id).Delete(&models.DeploymentInstance{}).Error
 }
 
 // ============= Backup Operations =============
 
-// CreateBackup creates a new backup record
 func (r *DeploymentManagementRepository) CreateBackup(backup *models.DeploymentBackup) error {
-	query := `
-		INSERT INTO deployment_backups (
-			id, deployment_id, project_id, code_signature_id, instance_id,
-			backup_path, size, reason, is_restored, restored_at, created_at
-		) VALUES (
-			:id, :deployment_id, :project_id, :code_signature_id, :instance_id,
-			:backup_path, :size, :reason, :is_restored, :restored_at, :created_at
-		)`
-	_, err := r.db.NamedExec(query, backup)
-	return err
+	return basemodel.Add(r.db, backup)
 }
 
-// GetBackup retrieves a backup by ID
 func (r *DeploymentManagementRepository) GetBackup(id string) (*models.DeploymentBackup, error) {
-	var backup models.DeploymentBackup
-	err := r.db.Get(&backup, r.db.Rebind("SELECT * FROM deployment_backups WHERE id = ?"), id)
-	if err != nil {
-		return nil, err
-	}
-	return &backup, nil
+	return basemodel.Get[models.DeploymentBackup](r.db, id)
 }
 
-// GetBackupsByDeployment retrieves all backups for a deployment (limited)
 func (r *DeploymentManagementRepository) GetBackupsByDeployment(deploymentID string, limit int) ([]models.DeploymentBackup, error) {
 	var backups []models.DeploymentBackup
-	err := r.db.Select(&backups,
-		r.db.Rebind("SELECT * FROM deployment_backups WHERE deployment_id = ? ORDER BY created_at DESC LIMIT ?"),
-		deploymentID, limit)
+	err := r.db.Where("deployment_id = ?", deploymentID).Order("created_at desc").Limit(limit).Find(&backups).Error
 	return backups, err
 }
 
-// GetOldestBackups returns oldest backups for cleanup
 func (r *DeploymentManagementRepository) GetOldestBackups(projectID string, keepCount int) ([]models.DeploymentBackup, error) {
 	var backups []models.DeploymentBackup
-	err := r.db.Select(&backups,
-		r.db.Rebind(`
-			SELECT * FROM deployment_backups 
-			WHERE project_id = ? AND is_restored = false
-			ORDER BY created_at ASC
-			LIMIT (SELECT COUNT(*) FROM deployment_backups WHERE project_id = ?) - ?
-		`),
-		projectID, projectID, keepCount)
+	// To perform the LIMIT (SELECT COUNT(*) - keepCount) logic, it is easier to fetch all, and slice in memory.
+	// Or use an offset. GORM Offset expects an integer.
+	var totalCount int64
+	r.db.Model(&models.DeploymentBackup{}).Where("project_id = ?", projectID).Count(&totalCount)
+	
+	offset := int(totalCount) - keepCount
+	if offset <= 0 {
+		return backups, nil // No backups to delete
+	}
+	
+	err := r.db.Where("project_id = ? AND is_restored = ?", projectID, false).Order("created_at asc").Limit(offset).Find(&backups).Error
 	return backups, err
 }
 
-// UpdateBackup updates a backup record
 func (r *DeploymentManagementRepository) UpdateBackup(backup *models.DeploymentBackup) error {
-	query := `
-		UPDATE deployment_backups SET
-			is_restored = :is_restored, restored_at = :restored_at
-		WHERE id = :id`
-	_, err := r.db.NamedExec(query, backup)
-	return err
+	return basemodel.Modify(r.db, backup)
 }
 
-// DeleteBackup deletes a backup record
 func (r *DeploymentManagementRepository) DeleteBackup(id string) error {
-	_, err := r.db.Exec(r.db.Rebind("DELETE FROM deployment_backups WHERE id = ?"), id)
-	return err
+	return r.db.Where("id = ?", id).Delete(&models.DeploymentBackup{}).Error
 }
 
 // ============= Deployment Action Operations =============
 
-// CreateDeploymentAction records a deployment action
 func (r *DeploymentManagementRepository) CreateDeploymentAction(action *models.DeploymentAction) error {
-	query := `
-		INSERT INTO deployment_actions (
-			id, deployment_id, instance_id, project_id, user_id, action,
-			status, result, created_at, updated_at
-		) VALUES (
-			:id, :deployment_id, :instance_id, :project_id, :user_id, :action,
-			:status, :result, :created_at, :updated_at
-		)`
-	_, err := r.db.NamedExec(query, action)
-	return err
+	return basemodel.Add(r.db, action)
 }
 
-// UpdateDeploymentAction updates an action record
 func (r *DeploymentManagementRepository) UpdateDeploymentAction(action *models.DeploymentAction) error {
-	query := `
-		UPDATE deployment_actions SET
-			status = :status, result = :result, updated_at = :updated_at
-		WHERE id = :id`
-	_, err := r.db.NamedExec(query, action)
-	return err
+	return basemodel.Modify(r.db, action)
 }
 
-// GetDeploymentActions retrieves actions for a deployment (limited)
 func (r *DeploymentManagementRepository) GetDeploymentActions(deploymentID string, limit int) ([]models.DeploymentAction, error) {
 	var actions []models.DeploymentAction
-	err := r.db.Select(&actions,
-		r.db.Rebind("SELECT * FROM deployment_actions WHERE deployment_id = ? ORDER BY created_at DESC LIMIT ?"),
-		deploymentID, limit)
+	err := r.db.Where("deployment_id = ?", deploymentID).Order("created_at desc").Limit(limit).Find(&actions).Error
 	return actions, err
 }
 
-// GetLastDeploymentAction gets the most recent action
 func (r *DeploymentManagementRepository) GetLastDeploymentAction(deploymentID string) (*models.DeploymentAction, error) {
 	var action models.DeploymentAction
-	err := r.db.Get(&action,
-		r.db.Rebind("SELECT * FROM deployment_actions WHERE deployment_id = ? ORDER BY created_at DESC LIMIT 1"),
-		deploymentID)
+	err := r.db.Where("deployment_id = ?", deploymentID).Order("created_at desc").First(&action).Error
 	if err != nil {
 		return nil, err
 	}
@@ -234,53 +136,24 @@ func (r *DeploymentManagementRepository) GetLastDeploymentAction(deploymentID st
 
 // ============= Stats Operations =============
 
-// CreateOrUpdateStats creates or updates deployment stats
 func (r *DeploymentManagementRepository) CreateOrUpdateStats(stats *models.ProjectDeploymentStats) error {
-	// First check if exists
-	existing := &models.ProjectDeploymentStats{}
-	err := r.db.Get(existing,
-		r.db.Rebind("SELECT * FROM project_deployment_stats WHERE project_id = ?"),
-		stats.ProjectID)
-
+	var existing models.ProjectDeploymentStats
+	err := r.db.Where("project_id = ?", stats.ProjectID).First(&existing).Error
 	if err != nil {
-		// Insert new record
-		query := `
-			INSERT INTO project_deployment_stats (
-				id, project_id, main_deployment_id, testing_deployment_id,
-				total_deployments, successful_deploys, failed_deploys,
-				total_backups, last_deploy_at, avg_deploy_time, updated_at
-			) VALUES (
-				:id, :project_id, :main_deployment_id, :testing_deployment_id,
-				:total_deployments, :successful_deploys, :failed_deploys,
-				:total_backups, :last_deploy_at, :avg_deploy_time, :updated_at
-			)`
-		_, err := r.db.NamedExec(query, stats)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return basemodel.Add(r.db, stats)
+		}
 		return err
 	}
-
-	// Update existing record
-	query := `
-		UPDATE project_deployment_stats SET
-			main_deployment_id = :main_deployment_id,
-			testing_deployment_id = :testing_deployment_id,
-			total_deployments = :total_deployments,
-			successful_deploys = :successful_deploys,
-			failed_deploys = :failed_deploys,
-			total_backups = :total_backups,
-			last_deploy_at = :last_deploy_at,
-			avg_deploy_time = :avg_deploy_time,
-			updated_at = :updated_at
-		WHERE project_id = :project_id`
-	_, err = r.db.NamedExec(query, stats)
-	return err
+	
+	// Ensure ID is matched to update existing record instead of creating new
+	stats.ID = existing.ID
+	return basemodel.Modify(r.db, stats)
 }
 
-// GetStats retrieves deployment stats for a project
 func (r *DeploymentManagementRepository) GetStats(projectID string) (*models.ProjectDeploymentStats, error) {
 	var stats models.ProjectDeploymentStats
-	err := r.db.Get(&stats,
-		r.db.Rebind("SELECT * FROM project_deployment_stats WHERE project_id = ?"),
-		projectID)
+	err := r.db.Where("project_id = ?", projectID).First(&stats).Error
 	if err != nil {
 		return nil, err
 	}
@@ -289,41 +162,24 @@ func (r *DeploymentManagementRepository) GetStats(projectID string) (*models.Pro
 
 // ============= Helper Methods =============
 
-// CountDeploymentsByProject counts total deployments for project
 func (r *DeploymentManagementRepository) CountDeploymentsByProject(projectID string) (int, error) {
-	var count int
-	err := r.db.Get(&count,
-		r.db.Rebind("SELECT COUNT(*) FROM deployment_instances WHERE project_id = ? AND role IN (?, ?)"),
-		projectID, models.DeploymentRoleMain, models.DeploymentRoleTesting)
-	return count, err
+	var count int64
+	err := r.db.Model(&models.DeploymentInstance{}).Where("project_id = ? AND role IN (?, ?)", projectID, models.DeploymentRoleMain, models.DeploymentRoleTesting).Count(&count).Error
+	return int(count), err
 }
 
-// CountBackupsByProject counts total backups for project
 func (r *DeploymentManagementRepository) CountBackupsByProject(projectID string) (int, error) {
-	var count int
-	err := r.db.Get(&count,
-		r.db.Rebind("SELECT COUNT(*) FROM deployment_backups WHERE project_id = ?"),
-		projectID)
-	return count, err
+	var count int64
+	err := r.db.Model(&models.DeploymentBackup{}).Where("project_id = ?", projectID).Count(&count).Error
+	return int(count), err
 }
 
-// GetProjectDeployments retrieves all deployments for a project
 func (r *DeploymentManagementRepository) GetProjectDeployments(projectID string) ([]models.DeploymentInstance, error) {
 	var instances []models.DeploymentInstance
-	err := r.db.Select(&instances,
-		r.db.Rebind("SELECT * FROM deployment_instances WHERE project_id = ? ORDER BY role, created_at"),
-		projectID)
+	err := r.db.Where("project_id = ?", projectID).Order("role, created_at").Find(&instances).Error
 	return instances, err
 }
 
-// GetBackupByID retrieves a backup by ID
 func (r *DeploymentManagementRepository) GetBackupByID(backupID string) (*models.DeploymentBackup, error) {
-	var backup models.DeploymentBackup
-	err := r.db.Get(&backup,
-		r.db.Rebind("SELECT * FROM deployment_backups WHERE id = ?"),
-		backupID)
-	if err != nil {
-		return nil, err
-	}
-	return &backup, nil
+	return basemodel.Get[models.DeploymentBackup](r.db, backupID)
 }

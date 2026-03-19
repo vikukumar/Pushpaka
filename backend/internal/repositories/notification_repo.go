@@ -1,28 +1,27 @@
 package repositories
 
 import (
-	"database/sql"
 	"errors"
 
-	"github.com/jmoiron/sqlx"
-	"github.com/vikukumar/Pushpaka/internal/models"
+	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
+
+	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
 type NotificationRepository struct {
-	db *sqlx.DB
+	db *gorm.DB
 }
 
-func NewNotificationRepository(db *sqlx.DB) *NotificationRepository {
+func NewNotificationRepository(db *gorm.DB) *NotificationRepository {
 	return &NotificationRepository{db: db}
 }
 
 func (r *NotificationRepository) FindByUserID(userID string) (*models.NotificationConfig, error) {
 	var cfg models.NotificationConfig
-	err := r.db.Get(&cfg,
-		r.db.Rebind(`SELECT * FROM notification_configs WHERE user_id = ?`),
-		userID)
+	err := r.db.Where("user_id = ?", userID).First(&cfg).Error
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
@@ -31,28 +30,12 @@ func (r *NotificationRepository) FindByUserID(userID string) (*models.Notificati
 }
 
 func (r *NotificationRepository) Upsert(cfg *models.NotificationConfig) error {
-	query := r.db.Rebind(`
-		INSERT INTO notification_configs
-			(id, user_id, slack_webhook_url, discord_webhook_url, smtp_host, smtp_port,
-			 smtp_username, smtp_password, smtp_from, smtp_to, notify_on_success, notify_on_failure,
-			 created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		ON CONFLICT(user_id) DO UPDATE SET
-			slack_webhook_url   = excluded.slack_webhook_url,
-			discord_webhook_url = excluded.discord_webhook_url,
-			smtp_host           = excluded.smtp_host,
-			smtp_port           = excluded.smtp_port,
-			smtp_username       = excluded.smtp_username,
-			smtp_password       = excluded.smtp_password,
-			smtp_from           = excluded.smtp_from,
-			smtp_to             = excluded.smtp_to,
-			notify_on_success   = excluded.notify_on_success,
-			notify_on_failure   = excluded.notify_on_failure,
-			updated_at          = excluded.updated_at`)
-	_, err := r.db.Exec(query,
-		cfg.ID, cfg.UserID, cfg.SlackWebhookURL, cfg.DiscordWebhookURL,
-		cfg.SMTPHost, cfg.SMTPPort, cfg.SMTPUsername, cfg.SMTPPassword,
-		cfg.SMTPFrom, cfg.SMTPTo, cfg.NotifyOnSuccess, cfg.NotifyOnFailure,
-		cfg.CreatedAt, cfg.UpdatedAt)
-	return err
+	return r.db.Clauses(clause.OnConflict{
+		Columns:   []clause.Column{{Name: "user_id"}}, // Unique index should exist on user_id
+		DoUpdates: clause.AssignmentColumns([]string{
+			"slack_webhook_url", "discord_webhook_url", "smtp_host", "smtp_port",
+			"smtp_username", "smtp_password", "smtp_from", "smtp_to",
+			"notify_on_success", "notify_on_failure", "updated_at",
+		}),
+	}).Create(cfg).Error
 }
