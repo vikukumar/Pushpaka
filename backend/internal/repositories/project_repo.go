@@ -62,3 +62,12 @@ func (r *ProjectRepository) SetMainDeployID(projectID, deploymentID string) erro
 	return r.db.Model(&models.Project{}).Where("id = ?", projectID).
 		Update("main_deploy_id", deploymentID).Error
 }
+
+func (r *ProjectRepository) UpdateTaskStatus(id, taskID, status string) error {
+	basemodel.EnsureSynced[models.Project](r.db)
+	return r.db.Model(&models.Project{}).Where("id = ?", id).Updates(map[string]interface{}{
+		"current_task_id": taskID,
+		"latest_task_id":  taskID,
+		"task_status":    status,
+	}).Error
+}

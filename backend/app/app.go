@@ -80,8 +80,22 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		err := db.AutoMigrate(
 			&models.User{},
 			&models.Project{},
+			&models.EnvVar{},
+			&models.Deployment{},
+			&models.DeploymentLog{},
+			&models.Domain{},
 			&models.SystemConfig{},
 			&models.WorkerNode{},
+			&models.UserEditorState{},
+			&models.AuditLog{},
+			&models.AIConfig{},
+			&models.RAGDocument{},
+			&models.AIMonitorAlert{},
+			&models.AITokenUsage{},
+			&models.NotificationConfig{},
+			&models.K8sConfig{},
+			&models.ProjectCommit{},
+			&models.ProjectTask{},
 		)
 		if err != nil {
 			log.Error().Err(err).Msg("database migration failed in background")
@@ -141,11 +155,15 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	aiConfigRepo := repositories.NewAIConfigRepository(db)
 	userRepo := repositories.NewUserRepository(db)
 	editorRepo := repositories.NewEditorStateRepository(db)
+	gitSyncRepo := repositories.NewGitSyncRepository(db)
+	commitRepo := repositories.NewCommitRepository(db)
+	taskRepo := repositories.NewTaskRepository(db)
 
 	// Services
 	authSvc := services.NewAuthService(userRepo, cfg)
-	projectSvc := services.NewProjectService(projectRepo)
-	deploymentSvc := services.NewDeploymentService(deploymentRepo, projectRepo, envRepo, domainRepo, rdb, opts.InProcessQueue, cfg.BaseURL)
+	taskDispatcher := services.NewTaskDispatcher(taskRepo, projectRepo, rdb, opts.InProcessQueue, &log.Logger)
+	projectSvc := services.NewProjectService(projectRepo, taskDispatcher)
+	deploymentSvc := services.NewDeploymentService(deploymentRepo, projectRepo, envRepo, domainRepo, rdb, opts.InProcessQueue, taskDispatcher, cfg.BaseURL)
 	projectSvc.SetDeploymentService(deploymentSvc)
 	logSvc := services.NewLogService(logRepo)
 	domainSvc := services.NewDomainService(domainRepo, projectRepo)
@@ -156,6 +174,28 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	webhookSvc := services.NewWebhookService(webhookRepo, projectRepo, deploymentSvc, cfg)
 	aiSvc := services.NewAIService(cfg)
 	aiExecutor := services.NewAIToolsExecutor(deploymentSvc, logSvc, aiSvc)
+
+
+	gitSyncSvc := services.NewGitSyncService(gitSyncRepo, projectRepo, deploymentRepo, cfg.ProjectsDir)
+	gitSyncWorker := services.NewGitSyncWorker(gitSyncSvc, gitSyncRepo, deploymentRepo, projectRepo, commitRepo, taskDispatcher, notifSvc, rdb, cfg, &log.Logger)
+
+	// Build Workers
+	buildWorkers := make([]*services.BuildWorker, 0, cfg.BuildWorkers)
+	for i := 0; i < cfg.BuildWorkers; i++ {
+		buildWorkers = append(buildWorkers, services.NewBuildWorker(i, taskDispatcher, projectRepo, commitRepo, rdb, &log.Logger, cfg.BuildsDir, cfg.ProjectsDir))
+	}
+
+	// Test Workers
+	testWorkers := make([]*services.TestWorker, 0, cfg.TestWorkers)
+	for i := 0; i < cfg.TestWorkers; i++ {
+		testWorkers = append(testWorkers, services.NewTestWorker(i, taskDispatcher, projectRepo, commitRepo, rdb, &log.Logger, cfg.TestsDir))
+	}
+
+	// AI Workers
+	aiWorkers := make([]*services.AIWorker, 0, cfg.AIWorkers)
+	for i := 0; i < cfg.AIWorkers; i++ {
+		aiWorkers = append(aiWorkers, services.NewAIWorker(i, commitRepo, projectRepo, aiSvc, &log.Logger))
+	}
 
 	reg := &router.ServiceRegistry{
 		AuthSvc:        authSvc,
@@ -171,6 +211,7 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		AISvc:          aiSvc,
 		WorkerSvc:      services.NewWorkerNodeService(workerNodeRepo, systemCfgRepo),
 		AIExecutor:     aiExecutor,
+		TaskDispatcher: taskDispatcher,
 		UserRepo:       userRepo,
 		ProjectRepo:    projectRepo,
 		DeploymentRepo: deploymentRepo,
@@ -184,10 +225,33 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		WorkerRepo:     workerNodeRepo,
 		SystemRepo:     systemCfgRepo,
 		EditorRepo:     editorRepo,
+		CommitRepo:     commitRepo,
+		TaskRepo:       taskRepo,
 	}
 
 	// Background Tasks
 	go deploymentSvc.StartAutoSyncLoop(ctx)
+	// Start Workers (only if not using in-process queue provided by all-in-one mode)
+	if opts.InProcessQueue == nil {
+		if err := gitSyncWorker.Start(ctx, nil); err != nil {
+			log.Error().Err(err).Msg("failed to start internal git sync worker")
+		}
+		for _, bw := range buildWorkers {
+			if err := bw.Start(ctx, nil); err != nil {
+				log.Error().Err(err).Int("id", bw.WorkerID).Msg("failed to start internal build worker")
+			}
+		}
+		for _, tw := range testWorkers {
+			if err := tw.Start(ctx, nil); err != nil {
+				log.Error().Err(err).Int("id", tw.WorkerID).Msg("failed to start internal test worker")
+			}
+		}
+		for _, aw := range aiWorkers {
+			if err := aw.Start(ctx, nil); err != nil {
+				log.Error().Err(err).Int("id", aw.WorkerID).Msg("failed to start internal AI worker")
+			}
+		}
+	}
 
 	// AI Monitoring Service
 	aiMonitorSvc := services.NewAIMonitorService(aiSvc, aiConfigRepo, deploymentRepo, logRepo)

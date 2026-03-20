@@ -12,55 +12,156 @@ package queue
 
 import (
 	"fmt"
+	"sync"
 	"sync/atomic"
 )
 
 // InProcess is a buffered-channel job queue with built-in worker/job counters.
 type InProcess struct {
-	ch           chan []byte
+	channels     map[string]chan []byte
+	mu           sync.RWMutex
+	capacity     int
 	totalWorkers atomic.Int32
 	activeJobs   atomic.Int32
+	// Worker counts
+	syncWorkers  atomic.Int32
+	buildWorkers atomic.Int32
+	testWorkers  atomic.Int32
+	aiWorkers    atomic.Int32
+	deployWorkers atomic.Int32
+	// Active jobs per role
+	syncActive   atomic.Int32
+	buildActive  atomic.Int32
+	testActive   atomic.Int32
+	aiActive     atomic.Int32
+	deployActive atomic.Int32
 }
 
-// New returns an InProcess queue with the given buffer capacity.
-// A capacity of 100 is more than enough for local development.
+// New returns an InProcess queue with the given buffer capacity per role.
 func New(capacity int) *InProcess {
 	if capacity <= 0 {
 		capacity = 100
 	}
-	return &InProcess{ch: make(chan []byte, capacity)}
-}
-
-// Push enqueues a raw JSON job payload.
-// Returns an error only if the channel buffer is full (non-blocking).
-func (q *InProcess) Push(payload []byte) error {
-	select {
-	case q.ch <- payload:
-		return nil
-	default:
-		return fmt.Errorf("in-process queue full (capacity %d)", cap(q.ch))
+	return &InProcess{
+		channels: make(map[string]chan []byte),
+		capacity: capacity,
 	}
 }
 
-// Chan returns the receive-only end of the channel for the worker to consume.
-func (q *InProcess) Chan() <-chan []byte {
-	return q.ch
+func (q *InProcess) getChannel(role string) chan []byte {
+	q.mu.RLock()
+	ch, ok := q.channels[role]
+	q.mu.RUnlock()
+	if ok {
+		return ch
+	}
+
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	// Double-check
+	if ch, ok = q.channels[role]; ok {
+		return ch
+	}
+	ch = make(chan []byte, q.capacity)
+	q.channels[role] = ch
+	return ch
 }
 
-// WorkerStarted increments the total worker count (call when a worker goroutine starts).
-func (q *InProcess) WorkerStarted() { q.totalWorkers.Add(1) }
+// Push enqueues a raw JSON job payload for a specific role (e.g. "sync", "build").
+func (q *InProcess) Push(role string, payload []byte) error {
+	ch := q.getChannel(role)
+	select {
+	case ch <- payload:
+		return nil
+	default:
+		return fmt.Errorf("in-process queue for role '%s' full (capacity %d)", role, q.capacity)
+	}
+}
 
-// WorkerStopped decrements the total worker count (call when a worker goroutine exits).
-func (q *InProcess) WorkerStopped() { q.totalWorkers.Add(-1) }
+// Chan returns the receive-only end of the channel for the worker role to consume.
+func (q *InProcess) Chan(role string) <-chan []byte {
+	return q.getChannel(role)
+}
 
-// JobStarted increments the active-job count (call when a job begins processing).
-func (q *InProcess) JobStarted() { q.activeJobs.Add(1) }
+// WorkerStarted increments the total worker count and role-specific count.
+func (q *InProcess) WorkerStarted(role string) {
+	q.totalWorkers.Add(1)
+	switch role {
+	case "sync", "syncer":
+		q.syncWorkers.Add(1)
+	case "build", "builder":
+		q.buildWorkers.Add(1)
+	case "test", "tester":
+		q.testWorkers.Add(1)
+	case "ai":
+		q.aiWorkers.Add(1)
+	case "deploy", "deployer":
+		q.deployWorkers.Add(1)
+	}
+}
 
-// JobFinished decrements the active-job count (call when a job finishes processing).
-func (q *InProcess) JobFinished() { q.activeJobs.Add(-1) }
+// WorkerStopped decrements the total worker count and role-specific count.
+func (q *InProcess) WorkerStopped(role string) {
+	q.totalWorkers.Add(-1)
+	switch role {
+	case "sync", "syncer":
+		q.syncWorkers.Add(-1)
+	case "build", "builder":
+		q.buildWorkers.Add(-1)
+	case "test", "tester":
+		q.testWorkers.Add(-1)
+	case "ai":
+		q.aiWorkers.Add(-1)
+	case "deploy", "deployer":
+		q.deployWorkers.Add(-1)
+	}
+}
 
-// TotalWorkers returns the number of currently running worker goroutines.
+// JobStarted increments the active-job count.
+func (q *InProcess) JobStarted(role string) {
+	q.activeJobs.Add(1)
+	switch role {
+	case "sync", "syncer":
+		q.syncActive.Add(1)
+	case "build", "builder":
+		q.buildActive.Add(1)
+	case "test", "tester":
+		q.testActive.Add(1)
+	case "ai":
+		q.aiActive.Add(1)
+	case "deploy", "deployer":
+		q.deployActive.Add(1)
+	}
+}
+
+// JobFinished decrements the active-job count.
+func (q *InProcess) JobFinished(role string) {
+	q.activeJobs.Add(-1)
+	switch role {
+	case "sync", "syncer":
+		q.syncActive.Add(-1)
+	case "build", "builder":
+		q.buildActive.Add(-1)
+	case "test", "tester":
+		q.testActive.Add(-1)
+	case "ai":
+		q.aiActive.Add(-1)
+	case "deploy", "deployer":
+		q.deployActive.Add(-1)
+	}
+}
+
+// Getters
 func (q *InProcess) TotalWorkers() int { return int(q.totalWorkers.Load()) }
+func (q *InProcess) ActiveJobs() int   { return int(q.activeJobs.Load()) }
+func (q *InProcess) SyncWorkers() int  { return int(q.syncWorkers.Load()) }
+func (q *InProcess) BuildWorkers() int { return int(q.buildWorkers.Load()) }
+func (q *InProcess) TestWorkers() int  { return int(q.testWorkers.Load()) }
+func (q *InProcess) AIWorkers() int    { return int(q.aiWorkers.Load()) }
+func (q *InProcess) DeployWorkers() int { return int(q.deployWorkers.Load()) }
 
-// ActiveJobs returns the number of jobs currently being processed.
-func (q *InProcess) ActiveJobs() int { return int(q.activeJobs.Load()) }
+func (q *InProcess) SyncActive() int   { return int(q.syncActive.Load()) }
+func (q *InProcess) BuildActive() int  { return int(q.buildActive.Load()) }
+func (q *InProcess) TestActive() int   { return int(q.testActive.Load()) }
+func (q *InProcess) AIActive() int     { return int(q.aiActive.Load()) }
+func (q *InProcess) DeployActive() int { return int(q.deployActive.Load()) }

@@ -1,13 +1,13 @@
 'use client'
 
-import { Bell, Sun, Moon, Menu } from 'lucide-react'
+import { Bell, Sun, Moon, Menu, CheckCircle2, XCircle } from 'lucide-react'
 import React from 'react'
 import { useTheme } from '@/lib/theme'
 import { useSidebar } from '@/components/providers/AuthProvider'
 
 interface HeaderProps {
   title: string
-  subtitle?: string
+  subtitle?: React.ReactNode
   actions?: React.ReactNode
 }
 

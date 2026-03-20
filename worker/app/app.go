@@ -23,10 +23,10 @@ import (
 // StatsReporter is implemented by the in-process queue to track worker and job lifecycle events.
 // All methods must be safe for concurrent use. Pass nil to disable reporting.
 type StatsReporter interface {
-	WorkerStarted()
-	WorkerStopped()
-	JobStarted()
-	JobFinished()
+	WorkerStarted(role string)
+	WorkerStopped(role string)
+	JobStarted(role string)
+	JobFinished(role string)
 }
 
 // RunOptions defines the configuration for a remote worker node
@@ -45,7 +45,7 @@ func Run(ctx context.Context, opts RunOptions) error {
 	}
 	log.Info().
 		Str("clone_dir", cfg.CloneDir).
-		Str("deploy_dir", cfg.DeployDir).
+		Str("deploys_dir", cfg.DeploysDir).
 		Msg("build directories ready")
 
 	log.Info().
@@ -59,7 +59,7 @@ func Run(ctx context.Context, opts RunOptions) error {
 		db, err = basemodel.Connect(cfg.DatabaseDriver, cfg.DatabaseURL, "production")
 	} else if opts.Mode == "vaahan" {
 		log.Info().Msg("Vaahan mode: using embedded pure-Go SQLite for lightning-fast serverless tracking")
-		db, err = basemodel.Connect("sqlite", filepath.Join(cfg.DeployDir, "vaahan.db"), "production")
+		db, err = basemodel.Connect("sqlite", filepath.Join(cfg.DeploysDir, "vaahan.db"), "production")
 	} else {
 		return fmt.Errorf("unknown worker mode: %s (must be hybrid or vaahan)", opts.Mode)
 	}
@@ -105,38 +105,46 @@ func Run(ctx context.Context, opts RunOptions) error {
 	if err != nil {
 		return fmt.Errorf("redis: %w", err)
 	}
-	defer rdb.Close()
-
 	var wg sync.WaitGroup
-	for i := 0; i < cfg.BuildWorkers; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			w := worker.NewBuildWorker(id, db, rdb, cfg)
-			w.Run(ctx)
-		}(i)
+	// Role-based worker pools
+	roles := []struct {
+		Count int
+		Queue string
+		Name  string
+	}{
+		{cfg.BuildWorkers, "pushpaka:tasks:build", "builder"},
+		{cfg.SyncWorkers, "pushpaka:tasks:sync", "syncer"},
+		{cfg.TestWorkers, "pushpaka:tasks:test", "tester"},
+		{cfg.AIWorkers, "pushpaka:tasks:ai", "ai"},
+		{cfg.DeployWorkers, "pushpaka:tasks:deploy", "deployer"},
 	}
 
-	log.Info().Int("build_workers", cfg.BuildWorkers).Msg("Pushpaka redis workers started")
+	for _, role := range roles {
+		for i := 0; i < role.Count; i++ {
+			wg.Add(1)
+			go func(id int, queueName, roleName string) {
+				defer wg.Done()
+				w := worker.NewBuildWorker(id, db, rdb, cfg, roleName, queueName)
+				w.Run(ctx)
+			}(i, role.Queue, role.Name)
+		}
+		if role.Count > 0 {
+			log.Info().Int("count", role.Count).Str("role", role.Name).Msg("Worker pool started")
+		}
+	}
+
 	wg.Wait()
-	log.Info().Msg("workers stopped")
+	log.Info().Msg("all workers stopped")
 	return nil
 }
 
-// RunInProcess starts the build worker pool reading from an in-process channel
-// instead of Redis.  Used in dev/combined-binary mode (no Redis required).
-// reporter is optional (may be nil); when provided its methods track worker
-// and job lifecycle so the API layer can report live stats.
-func RunInProcess(ctx context.Context, ch <-chan []byte, reporter StatsReporter) error {
+// RunInProcess starts the worker pool reading from an in-process queue
+// instead of Redis. Used in dev/combined-binary mode.
+func RunInProcess(ctx context.Context, q interface{}, reporter StatsReporter) error {
 	cfg := config.Load()
-
 	if err := cfg.EnsureDirs(); err != nil {
 		return fmt.Errorf("dirs: %w", err)
 	}
-	log.Info().
-		Str("clone_dir", cfg.CloneDir).
-		Str("deploy_dir", cfg.DeployDir).
-		Msg("build directories ready")
 
 	db, err := basemodel.Connect(cfg.DatabaseDriver, cfg.DatabaseURL, "production")
 	if err != nil {
@@ -147,50 +155,65 @@ func RunInProcess(ctx context.Context, ch <-chan []byte, reporter StatsReporter)
 		defer sqlDB.Close()
 	}
 
-	return runInProcess(ctx, ch, reporter, db, cfg)
+	return runInProcess(ctx, q, reporter, db, cfg)
 }
 
-// RunInProcessWithDB is identical to RunInProcess but uses a pre-opened
-// database connection instead of opening a new one.  The caller retains
-// ownership of db and must close it after this function returns.
-// Use this in all-in-one mode to share ONE SQLite pool between the API
-// and the embedded worker, preventing SQLITE_BUSY_SNAPSHOT (error 261).
-func RunInProcessWithDB(ctx context.Context, ch <-chan []byte, reporter StatsReporter, db *gorm.DB) error {
+// RunInProcessWithDB is identical to RunInProcess but uses a pre-opened database.
+func RunInProcessWithDB(ctx context.Context, q interface{}, reporter StatsReporter, db *gorm.DB) error {
 	cfg := config.Load()
-
 	if err := cfg.EnsureDirs(); err != nil {
 		return fmt.Errorf("dirs: %w", err)
 	}
-	log.Info().
-		Str("clone_dir", cfg.CloneDir).
-		Str("deploy_dir", cfg.DeployDir).
-		Msg("build directories ready")
-
-	return runInProcess(ctx, ch, reporter, db, cfg)
+	return runInProcess(ctx, q, reporter, db, cfg)
 }
 
-func runInProcess(ctx context.Context, ch <-chan []byte, reporter StatsReporter, db *gorm.DB, cfg *config.Config) error {
+// InProcessQueue is an interface for something that can provide channels for roles.
+type InProcessQueue interface {
+	Chan(role string) <-chan []byte
+}
+
+func runInProcess(ctx context.Context, q interface{}, reporter StatsReporter, db *gorm.DB, cfg *config.Config) error {
+	iq, ok := q.(InProcessQueue)
+	if !ok {
+		return fmt.Errorf("invalid in-process queue type")
+	}
+
 	var wg sync.WaitGroup
 
-	if reporter != nil {
-		for i := 0; i < cfg.BuildWorkers; i++ {
-			reporter.WorkerStarted()
+	// Roles to run in-process
+	roles := []struct {
+		Name  string
+		Type  string
+		Count int
+	}{
+		{"syncer", "sync", cfg.SyncWorkers},
+		{"builder", "build", cfg.BuildWorkers},
+		{"tester", "test", cfg.TestWorkers},
+		{"deployer", "deploy", cfg.DeployWorkers},
+		{"ai", "ai", cfg.AIWorkers},
+	}
+
+	for _, role := range roles {
+		if role.Count <= 0 {
+			role.Count = 1
 		}
+		for i := 0; i < role.Count; i++ {
+			wg.Add(1)
+			go func(id int, rName, rType string) {
+				defer wg.Done()
+				if reporter != nil {
+					reporter.WorkerStarted(rName)
+					defer reporter.WorkerStopped(rName)
+				}
+				// The worker/internal/worker package expects role as Name (syncer/builder/tester)
+				// but we'll mapping task types to it if needed.
+				w := worker.NewBuildWorker(id, db, nil, cfg, rName, "pushpaka:tasks:"+rType)
+				w.RunInProcess(ctx, iq.Chan(rType), reporter)
+			}(i, role.Name, role.Type)
+		}
+		log.Info().Int("count", role.Count).Str("role", role.Name).Msg("In-process worker pool started")
 	}
 
-	for i := 0; i < cfg.BuildWorkers; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			if reporter != nil {
-				defer reporter.WorkerStopped()
-			}
-			w := worker.NewBuildWorker(id, db, nil, cfg)
-			w.RunInProcess(ctx, ch, reporter)
-		}(i)
-	}
-
-	log.Info().Int("build_workers", cfg.BuildWorkers).Msg("in-process workers started")
 	wg.Wait()
 	log.Info().Msg("in-process workers stopped")
 	return nil

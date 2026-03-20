@@ -25,7 +25,7 @@ func NewGitHandler(projectRepo *repositories.ProjectRepository, deploymentRepo *
 	return &GitHandler{
 		projectRepo:    projectRepo,
 		deploymentRepo: deploymentRepo,
-		deployDir:      cfg.DeployDir,
+		deployDir:      cfg.DeploysDir,
 		cloneDir:       cfg.CloneDir,
 	}
 }

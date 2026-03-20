@@ -37,6 +37,7 @@ type WorkerNode struct {
 	MemoryTotal   uint64       `json:"memory_total"`
 	CPUCount      int          `json:"cpu_count"`
 	AuthToken     string       `gorm:"type:varchar(512);uniqueIndex" json:"-"` // Hidden from JSON responses
+	Roles         []string     `gorm:"type:json" json:"roles"`                  // syncer, builder, tester, ai
 	LastSeenAt    *time.Time   `json:"last_seen_at"`
 }
 
@@ -52,6 +53,7 @@ type RegisterWorkerRequest struct {
 	NodeVersion   string     `json:"node_version"`
 	MemoryTotal   uint64     `json:"memory_total"`
 	CPUCount      int        `json:"cpu_count"`
+	Roles         []string   `json:"roles"`
 	ZonePAT       string     `json:"zone_pat" binding:"required"` // The installation PAT for authentication
 }
 

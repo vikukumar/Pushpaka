@@ -459,9 +459,9 @@ export default function SettingsPage() {
               { label: 'Role', value: user?.role },
               { label: 'User ID', value: user?.id, mono: true },
             ].map(({ label, value, mono }) => (
-              <div key={label} className="flex items-center gap-3">
-                <dt className="text-slate-500 text-sm w-20">{label}</dt>
-                <dd className={`text-sm text-slate-200 ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
+              <div key={label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 py-1">
+                <dt className="text-slate-500 text-xs sm:text-sm w-20 flex-shrink-0">{label}</dt>
+                <dd className={`text-sm text-slate-200 break-all ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
               </div>
             ))}
           </dl>
@@ -488,15 +488,17 @@ export default function SettingsPage() {
           <p className="text-sm text-slate-400 mb-3">
             Use your API key to authenticate programmatic requests to the Pushpaka API.
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <input
               type="password"
-              className="input font-mono text-xs flex-1"
+              className="input font-mono text-xs flex-1 min-w-0"
               value="sk-"
               readOnly
             />
-            <button className="btn-secondary text-sm">Reveal</button>
-            <button className="btn-secondary text-sm">Regenerate</button>
+            <div className="flex gap-2">
+              <button className="btn-secondary text-sm flex-1 sm:flex-none">Reveal</button>
+              <button className="btn-secondary text-sm flex-1 sm:flex-none">Regenerate</button>
+            </div>
           </div>
         </div>
 

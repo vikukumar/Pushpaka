@@ -118,7 +118,7 @@ func (h *DeploymentHandler) Sync(c *gin.Context) {
 	userID := middleware.GetUserID(c)
 	projectID := c.Param("id")
 
-	deployment, err := h.deploymentSvc.SyncRepo(userID, projectID)
+	deployment, task, err := h.deploymentSvc.SyncRepo(userID, projectID)
 	if err != nil {
 		if err.Error() == "already up to date" {
 			c.JSON(http.StatusOK, gin.H{"message": "already up to date", "code": "UP_TO_DATE"})
@@ -127,8 +127,23 @@ func (h *DeploymentHandler) Sync(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	h.auditSvc.Log(userID, "sync", "project", projectID, map[string]any{"deployment_id": deployment.ID}, c.ClientIP(), c.Request.UserAgent())
-	c.JSON(http.StatusCreated, deployment)
+
+	if task != nil {
+		h.auditSvc.Log(userID, "sync", "project", projectID, map[string]any{"task_id": task.ID}, c.ClientIP(), c.Request.UserAgent())
+		c.JSON(http.StatusAccepted, gin.H{
+			"message": "sync task started",
+			"task":    task,
+		})
+		return
+	}
+
+	if deployment != nil {
+		h.auditSvc.Log(userID, "sync", "project", projectID, map[string]any{"deployment_id": deployment.ID}, c.ClientIP(), c.Request.UserAgent())
+		c.JSON(http.StatusCreated, deployment)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "sync completed"})
 }
 
 func (h *DeploymentHandler) Restart(c *gin.Context) {

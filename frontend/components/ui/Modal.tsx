@@ -38,9 +38,23 @@ export function Modal({
     } else {
       const timer = setTimeout(() => {
         setShouldRender(false)
-        document.body.style.overflow = ''
+        // Only reset overflow if no other modal-related elements are present
+        // (This is a simple check, but safer than unconditional reset)
+        const otherModals = document.querySelectorAll('[role="dialog"]').length
+        if (otherModals <= 1) {
+          document.body.style.overflow = ''
+        }
       }, 300)
-      return () => clearTimeout(timer)
+      return () => {
+        clearTimeout(timer)
+      }
+    }
+    return () => {
+      // Cleanup on unmount
+      const otherModals = document.querySelectorAll('[role="dialog"]').length
+      if (otherModals <= 1) {
+        document.body.style.overflow = ''
+      }
     }
   }, [isOpen])
 
@@ -54,7 +68,7 @@ export function Modal({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6" role="dialog">
       {/* Backdrop */}
       <div
         className={cn(

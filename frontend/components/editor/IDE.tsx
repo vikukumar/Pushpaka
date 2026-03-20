@@ -3,7 +3,7 @@
 import dynamic from 'next/dynamic'
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { filesApi, systemFilesApi, editorStateApi, aiApi } from '@/lib/api'
+import { projectsApi, filesApi, systemFilesApi, editorStateApi, aiApi } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { 
   Loader2, Files, Search, GitBranch, Puzzle, FileCode as FileCodeIcon, X, Plus, FolderPlus, RotateCw,
@@ -96,7 +96,17 @@ function CopilotPanel({ workspaceId, selectedPath, getCode }: { workspaceId: str
 
 export default function IDE({ initialMode, initialProjectId, initialFilePath }: IDEProps) {
   const [mode, setMode] = useState(initialMode)
-  const [projectId, setProjectId] = useState(initialProjectId)
+  // Use pathname to resolve ID if placeholder '_' is passed from Next.js static routing
+  const resolvedProjectId = useMemo(() => {
+    if (typeof window === 'undefined') return initialProjectId
+    if (initialProjectId && initialProjectId !== '_') return initialProjectId
+    const parts = window.location.pathname.split('/')
+    const idx = parts.indexOf('projects')
+    if (idx !== -1 && parts[idx+1] && parts[idx+1] !== 'editor') return parts[idx+1]
+    return initialProjectId
+  }, [initialProjectId])
+
+  const [projectId, setProjectId] = useState(resolvedProjectId)
   const [activeSidebarTab, setActiveSidebarTab] = useState<'explorer' | 'search' | 'git' | 'extensions' | null>('explorer')
   const [showCopilot, setShowCopilot] = useState(false)
   const [tabs, setTabs] = useState<OpenTab[]>([])
@@ -104,6 +114,13 @@ export default function IDE({ initialMode, initialProjectId, initialFilePath }: 
   const [cursorPos, setCursorPos] = useState({ line: 1, col: 1 })
   const [loadingFile, setLoadingFile] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  // Fetch project details for display name
+  const { data: project } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: () => projectsApi.get(projectId!).then((r: any) => r.data),
+    enabled: !!projectId && mode === 'project'
+  })
 
   const { confirm, Component: ConfirmModal } = useConfirm()
   const { prompt, Component: PromptModal } = usePrompt()
@@ -311,7 +328,9 @@ export default function IDE({ initialMode, initialProjectId, initialFilePath }: 
                 />
               )}
               <div className="h-9 px-3 flex items-center justify-between border-b border-[#3e3e42] uppercase text-[11px] font-bold tracking-widest text-[#bbbbbe]">
-                <span>Explorer {projectId ? `(${projectId.slice(0, 8)})` : ''}</span>
+                <span className="truncate max-w-[150px]">
+                  Explorer {project ? `(${project.name})` : projectId ? `(${projectId.slice(0, 8)})` : ''}
+                </span>
                 <div className="flex gap-1">
                   <button onClick={handleSync} title="Sync with Repository" className="p-1 hover:bg-[#37373d] rounded"><RotateCw size={14} /></button>
                   <button onClick={handleCreateFile} title="New File" className="p-1 hover:bg-[#37373d] rounded"><Plus size={14} /></button>
@@ -392,7 +411,7 @@ export default function IDE({ initialMode, initialProjectId, initialFilePath }: 
           </div>
           <div className="flex items-center gap-4">
             {saving && <Loader2 size={12} className="animate-spin" />}
-            <span>Workspace: {workspaceId}</span>
+            <span>Workspace: {project?.name || workspaceId}</span>
           </div>
         </div>
       </div>

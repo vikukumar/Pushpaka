@@ -19,6 +19,17 @@ import (
 type WorkerStatsProvider interface {
 	TotalWorkers() int
 	ActiveJobs() int
+	SyncWorkers() int
+	BuildWorkers() int
+	TestWorkers() int
+	AIWorkers() int
+	DeployWorkers() int
+
+	SyncActive() int
+	BuildActive() int
+	TestActive() int
+	AIActive() int
+	DeployActive() int
 }
 
 type HealthHandler struct {
@@ -100,10 +111,23 @@ func (h *HealthHandler) System(c *gin.Context) {
 
 	// Worker stats
 	totalWorkers, activeJobs := 0, 0
+	syncWorkers, buildWorkers, testWorkers, aiWorkers, deployWorkers := 0, 0, 0, 0, 0
+	syncActive, buildActive, testActive, aiActive, deployActive := 0, 0, 0, 0, 0
 	tracked := h.workerStats != nil
 	if tracked {
 		totalWorkers = h.workerStats.TotalWorkers()
 		activeJobs = h.workerStats.ActiveJobs()
+		syncWorkers = h.workerStats.SyncWorkers()
+		buildWorkers = h.workerStats.BuildWorkers()
+		testWorkers = h.workerStats.TestWorkers()
+		aiWorkers = h.workerStats.AIWorkers()
+		deployWorkers = h.workerStats.DeployWorkers()
+
+		syncActive = h.workerStats.SyncActive()
+		buildActive = h.workerStats.BuildActive()
+		testActive = h.workerStats.TestActive()
+		aiActive = h.workerStats.AIActive()
+		deployActive = h.workerStats.DeployActive()
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -120,9 +144,17 @@ func (h *HealthHandler) System(c *gin.Context) {
 			"active_jobs": activeJobs,
 			"idle":        max(0, totalWorkers-activeJobs),
 			"queue_mode":  queueMode,
-			// tracked=false means workers run as external processes (Redis mode);
-			// the API cannot count them but they may still be healthy.
-			"tracked": tracked,
+			"tracked":     tracked,
+			"sync":        syncWorkers,
+			"sync_active": syncActive,
+			"build":       buildWorkers,
+			"build_active": buildActive,
+			"test":        testWorkers,
+			"test_active": testActive,
+			"ai":          aiWorkers,
+			"ai_active":   aiActive,
+			"deploy":      deployWorkers,
+			"deploy_active": deployActive,
 		},
 		"runtime": gin.H{
 			"os":           runtime.GOOS,

@@ -18,7 +18,10 @@ export interface Project {
   run_dir: string
   port: number
   framework: string
-  status: 'active' | 'inactive' | 'building'
+  status: 'active' | 'inactive' | 'building' | 'ready'
+  task_status?: string
+  current_task_id?: string
+  latest_task_id?: string
   is_private: boolean
   cpu_limit: string
   memory_limit: string
@@ -128,6 +131,16 @@ export interface SystemInfo {
     total: number
     active_jobs: number
     idle: number
+    sync: number
+    sync_active: number
+    build: number
+    build_active: number
+    test: number
+    test_active: number
+    ai: number
+    ai_active: number
+    deploy: number
+    deploy_active: number
     queue_mode: 'redis' | 'in-process'
     /** false when workers run as separate Redis-connected processes (untracked by API) */
     tracked: boolean
@@ -153,5 +166,22 @@ export interface WorkerNode {
   memory_total: number
   cpu_count: number
   last_seen_at: string | null
+  created_at: string
+}
+
+export type TaskType = 'sync' | 'fetch' | 'build' | 'test' | 'deploy'
+export type TaskState = 'pending' | 'running' | 'completed' | 'failed'
+
+export interface ProjectTask {
+  id: string
+  project_id: string
+  type: TaskType
+  status: TaskState
+  commit_sha?: string
+  log?: string
+  error?: string
+  worker_id?: string
+  started_at: string | null
+  finished_at: string | null
   created_at: string
 }

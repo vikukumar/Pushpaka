@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { Project, Deployment, EnvVar, ApiResponse, ProjectTask, DeploymentLog } from '@/types'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
@@ -89,6 +90,13 @@ export const projectsApi = {
   sync: (id: string) => apiClient.post(`/projects/${id}/sync`, {}),
 }
 
+// Tasks
+export const tasksApi = {
+  list: (projectId: string) => apiClient.get<ApiResponse<ProjectTask[]>>(`/tasks?project_id=${projectId}`),
+  get: (id: string) => apiClient.get<ApiResponse<ProjectTask>>(`/tasks/${id}`),
+  restart: (id: string) => apiClient.post(`/tasks/${id}/restart`, {}),
+}
+
 // Deployments
 export const deploymentsApi = {
   list: (limit = 20, offset = 0, projectId?: string) => {
@@ -107,7 +115,7 @@ export const deploymentsApi = {
 
 // Logs
 export const logsApi = {
-  get: (deploymentId: string) => apiClient.get(`/logs/${deploymentId}`),
+  get: (deploymentId: string) => apiClient.get<ApiResponse<DeploymentLog[]>>(`/logs/${deploymentId}`),
 }
 
 // Domains

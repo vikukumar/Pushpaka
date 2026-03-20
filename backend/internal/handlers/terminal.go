@@ -36,7 +36,7 @@ type TerminalHandler struct {
 func NewTerminalHandler(deploymentRepo *repositories.DeploymentRepository, cfg *config.Config) *TerminalHandler {
 	return &TerminalHandler{
 		deploymentRepo: deploymentRepo,
-		deployDir:      cfg.DeployDir,
+		deployDir:      cfg.DeploysDir,
 		cloneDir:       cfg.CloneDir,
 	}
 }

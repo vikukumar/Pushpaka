@@ -29,7 +29,7 @@ var ErrQueueUnavailable = errors.New("deployment queue unavailable")
 // DeploymentJobQueue captures the only queue operation the service needs.
 // Using an interface here keeps services decoupled from the concrete queue package.
 type DeploymentJobQueue interface {
-	Push(payload []byte) error
+	Push(role string, payload []byte) error
 }
 
 type DeploymentService struct {
@@ -43,6 +43,7 @@ type DeploymentService struct {
 	// lastSyncCheck tracks the last time we checked a project for auto-sync
 	lastSyncCheck map[string]time.Time
 	syncMu        sync.Mutex
+	taskDispatcher *TaskDispatcher
 }
 
 func NewDeploymentService(
@@ -52,6 +53,7 @@ func NewDeploymentService(
 	domainRepo *repositories.DomainRepository,
 	rdb *redis.Client,
 	inQueue DeploymentJobQueue,
+	taskDispatcher *TaskDispatcher,
 	baseURL string,
 ) *DeploymentService {
 	svc := &DeploymentService{
@@ -63,6 +65,7 @@ func NewDeploymentService(
 		inQueue:        inQueue,
 		baseURL:        baseURL,
 		lastSyncCheck:  make(map[string]time.Time),
+		taskDispatcher: taskDispatcher,
 	}
 	// The in-process queue is ephemeral: jobs do not survive process restarts.
 	// Any deployment left in "queued" state from a previous run has no
@@ -163,11 +166,20 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 
 	// Find an available host port for the new deployment (Zero-Downtime)
 	externalPort := 0
-	if addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0"); err == nil {
-		if l, err := net.ListenTCP("tcp", addr); err == nil {
-			externalPort = l.Addr().(*net.TCPAddr).Port
-			l.Close()
+	for i := 0; i < 5; i++ {
+		if addr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:0"); err == nil {
+			if l, err := net.ListenTCP("tcp", addr); err == nil {
+				externalPort = l.Addr().(*net.TCPAddr).Port
+				l.Close()
+				if externalPort > 0 {
+					break // Successfully found a port
+				}
+			}
 		}
+		time.Sleep(10 * time.Millisecond) // Small backoff before retry
+	}
+	if externalPort == 0 {
+		return nil, fmt.Errorf("failed to allocate a free port for deployment after multiple attempts")
 	}
 	d.ExternalPort = externalPort
 
@@ -193,6 +205,7 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		RestartPolicy:   project.RestartPolicy,
 		NotificationURL: s.baseURL + "/api/v1/internal/notify",
 		ShouldPromote:   req.ShouldPromote,
+		IsBuildOnly:     req.IsBuildOnly,
 	}
 
 	payload, err := json.Marshal(job)
@@ -208,7 +221,7 @@ func (s *DeploymentService) Trigger(userID string, req *models.DeployRequest) (*
 		}
 	} else {
 		// In-process queue: faster than Redis, no network round-trip.
-		if err := s.inQueue.Push(payload); err != nil {
+		if err := s.inQueue.Push("deploy", payload); err != nil {
 			return nil, fmt.Errorf("in-process queue: %w", err)
 		}
 	}
@@ -363,7 +376,7 @@ func (s *DeploymentService) RecoverRunningDeployments(ctx context.Context) error
 				log.Error().Err(err).Str("deployment_id", d.ID).Msg("queuing recovery job to redis")
 			}
 		} else if s.inQueue != nil {
-			if err := s.inQueue.Push(payload); err != nil {
+			if err := s.inQueue.Push("deploy", payload); err != nil {
 				log.Error().Err(err).Str("deployment_id", d.ID).Msg("queuing recovery job to in-process queue")
 			}
 		}
@@ -433,7 +446,7 @@ func (s *DeploymentService) checkAutoSync() {
 		log.Debug().Str("project_id", p.ID).Msg("auto-sync: checking for updates")
 		// Use a background context so a slow sync doesn't block the loop
 		go func(proj models.Project) {
-			_, err := s.SyncRepo(proj.UserID, proj.ID)
+			_, _, err := s.SyncRepo(proj.UserID, proj.ID)
 			if err != nil && err.Error() != "already up to date" {
 				log.Error().Err(err).Str("project_id", proj.ID).Msg("auto-sync: sync failed")
 			}
@@ -444,10 +457,10 @@ func (s *DeploymentService) checkAutoSync() {
 // SyncRepo checks the remote repository for the latest commit on the project's branch.
 // If a new commit is found (different from the last deployment), it triggers a new deployment.
 // On success, the new deployment is automatically promoted to default/live.
-func (s *DeploymentService) SyncRepo(userID, projectID string) (*models.Deployment, error) {
+func (s *DeploymentService) SyncRepo(userID, projectID string) (*models.Deployment, *models.ProjectTask, error) {
 	project, err := s.projectRepo.FindByID(projectID, userID)
 	if err != nil {
-		return nil, ErrProjectNotFound
+		return nil, nil, ErrProjectNotFound
 	}
 
 	// 1. Get the latest SHA from remote
@@ -466,12 +479,12 @@ func (s *DeploymentService) SyncRepo(userID, projectID string) (*models.Deployme
 		if project.GitToken != "" {
 			errMsg = strings.ReplaceAll(errMsg, project.GitToken, "***")
 		}
-		return nil, fmt.Errorf("git ls-remote failed: %s", errMsg)
+		return nil, nil, fmt.Errorf("git ls-remote failed: %s", errMsg)
 	}
 
 	parts := strings.Fields(string(output))
 	if len(parts) < 1 {
-		return nil, fmt.Errorf("could not determine remote SHA for branch %s", project.Branch)
+		return nil, nil, fmt.Errorf("could not determine remote SHA for branch %s", project.Branch)
 	}
 	latestSHA := parts[0]
 
@@ -497,21 +510,31 @@ func (s *DeploymentService) SyncRepo(userID, projectID string) (*models.Deployme
 
 	// Check if we already have a deployment for this SHA
 	latest, err := s.deploymentRepo.FindLatestByProjectID(projectID)
-	if err == nil && latest != nil && latest.CommitSHA == latestSHA {
-		// Already up to date
+	// If the local SHA is the same as the remote SHA, and there's no task dispatcher,
+	// then we consider it "already up to date" and skip.
+	// If a task dispatcher is present, we allow re-runs even if SHAs are the same.
+	if err == nil && latest != nil && latest.CommitSHA == latestSHA && s.taskDispatcher == nil {
 		log.Debug().Str("project_id", projectID).Str("sha", latestSHA).Msg("Sync skipped: already up to date")
-		return nil, errors.New("already up to date")
+		return nil, nil, errors.New("already up to date")
 	}
 
-	// Trigger new deployment — it will be automatically promoted when it becomes running
+	// If taskDispatcher is available, use it for the full automated flow
+	if s.taskDispatcher != nil {
+		task, err := s.taskDispatcher.CreateTask(projectID, models.TaskTypeSync, latestSHA)
+		return nil, task, err
+	}
+
+	// Fallback to old direct trigger logic if No task dispatcher
 	req := &models.DeployRequest{
 		ProjectID:     projectID,
 		Branch:        project.Branch,
 		CommitSHA:     latestSHA,
 		CommitMsg:     latestMsg,
-		ShouldPromote: true, // Auto-promote on success
+		ShouldPromote: true, // Auto-promote build artifacts on success
+		IsBuildOnly:   true, // Just build and store artifacts, do not start process
 	}
-	return s.Trigger(userID, req)
+	d, err := s.Trigger(userID, req)
+	return d, nil, err
 }
 
 // RestartDeployment triggers a new deployment for the same version as the given deployment ID.

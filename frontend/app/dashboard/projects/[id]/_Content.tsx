@@ -4,14 +4,17 @@ import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import { projectsApi, deploymentsApi } from '@/lib/api'
+import { projectsApi, deploymentsApi, tasksApi } from '@/lib/api'
 import { Header } from '@/components/layout/Header'
 import { StatusBadge } from '@/components/dashboard/StatusBadge'
+import { TaskProgress } from '@/components/dashboard/TaskProgress'
+import { useConfirm } from '@/components/ui/Modal'
 import { timeAgo } from '@/lib/utils'
 import toast from 'react-hot-toast'
+import { ProjectTask } from '@/types'
 import {
   Rocket, GitBranch, Globe, Key, Settings,
-  ExternalLink, RefreshCw, Loader2, ChevronRight, GitCommit, Code2
+  ExternalLink, RefreshCw, Loader2, ChevronRight, GitCommit, Code2, AlertTriangle, CheckCircle2, XCircle
 } from 'lucide-react'
 
 export default function ProjectDetailPage() {
@@ -31,13 +34,80 @@ export default function ProjectDetailPage() {
   const { data: deploymentsData } = useQuery({
     queryKey: ['deployments', 'project', id],
     queryFn: () => deploymentsApi.list(5, 0, id).then((r) => r.data),
-    refetchInterval: 5000, // Live updates every 5s
+    refetchInterval: 5000,
   })
+
+  const { data: tasksData } = useQuery({
+    queryKey: ['tasks', id],
+    queryFn: () => tasksApi.list(id).then((r) => r.data),
+    refetchInterval: 3000,
+  })
+  const { confirm, Component: ConfirmModal } = useConfirm()
 
   const project = projectData
   const deployments = deploymentsData?.data || []
+  const tasks: ProjectTask[] = tasksData?.data || []
+
+  // Only consider the LATEST task of each type to determine pipeline status
+  const latestTaskByType = tasks.reduce((acc, t) => {
+    if (!acc[t.type] || new Date(t.created_at) > new Date(acc[t.type].created_at)) {
+      acc[t.type] = t
+    }
+    return acc
+  }, {} as Record<string, ProjectTask>)
+
+  const latestTasks = Object.values(latestTaskByType)
+  const isPipelineRunning = latestTasks.some(t => t.status === 'running' || t.status === 'pending')
+  const isPipelineFailed = latestTasks.some(t => t.status === 'failed')
+  const isPipelineComplete = latestTasks.some(t => t.type === 'test' && t.status === 'completed')
+  const hasBuildArtifact = latestTasks.some(t => t.type === 'build' && t.status === 'completed')
+
+  const latestTask = tasks.length > 0 ? tasks[tasks.length - 1] : null
+
+  const latestDeployment = deployments[0]
+  const projectHealth = (() => {
+    if (isPipelineRunning) return 'inprogress'
+    if (latestDeployment?.status === 'failed' || (isPipelineFailed && !latestDeployment)) return 'failed'
+    if (latestDeployment?.status === 'running') {
+      if (isPipelineFailed) return 'degraded'
+      return 'healthy'
+    }
+    return 'unknown'
+  })()
 
   const handleDeploy = async () => {
+    // Smart Deploy Logic
+    const testTask = [...tasks].reverse().find(t => t.type === 'test')
+
+    if (testTask) {
+      if (testTask.status === 'failed') {
+        const ok = await confirm({
+          title: 'Deployment Warning',
+          message: 'The latest tests for this project have FAILED. Are you sure you want to deploy this code anyway?',
+          confirmText: 'Deploy Anyway',
+          type: 'error'
+        })
+        if (!ok) return
+      } else if (testTask.status !== 'completed') {
+        const ok = await confirm({
+          title: 'Tests Incomplete',
+          message: 'Automated testing is still in progress (or pending). Would you like to bypass tests and deploy immediately?',
+          confirmText: 'Deploy Now (Bypass Tests)',
+          type: 'warn'
+        })
+        if (!ok) return
+      }
+    } else {
+      // No test task found at all
+      const ok = await confirm({
+        title: 'No Test Results',
+        message: 'No test results were found for the current commit. Proceed with deployment?',
+        confirmText: 'Proceed to Deploy',
+        type: 'confirm'
+      })
+      if (!ok) return
+    }
+
     setDeployLoading(true)
     try {
       await deploymentsApi.trigger({ project_id: id })
@@ -51,20 +121,15 @@ export default function ProjectDetailPage() {
   }
 
   const handleSync = async () => {
-    const loadingToast = toast.loading('Checking for changes...')
+    const loadingToast = toast.loading('Triggering synchronization task...')
     try {
-      const res = await projectsApi.sync(id)
-      if (res.data?.code === 'UP_TO_DATE') {
-        toast.dismiss(loadingToast)
-        toast.success('Project is already up to date!')
-      } else {
-        toast.dismiss(loadingToast)
-        toast.success('New changes detected! Deployment triggered.')
-        queryClient.invalidateQueries({ queryKey: ['deployments'] })
-      }
+      await projectsApi.sync(id)
+      toast.dismiss(loadingToast)
+      toast.success('Synchronization task started!')
+      queryClient.invalidateQueries({ queryKey: ['tasks', id] })
     } catch (err: any) {
       toast.dismiss(loadingToast)
-      toast.error(err.response?.data?.error || 'Failed to sync with repository')
+      toast.error(err.response?.data?.error || 'Failed to trigger sync task')
     }
   }
 
@@ -94,32 +159,69 @@ export default function ProjectDetailPage() {
     <div className="flex flex-col min-h-screen animate-fade-in">
       <Header
         title={project.name}
-        subtitle={project.repo_url}
+        subtitle={
+          <div className="flex items-center gap-4">
+            <span className="opacity-70">{project.repo_url}</span>
+            <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+              projectHealth === 'healthy' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+              projectHealth === 'inprogress' ? 'bg-brand-500/10 text-brand-400 border-brand-500/20 animate-pulse' :
+              projectHealth === 'degraded' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+              projectHealth === 'failed' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+              'bg-slate-800 text-slate-400 border-slate-700'
+            }`}>
+              {projectHealth === 'healthy' && <CheckCircle2 size={10} />}
+              {projectHealth === 'inprogress' && <Loader2 size={10} className="animate-spin" />}
+              {projectHealth === 'degraded' && <AlertTriangle size={10} />}
+              {projectHealth === 'failed' && <XCircle size={10} />}
+              {projectHealth === 'inprogress' ? 'In Progress' : projectHealth}
+            </div>
+          </div>
+        }
       />
 
       <div className="p-6 space-y-6">
+        {/* Task Progress - NEW */}
+        <TaskProgress tasks={tasks} onRetry={handleSync} />
+
         {/* Actions row */}
         <div className="flex items-center gap-3 flex-wrap">
-          <button
-            onClick={handleDeploy}
-            disabled={deployLoading}
-            className="btn-primary"
-          >
-            {deployLoading ? (
-              <Loader2 size={15} className="animate-spin" />
-            ) : (
-              <Rocket size={15} />
-            )}
-            Deploy Now
-          </button>
+          {isPipelineComplete || (isPipelineFailed && hasBuildArtifact) ? (
+            <button
+              onClick={handleDeploy}
+              disabled={deployLoading}
+              className={`btn-primary ${isPipelineFailed ? 'bg-red-600 hover:bg-red-700' : ''}`}
+            >
+              {deployLoading ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <Rocket size={15} />
+              )}
+              {isPipelineFailed ? 'Force Deploy' : 'Deploy Now'}
+            </button>
+          ) : isPipelineRunning ? (
+            <div className="flex items-center gap-2 px-4 py-2 bg-slate-800 rounded-lg text-slate-400 text-sm border border-slate-700">
+              <Loader2 size={15} className="animate-spin text-brand-400" />
+              Processing Pipeline...
+            </div>
+          ) : (
+            <button
+              onClick={handleSync}
+              className="btn-primary"
+            >
+              <RefreshCw size={14} />
+              {tasks.length === 0 ? 'Start Sync' : 'Re-sync'}
+            </button>
+          )}
 
-          <button
-            onClick={handleSync}
-            className="btn-secondary"
-          >
-            <RefreshCw size={14} />
-            Sync
-          </button>
+          {tasks.length > 0 && !isPipelineRunning && (
+             <button
+             onClick={handleSync}
+             className="btn-secondary"
+           >
+             <RefreshCw size={14} />
+             Sync
+           </button>
+          )}
 
           <Link href={`/dashboard/projects/${id}/deployments`} className="btn-secondary">
             <RefreshCw size={14} />
@@ -160,8 +262,8 @@ export default function ProjectDetailPage() {
                 { label: 'Build Command', value: project.build_command || '', mono: true },
                 { label: 'Start Command', value: project.start_command || '', mono: true },
               ].map(({ label, value, mono }) => (
-                <div key={label} className="flex items-start gap-3">
-                  <dt className="text-slate-500 text-sm w-36 shrink-0">{label}</dt>
+                <div key={label} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 py-1">
+                  <dt className="text-slate-500 text-xs w-36 shrink-0">{label}</dt>
                   <dd className={`text-sm text-slate-200 break-all ${mono ? 'font-mono' : ''}`}>{value}</dd>
                 </div>
               ))}
@@ -232,6 +334,7 @@ export default function ProjectDetailPage() {
           </div>
         </div>
       </div>
+      {ConfirmModal}
     </div>
   )
 }

@@ -121,7 +121,7 @@ func main() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := workerApp.RunInProcessWithDB(ctx, q.Chan(), q, sharedDB); err != nil {
+			if err := workerApp.RunInProcessWithDB(ctx, q, q, sharedDB); err != nil {
 				log.Error().Err(err).Msg("embedded worker error")
 				cancel()
 			}

@@ -97,3 +97,5 @@ Chart.lock
 out.txt
 
 *.bak
+
+tmp_*

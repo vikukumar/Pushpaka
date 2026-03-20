@@ -22,6 +22,7 @@ type GitSyncService struct {
 	gitSyncRepo *repositories.GitSyncRepository
 	projectRepo *repositories.ProjectRepository
 	deployRepo  *repositories.DeploymentRepository
+	projectsDir string
 	tempDir     string
 }
 
@@ -29,11 +30,13 @@ func NewGitSyncService(
 	gitSyncRepo *repositories.GitSyncRepository,
 	projectRepo *repositories.ProjectRepository,
 	deployRepo *repositories.DeploymentRepository,
+	projectsDir string,
 ) *GitSyncService {
 	return &GitSyncService{
 		gitSyncRepo: gitSyncRepo,
 		projectRepo: projectRepo,
 		deployRepo:  deployRepo,
+		projectsDir: projectsDir,
 		tempDir:     os.TempDir(),
 	}
 }
@@ -247,6 +250,7 @@ func (s *GitSyncService) ApproveSyncRequest(trackID string, userID string, appro
 func (s *GitSyncService) getFetchLatestCommit(repo, branch string) (*models.GitCommitInfo, error) {
 	// Using GitHub API for demo - can be extended to support other git providers
 	if !strings.Contains(repo, "github.com") {
+		// If we have a local clone in ProjectsDir, use it to get full info
 		return s.getLocalLatestCommit(repo, branch)
 	}
 
@@ -297,6 +301,10 @@ func (s *GitSyncService) getFetchLatestCommit(repo, branch string) (*models.GitC
 
 // getLocalLatestCommit gets latest commit from local git repo
 func (s *GitSyncService) getLocalLatestCommit(repo, branch string) (*models.GitCommitInfo, error) {
+	// 1. Try to find local clone first (most reliable for commit messages)
+	// We need the project ID to find the directory, but s don't have it here directly easily.
+	// As a fallback, use ls-remote for SHA, but it won't give the message.
+	
 	cmd := exec.Command("git", "ls-remote", repo, fmt.Sprintf("refs/heads/%s", branch))
 	output, err := cmd.Output()
 	if err != nil {
@@ -312,6 +320,39 @@ func (s *GitSyncService) getLocalLatestCommit(repo, branch string) (*models.GitC
 		SHA:       parts[0],
 		Timestamp: time.Now().UTC(),
 	}, nil
+}
+
+// GetLatestCommitInfo fetches current commit info for a project
+func (s *GitSyncService) GetLatestCommitInfo(project *models.Project) (*models.GitCommitInfo, error) {
+	// If it's github, use API
+	if strings.Contains(project.RepoURL, "github.com") {
+		return s.getFetchLatestCommit(project.RepoURL, project.Branch)
+	}
+
+	// For non-GitHub or private-access, check ProjectsDir if cloned
+	if s.projectsDir != "" {
+		projDir := filepath.Join(s.projectsDir, project.ID)
+		if _, err := os.Stat(projDir); err == nil {
+			// Get info using git log
+			cmd := exec.Command("git", "log", "-1", "--format=%H|%an|%s")
+			cmd.Dir = projDir
+			out, err := cmd.Output()
+			if err == nil {
+				parts := strings.SplitN(strings.TrimSpace(string(out)), "|", 3)
+				if len(parts) == 3 {
+					return &models.GitCommitInfo{
+						SHA:       parts[0],
+						Author:    parts[1],
+						Message:   parts[2],
+						Timestamp: time.Now().UTC(),
+					}, nil
+				}
+			}
+		}
+	}
+
+	// Last resort: ls-remote (SHA only)
+	return s.getLocalLatestCommit(project.RepoURL, project.Branch)
 }
 
 // getGitDiff gets the diff between two commits
@@ -449,4 +490,29 @@ func (s *GitSyncService) ShouldAutoSync(track *models.GitSyncTrack, config *mode
 	}
 
 	return track.SyncStatus == models.GitSyncOutOfSync
+}
+
+// CloneTo clones a repository to a specific target directory
+func (s *GitSyncService) CloneTo(repo, branch, targetDir string) error {
+	// Create target directory if it doesn't exist
+	if err := os.MkdirAll(targetDir, 0755); err != nil {
+		return fmt.Errorf("failed to create target directory: %w", err)
+	}
+
+	// If directory is not empty, assume it's already cloned or needs reset
+	// For simplicity in a commit-specific dir, we expect it to be empty
+	entries, _ := os.ReadDir(targetDir)
+	if len(entries) > 0 {
+		return nil // Already cloned
+	}
+
+	// Clone
+	// Note: using -b <branch> and . as target path
+	cmd := exec.Command("git", "clone", "--depth", "1", "-b", branch, repo, ".")
+	cmd.Dir = targetDir
+	if output, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("git clone failed: %v, output: %s", err, string(output))
+	}
+
+	return nil
 }

@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/vikukumar/Pushpaka/internal/middleware"
@@ -56,7 +55,6 @@ func (h *EditorStateHandler) SaveState(c *gin.Context) {
 		OpenTabs:  body.OpenTabs,
 		ActiveTab: body.ActiveTab,
 		Sidebar:   body.Sidebar,
-		UpdatedAt: time.Now(),
 	}
 
 	if err := h.repo.Save(state); err != nil {

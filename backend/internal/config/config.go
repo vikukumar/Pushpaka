@@ -32,12 +32,29 @@ type Config struct {
 	GitlabClientSecret string
 	GitlabBaseURL      string // default: https://gitlab.com
 	// CloneDir is the temporary workspace where repositories are git-cloned.
-	// Set via BUILD_CLONE_DIR (or legacy BUILD_DIR).
 	CloneDir string
-	// DeployDir is the permanent directory for in-place (no-Docker) deployments.
-	// Set via BUILD_DEPLOY_DIR.
-	DeployDir string
+	// ProjectsDir is the persistent directory for project source code.
+	// Set via PROJECTS_DIR.
+	ProjectsDir string
+	// BuildsDir is the persistent directory for build artifacts.
+	// Set via BUILDS_DIR.
+	BuildsDir string
+	// DeployDir is the directory where active deployments run.
+	// Each deployment gets its own subdirectory by ID.
+	// Set via DEPLOYS_DIR.
+	DeploysDir string
+	TestsDir   string
 	LogLevel  string
+
+	// Worker counts
+	BuildWorkers int
+	AIWorkers    int
+	SyncWorkers   int
+	TestWorkers   int
+	DeployWorkers int
+
+	// Limits
+	CommitLimit int
 
 	// AI integration (OpenAI-compatible API)
 	AIProvider string // "openai", "openrouter", "gemini", "anthropic", "ollama"
@@ -107,9 +124,40 @@ func Load() *Config {
 		GitlabClientSecret: getEnv("GITLAB_CLIENT_SECRET", ""),
 		GitlabBaseURL:      getEnv("GITLAB_BASE_URL", "https://gitlab.com"),
 		CloneDir:           cloneDir,
-		DeployDir:          deployDir,
+		ProjectsDir:        getEnv("PROJECTS_DIR", defaultProjectsDir()),
+		BuildsDir:          getEnv("BUILDS_DIR", defaultBuildsDir()),
+		DeploysDir:         getEnv("DEPLOYS_DIR", deployDir),
+		TestsDir:           getEnv("TESTS_DIR", filepath.Join(defaultPushpakaBase(), "tests")),
 		LogLevel:           getEnv("LOG_LEVEL", "info"),
-		AIProvider:         getEnv("AI_PROVIDER", "openai"),
+		BuildWorkers: func() int {
+			v, _ := strconv.Atoi(getEnv("BUILD_WORKERS", "3"))
+			return v
+		}(),
+		AIWorkers: func() int {
+			v, _ := strconv.Atoi(getEnv("AI_WORKERS", "2"))
+			return v
+		}(),
+		SyncWorkers: func() int {
+			v, _ := strconv.Atoi(getEnv("SYNC_WORKERS", "4"))
+			return v
+		}(),
+		DeployWorkers: func() int {
+			v, _ := strconv.Atoi(getEnv("DEPLOY_WORKERS", "1"))
+			return v
+		}(),
+		TestWorkers: func() int {
+			// Backwards compatibility: check TEST_WORKERS then TEST_WORKER
+			v, err := strconv.Atoi(getEnv("TEST_WORKERS", ""))
+			if err != nil {
+				v, _ = strconv.Atoi(getEnv("TEST_WORKER", "2"))
+			}
+			return v
+		}(),
+		CommitLimit: func() int {
+			v, _ := strconv.Atoi(getEnv("COMMIT_LIMIT", "3"))
+			return v
+		}(),
+		AIProvider: getEnv("AI_PROVIDER", "openai"),
 		AIAPIKey:           getEnv("AI_API_KEY", ""),
 		AIModel:            getEnv("AI_MODEL", "gpt-4o-mini"),
 		AIBaseURL:          getEnv("AI_BASE_URL", ""),
@@ -127,7 +175,11 @@ func Load() *Config {
 
 // EnsureDirs creates CloneDir and DeployDir if they do not already exist.
 func (c *Config) EnsureDirs() error {
-	for _, dir := range []string{c.CloneDir, c.DeployDir} {
+	dirs := []string{c.CloneDir, c.ProjectsDir, c.BuildsDir, c.DeploysDir, c.TestsDir}
+	for _, dir := range dirs {
+		if dir == "" {
+			continue
+		}
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("pushpaka: cannot create directory %q: %w", dir, err)
 		}
@@ -139,7 +191,19 @@ func defaultCloneDir() string {
 	return filepath.Join(os.TempDir(), "pushpaka-builds")
 }
 
+func defaultProjectsDir() string {
+	return filepath.Join(defaultPushpakaBase(), "projects")
+}
+
+func defaultBuildsDir() string {
+	return filepath.Join(defaultPushpakaBase(), "builds")
+}
+
 func defaultDeployDir() string {
+	return filepath.Join(defaultPushpakaBase(), "deployments")
+}
+
+func defaultPushpakaBase() string {
 	if runtime.GOOS == "windows" {
 		base := os.Getenv("LOCALAPPDATA")
 		if base == "" {
@@ -148,9 +212,9 @@ func defaultDeployDir() string {
 		if base == "" {
 			base = `C:\pushpaka`
 		}
-		return filepath.Join(base, "pushpaka", "deploy")
+		return filepath.Join(base, "pushpaka")
 	}
-	return "/deploy/pushpaka"
+	return "/var/lib/pushpaka"
 }
 
 // normalizeMode converts app environment names to standard modes

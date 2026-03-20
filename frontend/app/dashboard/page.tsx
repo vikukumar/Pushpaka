@@ -83,7 +83,7 @@ export default function DashboardPage() {
       <div className="p-6 space-y-6 animate-fade-in">
 
         {/* """ Stat cards """ */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {statDefs.map(({ label, key, icon: Icon, gradient, glow, iconBg, iconBorder, orb }, i) => (
             <div 
               key={label} 
@@ -151,6 +151,8 @@ export default function DashboardPage() {
                     project={project}
                     latestDeployment={deployments.find((d) => d.project_id === project.id)}
                     runningCount={deployments.filter(d => d.project_id === project.id && d.status === 'running').length}
+                    buildingCount={deployments.filter(d => d.project_id === project.id && d.status === 'building').length}
+                    failedCount={deployments.filter(d => d.project_id === project.id && d.status === 'failed').length}
                   />
                 ))}
               </div>

@@ -32,14 +32,13 @@ func NewFileHandler(projectRepo *repositories.ProjectRepository, deploymentRepo 
 	return &FileHandler{
 		projectRepo:    projectRepo,
 		deploymentRepo: deploymentRepo,
-		deployDir:      cfg.DeployDir,
+		deployDir:      cfg.DeploysDir,
 		cloneDir:       cfg.CloneDir,
 	}
 }
 
 // projectDir resolves the working directory for a project, verifying ownership.
-// Priority: deployDir/<projectID[:8]> → cloneDir/<latestDeploymentID>.
-// Returns "" and writes an error JSON if no directory can be resolved.
+// Priority: cloneDir/<projectID> (Build folder) → deployDir/<projectID> (Deployment folder).
 func (h *FileHandler) projectDir(c *gin.Context) (string, bool) {
 	userID := middleware.GetUserID(c)
 	projectID := c.Param("id")
@@ -50,14 +49,22 @@ func (h *FileHandler) projectDir(c *gin.Context) (string, bool) {
 		return "", false
 	}
 
-	// 1. Try the permanent deploy directory (Linux direct-deploy copies files here).
-	deployPath := filepath.Join(h.deployDir, proj.ID[:8])
+	// 1. Try the Build directory first (where clones and builds happen).
+	//    The user explicitly requested to edit the build folder.
+	if h.cloneDir != "" {
+		buildPath := filepath.Join(h.cloneDir, proj.ID)
+		if _, err := os.Stat(buildPath); err == nil {
+			return buildPath, true
+		}
+	}
+
+	// 2. Fallback to the permanent deploy directory (artifacts isolated here).
+	deployPath := filepath.Join(h.deployDir, proj.ID)
 	if _, err := os.Stat(deployPath); err == nil {
 		return deployPath, true
 	}
 
-	// 2. Fall back to the latest deployment's clone/build directory.
-	//    On Windows (and when the copy step is skipped) files remain here.
+	// 3. Last fallback: legacy deployment ID folder
 	if h.cloneDir != "" {
 		deployment, err := h.deploymentRepo.FindLatestByProjectID(proj.ID)
 		if err == nil {
@@ -65,9 +72,6 @@ func (h *FileHandler) projectDir(c *gin.Context) (string, bool) {
 			if _, err := os.Stat(clonePath); err == nil {
 				return clonePath, true
 			}
-		} else {
-			c.JSON(http.StatusNotFound, gin.H{"error": "no deployment found for this project — trigger a deployment first"})
-			return "", false
 		}
 	}
 
@@ -429,7 +433,7 @@ func (h *FileHandler) SyncFiles(c *gin.Context) {
 		return
 	}
 
-	destDir := filepath.Join(h.deployDir, proj.ID[:8])
+	destDir := filepath.Join(h.deployDir, proj.ID)
 
 	// Remove stale copy if present.
 	if _, statErr := os.Stat(destDir); statErr == nil {

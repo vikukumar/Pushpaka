@@ -275,12 +275,15 @@ func (e *AIToolsExecutor) ExecuteToolCall(ctx context.Context, userID string, ca
 
 	case "sync_project":
 		projectID := getStr("project_id")
-		dep, err := e.deploySvc.SyncRepo(userID, projectID)
+		dep, task, err := e.deploySvc.SyncRepo(userID, projectID)
 		if err != nil {
 			if err.Error() == "already up to date" {
 				return "Project is already up to date — no new commits found.", nil
 			}
 			return fmt.Sprintf("sync failed: %v", err), nil
+		}
+		if task != nil {
+			return fmt.Sprintf("Sync task started: %s. The pipeline (Build -> Test) is now running.", task.ID), nil
 		}
 		return fmt.Sprintf("Sync triggered new deployment: %s", dep.ID), nil
 

@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { systemApi } from '@/lib/api'
 import { SystemInfo } from '@/types'
-import { Container, GitBranch, Server, Cpu, RefreshCw, Zap } from 'lucide-react'
+import { Container, GitBranch, Server, Cpu, RefreshCw, Zap, ShieldCheck, Brain } from 'lucide-react'
 
 function StatusDot({ ok, pulse = false }: { ok: boolean; pulse?: boolean }) {
   const color = ok ? '#4ade80' : '#f87171'
@@ -144,7 +144,6 @@ export function SystemStatus() {
           ok={git.available}
         />
 
-        {/* Workers */}
         <Row
           icon={Cpu}
           iconColor="#818cf8"
@@ -169,34 +168,62 @@ export function SystemStatus() {
           }
         />
 
-        {/* Active jobs bar  only shown for in-process (tracked) workers */}
+        {/* Sync Workers */}
+        <Row
+          icon={RefreshCw}
+          iconColor="#fbbf24"
+          label="Sync Workers"
+          detail={`${workers.sync || 0} active sync threads`}
+          ok={workers.sync > 0 || !workers.tracked}
+        />
+
+        {/* Test Workers */}
+        <Row
+          icon={ShieldCheck}
+          iconColor="#10b981"
+          label="Test Workers"
+          detail={`${workers.test || 0} active test runners`}
+          ok={workers.test > 0 || !workers.tracked}
+        />
+
+        {/* AI Workers */}
+        <Row
+          icon={Brain}
+          iconColor="#a855f7"
+          label="AI Workers"
+          detail={`${workers.ai || 0} monitoring instances`}
+          ok={workers.ai > 0 || !workers.tracked}
+        />
+
+        {/* Load indicators for each role */}
         {workers.tracked && workers.total > 0 && (
-          <div
-            className="px-3 py-2.5 rounded-xl"
-            style={{
-              background: 'rgba(255,255,255,0.015)',
-              border: '1px solid rgba(99,102,241,0.07)',
-            }}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-slate-600 uppercase tracking-widest font-semibold">
-                Worker Load
-              </span>
-              <span className="text-[10px] text-slate-500">
-                {workers.active_jobs}/{workers.total} busy
-              </span>
-            </div>
-            <div className="h-1.5 rounded-full" style={{ background: 'rgba(99,102,241,0.12)' }}>
-              <div
-                className="h-1.5 rounded-full transition-all duration-700"
-                style={{
-                  width: workers.total > 0 ? `${(workers.active_jobs / workers.total) * 100}%` : '0%',
-                  background: 'linear-gradient(90deg, #6366f1, #22d3ee)',
-                  boxShadow: '0 0 8px rgba(99,102,241,0.5)',
-                  minWidth: workers.active_jobs > 0 ? '8px' : '0',
-                }}
-              />
-            </div>
+          <div className="space-y-3 pt-2">
+            <h3 className="text-[10px] text-slate-600 uppercase tracking-widest font-bold px-1">Role Loading</h3>
+            
+            {[
+              { label: 'Sync', active: workers.sync_active, total: workers.sync, color: '#fbbf24' },
+              { label: 'Build', active: workers.build_active, total: workers.build, color: '#6366f1' },
+              { label: 'Test', active: workers.test_active, total: workers.test, color: '#10b981' },
+              { label: 'AI', active: workers.ai_active, total: workers.ai, color: '#a855f7' },
+              { label: 'Deploy', active: workers.deploy_active, total: workers.deploy, color: '#f43f5e' },
+            ].map(role => role.total > 0 && (
+              <div key={role.label} className="px-3 py-2 rounded-xl bg-white/[0.015] border border-white/[0.05]">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] text-slate-400 font-medium">{role.label} Load</span>
+                  <span className="text-[10px] text-slate-500 font-mono">{role.active}/{role.total}</span>
+                </div>
+                <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+                  <div 
+                    className="h-full transition-all duration-500 rounded-full"
+                    style={{ 
+                      width: `${(role.active / role.total) * 100}%`,
+                      backgroundColor: role.color,
+                      boxShadow: `0 0 8px ${role.color}40`
+                    }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

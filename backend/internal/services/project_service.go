@@ -15,16 +15,17 @@ import (
 var ErrProjectNotFound = errors.New("project not found")
 
 type DeploymentSync interface {
-	SyncRepo(userID, projectID string) (*models.Deployment, error)
+	SyncRepo(userID, projectID string) (*models.Deployment, *models.ProjectTask, error)
 }
 
 type ProjectService struct {
-	projectRepo   *repositories.ProjectRepository
-	deploymentSvc DeploymentSync
+	projectRepo    *repositories.ProjectRepository
+	deploymentSvc  DeploymentSync
+	taskDispatcher *TaskDispatcher
 }
 
-func NewProjectService(projectRepo *repositories.ProjectRepository) *ProjectService {
-	return &ProjectService{projectRepo: projectRepo}
+func NewProjectService(projectRepo *repositories.ProjectRepository, taskDispatcher *TaskDispatcher) *ProjectService {
+	return &ProjectService{projectRepo: projectRepo, taskDispatcher: taskDispatcher}
 }
 
 func (s *ProjectService) SetDeploymentService(svc DeploymentSync) {
@@ -90,8 +91,10 @@ func (s *ProjectService) Create(userID string, req *models.CreateProjectRequest)
 		return nil, fmt.Errorf("creating project: %w", err)
 	}
 
-	// Trigger initial sync to fetch commit metadata
-	if s.deploymentSvc != nil {
+	// Trigger initial sync task instead of direct goroutine sync
+	if s.taskDispatcher != nil {
+		s.taskDispatcher.CreateTask(p.ID, models.TaskTypeSync, "")
+	} else if s.deploymentSvc != nil {
 		go s.deploymentSvc.SyncRepo(userID, p.ID)
 	}
 

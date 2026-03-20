@@ -43,7 +43,7 @@ func NewEditorWSHandler(projectRepo *repositories.ProjectRepository, deploymentR
 	return &EditorWSHandler{
 		projectRepo:    projectRepo,
 		deploymentRepo: deploymentRepo,
-		deployDir:      cfg.DeployDir,
+		deployDir:      cfg.DeploysDir,
 		cloneDir:       cfg.CloneDir,
 	}
 }

@@ -15,6 +15,7 @@ type Project struct {
 	BuildCommand string `gorm:"type:text" json:"build_command"`
 	StartCommand string `gorm:"type:text" json:"start_command"`
 	Port         int    `gorm:"default:3000" json:"port"`
+	TestCommand  string `gorm:"type:text" json:"test_command"`
 	Framework    string `gorm:"type:varchar(50)" json:"framework"`
 	Status       string `gorm:"type:varchar(50);default:'created'" json:"status"`
 	// GitToken is the personal access token for cloning private repositories.
@@ -38,9 +39,13 @@ type Project struct {
 	CloneDirectory string `gorm:"type:varchar(255)" json:"clone_directory"` // Base directory for git clones
 	GitClonePath   string `gorm:"type:varchar(255)"  json:"git_clone_path"` // Current git clone directory for project
 	MainDeployID   string `gorm:"type:varchar(255)"  json:"main_deploy_id"` // Current main deployment ID
+	// Task tracking
+	CurrentTaskID string `gorm:"type:varchar(255)" json:"current_task_id"`
+	LatestTaskID  string `gorm:"type:varchar(255)" json:"latest_task_id"`
+	TaskStatus    string `gorm:"type:varchar(50)" json:"task_status"`
 	// AutoSync fields
-	AutoSyncEnabled  bool `gorm:"default:false" json:"auto_sync_enabled"`
-	SyncIntervalSecs int  `gorm:"default:0" json:"sync_interval_secs"`
+	AutoSyncEnabled  bool `gorm:"default:true" json:"auto_sync_enabled"`
+	SyncIntervalSecs int  `gorm:"default:10" json:"sync_interval_secs"`
 	// Git metadata for the latest commit found remotely
 	LatestCommitSHA string    `gorm:"type:varchar(100)" json:"latest_commit_sha"`
 	LatestCommitMsg string    `gorm:"type:text" json:"latest_commit_msg"`
@@ -56,6 +61,7 @@ type CreateProjectRequest struct {
 	InstallCommand   string `json:"install_command"`
 	BuildCommand     string `json:"build_command"`
 	StartCommand     string `json:"start_command"`
+	TestCommand      string `json:"test_command"`
 	RunDir           string `json:"run_dir"`
 	Port             int    `json:"port"`
 	Framework        string `json:"framework"`
@@ -80,6 +86,7 @@ type UpdateProjectRequest struct {
 	InstallCommand string `json:"install_command"`
 	BuildCommand   string `json:"build_command"`
 	StartCommand   string `json:"start_command"`
+	TestCommand    string `json:"test_command"`
 	RunDir         string `json:"run_dir"`
 	Port           int    `json:"port"`
 	Framework      string `json:"framework"`

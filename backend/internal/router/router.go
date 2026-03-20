@@ -41,11 +41,13 @@ type ServiceRegistry struct {
 	WebhookSvc    *services.WebhookService
 	AISvc         *services.AIService
 	WorkerSvc     *services.WorkerNodeService
-	AIExecutor    *services.AIToolsExecutor
+	AIExecutor     *services.AIToolsExecutor
+	TaskDispatcher *services.TaskDispatcher
 
 	UserRepo       *repositories.UserRepository
 	ProjectRepo    *repositories.ProjectRepository
 	DeploymentRepo *repositories.DeploymentRepository
+	CommitRepo     *repositories.CommitRepository
 	LogRepo        *repositories.LogRepository
 	DomainRepo     *repositories.DomainRepository
 	EnvRepo        *repositories.EnvVarRepository
@@ -56,6 +58,7 @@ type ServiceRegistry struct {
 	WorkerRepo     *repositories.WorkerNodeRepository
 	SystemRepo     *repositories.SystemConfigRepository
 	EditorRepo     *repositories.EditorStateRepository
+	TaskRepo       *repositories.TaskRepository
 }
 
 // New builds the Gin engine. Pass a non-nil uiFS to serve the embedded
@@ -106,6 +109,7 @@ func New(
 	aiSvc := reg.AISvc
 	workerSvc := reg.WorkerSvc
 	aiExecutor := reg.AIExecutor
+	taskDispatcher := reg.TaskDispatcher
 
 	// Handlers
 	authHandler := handlers.NewAuthHandler(authSvc)
@@ -118,6 +122,7 @@ func New(
 	notifHandler := handlers.NewNotificationHandler(notifSvc)
 	oauthHandler := handlers.NewOAuthHandler(oauthSvc)
 	webhookHandler := handlers.NewWebhookHandler(webhookSvc)
+	taskHandler := handlers.NewTaskHandler(taskDispatcher)
 
 	// Create AI Handler
 	aiHandler := handlers.NewAIHandler(aiSvc, logRepo, deploymentRepo, aiConfigRepo, cfg, aiExecutor)
@@ -171,6 +176,7 @@ func New(
 
 		// Internal notification callback (only called by the worker, not exposed publicly)
 		api.POST("/internal/notify", notifHandler.InternalNotify)
+		api.POST("/internal/tasks/:id/complete", taskHandler.InternalComplete)
 
 		// Protected routes
 		protected := api.Group("")
@@ -240,6 +246,14 @@ func New(
 
 			// Audit logs
 			protected.GET("/audit", auditHandler.List)
+
+			// Tasks
+			tasks := protected.Group("/tasks")
+			{
+				tasks.GET("", taskHandler.List)
+				tasks.GET("/:id", taskHandler.Get)
+				tasks.POST("/:id/restart", taskHandler.Restart)
+			}
 
 			// Web terminal (WebSocket)
 			protected.GET("/deployments/:id/terminal", terminalHandler.Connect)
@@ -411,6 +425,13 @@ func proxyToProject(c *gin.Context, projectID string, repo *repositories.Deploym
 	// For domain-based proxying, we don't strip prefix,
 	// unless we want to support something like mydomain.com/prefix/
 	// For now assume the domain points to the root of the app.
+	c.Request.Header.Set("X-Forwarded-Host", c.Request.Host)
+	if c.Request.TLS != nil {
+		c.Request.Header.Set("X-Forwarded-Proto", "https")
+	} else {
+		c.Request.Header.Set("X-Forwarded-Proto", "http")
+	}
+
 	c.Request.Host = target.Host
 	proxy.ServeHTTP(c.Writer, c.Request)
 }
