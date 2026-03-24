@@ -22,15 +22,11 @@ func (r *DomainRepository) Create(d *models.Domain) error {
 }
 
 func (r *DomainRepository) FindByProjectID(projectID string) ([]models.Domain, error) {
-	var domains []models.Domain
-	err := r.db.Where("project_id = ?", projectID).Order("created_at desc").Find(&domains).Error
-	return domains, err
+	return basemodel.Query[models.Domain](r.db, "project_id = ?", projectID)
 }
 
 func (r *DomainRepository) FindByUserID(userID string) ([]models.Domain, error) {
-	var domains []models.Domain
-	err := r.db.Where("user_id = ?", userID).Order("created_at desc").Find(&domains).Error
-	return domains, err
+	return basemodel.Query[models.Domain](r.db, "user_id = ?", userID)
 }
 
 func (r *DomainRepository) FindByDomain(domain string) (*models.Domain, error) {
@@ -38,12 +34,14 @@ func (r *DomainRepository) FindByDomain(domain string) (*models.Domain, error) {
 }
 
 func (r *DomainRepository) SetVerified(id string, verified bool) error {
-	return r.db.Model(&models.Domain{}).Where("id = ?", id).Updates(map[string]interface{}{
+	now := time.Now().UTC()
+	return basemodel.Update[models.Domain](r.db, id, map[string]interface{}{
 		"verified":   verified,
-		"updated_at": time.Now().UTC(),
-	}).Error
+		"updated_at": now,
+	})
 }
 
 func (r *DomainRepository) Delete(id, userID string) error {
+	basemodel.EnsureSynced[models.Domain](r.db)
 	return r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&models.Domain{}).Error
 }

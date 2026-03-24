@@ -65,7 +65,7 @@ type DeploymentJob struct {
 	EnvVars        map[string]string `json:"env_vars"`
 	ImageTag       string            `json:"image_tag"`
 	// GitToken is the PAT for private-repo cloning. Never logged or stored in deployment records.
-	GitToken string `json:"git_token,omitempty"`
+	GitToken  string `json:"git_token,omitempty"`
 	IsPrivate bool   `json:"is_private,omitempty"`
 	// Resource limits for the Docker container (empty = Docker defaults)
 	CPULimit      string `json:"cpu_limit,omitempty"`

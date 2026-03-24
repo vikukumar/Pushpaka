@@ -24,21 +24,25 @@ import (
 	"github.com/vikukumar/Pushpaka/worker/internal/config"
 )
 
+type TaskPusher interface {
+	Push(role string, payload []byte) error
+}
+
 type WorkerClient struct {
 	serverURL string
 	zonePAT   string
 	db        *gorm.DB
 	cfg       *config.Config
-	deployCh  chan<- []byte
+	pusher    TaskPusher
 }
 
-func NewWorkerClient(serverURL, zonePAT string, db *gorm.DB, cfg *config.Config, deployCh chan<- []byte) *WorkerClient {
+func NewWorkerClient(serverURL, zonePAT string, db *gorm.DB, cfg *config.Config, pusher TaskPusher) *WorkerClient {
 	return &WorkerClient{
 		serverURL: strings.TrimRight(serverURL, "/"),
 		zonePAT:   zonePAT,
 		db:        db,
 		cfg:       cfg,
-		deployCh:  deployCh,
+		pusher:    pusher,
 	}
 }
 
@@ -138,7 +142,33 @@ func (c *WorkerClient) connectAndServe(ctx context.Context) error {
 	// 4. Start Embedded HTTP Server on the Yamux session
 	mux := http.NewServeMux()
 
-	// Handle API Deployment Triggers
+	// Handle Generic Tasks (Sync, Build, Test, AI, etc.)
+	mux.HandleFunc("/internal/task", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		var task struct {
+			ID   string `json:"id"`
+			Type string `json:"type"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		if err := c.pusher.Push(task.Type, []byte(task.ID)); err != nil {
+			log.Error().Err(err).Str("task_id", task.ID).Str("type", task.Type).Msg("failed to push task to local queue")
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte(`{"error":"worker saturated"}`))
+			return
+		}
+
+		w.WriteHeader(http.StatusAccepted)
+		w.Write([]byte(`{"status":"accepted"}`))
+	})
+
+	// Handle API Deployment Triggers (Backward compatibility - assume "build" role)
 	mux.HandleFunc("/internal/deploy", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -149,15 +179,11 @@ func (c *WorkerClient) connectAndServe(ctx context.Context) error {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		// Send raw JSON payload to the BuildWorker channel!
-		select {
-		case c.deployCh <- body:
-			w.WriteHeader(http.StatusAccepted)
-			w.Write([]byte(`{"status":"accepted"}`))
-		default:
+		if err := c.pusher.Push("build", body); err != nil {
 			w.WriteHeader(http.StatusTooManyRequests)
-			w.Write([]byte(`{"error":"worker saturated"}`))
+			return
 		}
+		w.WriteHeader(http.StatusAccepted)
 	})
 
 	// Handle Reverse Proxied Traffic intended for local deployed applications!

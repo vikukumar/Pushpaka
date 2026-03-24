@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"gorm.io/gorm/logger"
-	"gorm.io/gorm/utils"
 )
 
 // CustomLogger is a minimal GORM logger that hides the full SQL query.
@@ -52,7 +51,7 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 	}
 
 	elapsed := time.Since(begin)
-	file := utils.FileWithLineNum()
+	//file := utils.FileWithLineNum()
 
 	// Determine status message
 	status := "SUCCESS"
@@ -67,13 +66,13 @@ func (l *CustomLogger) Trace(ctx context.Context, begin time.Time, fc func() (st
 
 	// In debug mode (non-production), show the file and line number
 	if l.AppEnv != "production" {
-		log.Printf("[DB] %s | %s | %s", file, elapsed, status)
+		log.Printf("[Pushpaka DB] %s | %s", elapsed, status)
 	} else {
 		// In production, only log errors or slow queries
 		if err != nil && err != logger.ErrRecordNotFound {
-			log.Printf("[DB] %s | %s", elapsed, status)
+			log.Printf("[Pushpaka DB] %s | %s", elapsed, status)
 		} else if elapsed > 500*time.Millisecond {
-			log.Printf("[DB] SLOW | %s", elapsed)
+			log.Printf("[Pushpaka DB] SLOW | %s", elapsed)
 		}
 	}
 }

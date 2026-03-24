@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
@@ -21,18 +22,18 @@ func NewK8sConfigRepository(db *gorm.DB) *K8sConfigRepository {
 }
 
 func (r *K8sConfigRepository) GetByUserID(userID string) (*models.K8sConfig, error) {
-	var cfg models.K8sConfig
-	err := r.db.Where("user_id = ?", userID).First(&cfg).Error
+	cfg, err := basemodel.First[models.K8sConfig](r.db, "user_id = ?", userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &cfg, nil
+	return cfg, nil
 }
 
 func (r *K8sConfigRepository) Upsert(cfg *models.K8sConfig) error {
+	basemodel.EnsureSynced[models.K8sConfig](r.db)
 	if cfg.ID == "" {
 		cfg.ID = uuid.New().String()
 		cfg.CreatedAt = time.Now().UTC()
@@ -54,13 +55,12 @@ func (r *K8sConfigRepository) GetByUserIDInternal(userID string) (*models.K8sCon
 
 // GetEnabledByUserID returns the K8s config only if it is enabled.
 func (r *K8sConfigRepository) GetEnabledByUserID(userID string) (*models.K8sConfig, error) {
-	var cfg models.K8sConfig
-	err := r.db.Where("user_id = ? AND enabled = 1", userID).First(&cfg).Error
+	cfg, err := basemodel.First[models.K8sConfig](r.db, "user_id = ? AND enabled = 1", userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &cfg, nil
+	return cfg, nil
 }

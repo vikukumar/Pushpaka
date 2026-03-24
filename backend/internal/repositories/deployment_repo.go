@@ -29,6 +29,7 @@ func (r *DeploymentRepository) FindByProjectID(projectID string, limit, offset i
 }
 
 func (r *DeploymentRepository) FindByUserID(userID string, limit, offset int) ([]models.Deployment, error) {
+	basemodel.EnsureSynced[models.Deployment](r.db)
 	var deployments []models.Deployment
 	err := r.db.Where("user_id = ?", userID).Order("created_at desc").Limit(limit).Offset(offset).Find(&deployments).Error
 	return deployments, err
@@ -52,21 +53,15 @@ func (r *DeploymentRepository) Update(d *models.Deployment) error {
 }
 
 func (r *DeploymentRepository) FindRunningByProjectID(projectID string) (*models.Deployment, error) {
-	var d models.Deployment
-	err := r.db.Where("project_id = ? AND status = ?", projectID, "running").Order("created_at desc").First(&d).Error
-	if err != nil {
-		return nil, err
-	}
-	return &d, nil
+	return basemodel.First[models.Deployment](r.db, "project_id = ? AND status = ?", projectID, "running")
 }
 
 func (r *DeploymentRepository) FindAllRunning() ([]models.Deployment, error) {
-	var deployments []models.Deployment
-	err := r.db.Where("status = ?", "running").Find(&deployments).Error
-	return deployments, err
+	return basemodel.Query[models.Deployment](r.db, "status = ?", "running")
 }
 
 func (r *DeploymentRepository) FixLocalProtocols() error {
+	basemodel.EnsureSynced[models.Deployment](r.db)
 	// Update any 'https://localhost' or 'https://127.0.0.1' records to 'http'
 	return r.db.Model(&models.Deployment{}).
 		Where("url LIKE ?", "https://localhost%").
@@ -75,21 +70,17 @@ func (r *DeploymentRepository) FixLocalProtocols() error {
 }
 
 func (r *DeploymentRepository) FindLatestByProjectID(projectID string) (*models.Deployment, error) {
-	var d models.Deployment
-	err := r.db.Where("project_id = ?", projectID).Order("created_at desc").First(&d).Error
-	if err != nil {
-		return nil, err
-	}
-	return &d, nil
+	return basemodel.First[models.Deployment](r.db, "project_id = ?", projectID)
 }
 
 // FailStaleQueued marks all deployments that are still "queued" as "failed".
 // Called at startup when no Redis/worker is available, to clear stuck records.
 func (r *DeploymentRepository) Delete(id string) error {
-	return r.db.Where("id = ?", id).Delete(&models.Deployment{}).Error
+	return basemodel.Delete[models.Deployment](r.db, id)
 }
 
 func (r *DeploymentRepository) FailStaleQueued(errorMsg string) error {
+	basemodel.EnsureSynced[models.Deployment](r.db)
 	// Use models.NowUTC() so Value() emits RFC3339Nano text, which scans correctly
 	// back into *models.Time via Scan() without format ambiguity.
 	now := models.NowUTC()
@@ -104,31 +95,25 @@ func (r *DeploymentRepository) FailStaleQueued(errorMsg string) error {
 
 // ClearDefault clears is_default on all deployments for the given project.
 func (r *DeploymentRepository) ClearDefault(projectID string) error {
-	return r.db.Model(&models.Deployment{}).Where("project_id = ?", projectID).
-		Update("is_default", false).Error
+	return basemodel.Update[models.Deployment](r.db, projectID, map[string]interface{}{"is_default": false})
 }
 
 // SetDefault marks a single deployment as the default/live one.
 func (r *DeploymentRepository) SetDefault(deploymentID string) error {
-	return r.db.Model(&models.Deployment{}).Where("id = ?", deploymentID).
-		Update("is_default", true).Error
+	return basemodel.Update[models.Deployment](r.db, deploymentID, map[string]interface{}{"is_default": true})
 }
 
 // FindDefaultByProjectID returns the deployment marked as Default/Live for a project.
 func (r *DeploymentRepository) FindDefaultByProjectID(projectID string) (*models.Deployment, error) {
-	var d models.Deployment
-	err := r.db.Where("project_id = ? AND is_default = ? AND status = ?", projectID, true, models.DeploymentRunning).First(&d).Error
-	if err != nil {
-		return nil, err
-	}
-	return &d, nil
+	return basemodel.First[models.Deployment](r.db, "project_id = ? AND is_default = ? AND status = ?", projectID, true, models.DeploymentRunning)
 }
 
 // ListFailedRecent returns the latest failed deployments for a user.
 func (r *DeploymentRepository) ListFailedRecent(userID string, limit int) ([]models.Deployment, error) {
-	var deployments []models.Deployment
+	basemodel.EnsureSynced[models.Deployment](r.db)
+	var dest []models.Deployment
 	err := r.db.Where("user_id = ? AND (status = ? OR (status = ? AND error_msg != ''))",
 		userID, models.DeploymentFailed, models.DeploymentStopped).
-		Order("created_at desc").Limit(limit).Find(&deployments).Error
-	return deployments, err
+		Order("created_at DESC").Limit(limit).Find(&dest).Error
+	return dest, err
 }

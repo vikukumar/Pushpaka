@@ -29,18 +29,18 @@ import (
 
 // ServiceRegistry holds all the services and repositories needed by the router.
 type ServiceRegistry struct {
-	AuthSvc       *services.AuthService
-	ProjectSvc    *services.ProjectService
-	DeploymentSvc *services.DeploymentService
-	LogSvc        *services.LogService
-	DomainSvc     *services.DomainService
-	EnvSvc        *services.EnvService
-	AuditSvc      *services.AuditService
-	NotifSvc      *services.NotificationService
-	OAuthSvc      *services.OAuthService
-	WebhookSvc    *services.WebhookService
-	AISvc         *services.AIService
-	WorkerSvc     *services.WorkerNodeService
+	AuthSvc        *services.AuthService
+	ProjectSvc     *services.ProjectService
+	DeploymentSvc  *services.DeploymentService
+	LogSvc         *services.LogService
+	DomainSvc      *services.DomainService
+	EnvSvc         *services.EnvService
+	AuditSvc       *services.AuditService
+	NotifSvc       *services.NotificationService
+	OAuthSvc       *services.OAuthService
+	WebhookSvc     *services.WebhookService
+	AISvc          *services.AIService
+	WorkerSvc      *services.WorkerNodeService
 	AIExecutor     *services.AIToolsExecutor
 	TaskDispatcher *services.TaskDispatcher
 
@@ -139,8 +139,9 @@ func New(
 	if inQueue != nil {
 		workerStats = inQueue
 	}
-	// Recover deployments in background after restart
+	// Recover deployments and tasks in background after restart
 	go deploymentSvc.RecoverRunningDeployments(context.Background())
+	go reg.TaskDispatcher.RecoverStuckTasks(context.Background())
 
 	healthHandler := handlers.NewHealthHandler(db, rdb, workerStats)
 	editorHandler := handlers.NewEditorStateHandler(reg.EditorRepo)
@@ -174,11 +175,11 @@ func New(
 		// Incoming webhooks (public — signature-verified)
 		api.POST("/webhooks/:id/receive", webhookHandler.Receive)
 
-		// Internal notification callback (only called by the worker, not exposed publicly)
+		// Internal callbacks for worker communication
 		api.POST("/internal/notify", notifHandler.InternalNotify)
 		api.POST("/internal/tasks/:id/complete", taskHandler.InternalComplete)
 
-		// Protected routes
+		// Protected API routes
 		protected := api.Group("")
 		protected.Use(authMW)
 		protected.Use(middleware.RateLimit("api"))

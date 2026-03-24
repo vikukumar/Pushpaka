@@ -160,8 +160,8 @@ export default function ProjectDetailPage() {
       <Header
         title={project.name}
         subtitle={
-          <div className="flex items-center gap-4">
-            <span className="opacity-70">{project.repo_url}</span>
+          <div className="flex items-center gap-4 min-w-0">
+            <span className="opacity-70 truncate max-w-[200px] sm:max-w-md">{project.repo_url}</span>
             <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
               projectHealth === 'healthy' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
               projectHealth === 'inprogress' ? 'bg-brand-500/10 text-brand-400 border-brand-500/20 animate-pulse' :
@@ -179,9 +179,9 @@ export default function ProjectDetailPage() {
         }
       />
 
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
         {/* Task Progress - NEW */}
-        <TaskProgress tasks={tasks} onRetry={handleSync} />
+        <TaskProgress tasks={tasks} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['tasks', id] })} />
 
         {/* Actions row */}
         <div className="flex items-center gap-3 flex-wrap">
@@ -262,9 +262,9 @@ export default function ProjectDetailPage() {
                 { label: 'Build Command', value: project.build_command || '', mono: true },
                 { label: 'Start Command', value: project.start_command || '', mono: true },
               ].map(({ label, value, mono }) => (
-                <div key={label} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 py-1">
-                  <dt className="text-slate-500 text-xs w-36 shrink-0">{label}</dt>
-                  <dd className={`text-sm text-slate-200 break-all ${mono ? 'font-mono' : ''}`}>{value}</dd>
+                <div key={label} className="flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-3 py-1.5 border-b border-white/[0.03] last:border-0">
+                  <dt className="text-slate-500 text-xs w-full sm:w-36 shrink-0">{label}</dt>
+                  <dd className={`text-sm text-slate-200 break-all flex-1 ${mono ? 'font-mono' : ''}`}>{value}</dd>
                 </div>
               ))}
             </dl>

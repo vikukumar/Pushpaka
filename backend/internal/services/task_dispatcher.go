@@ -1,8 +1,12 @@
 package services
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"net"
+	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,12 +15,14 @@ import (
 	"github.com/vikukumar/Pushpaka/internal/repositories"
 	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/Pushpaka/pkg/tunnel"
 	"github.com/vikukumar/Pushpaka/queue"
 )
 
 type TaskDispatcher struct {
 	taskRepo    *repositories.TaskRepository
 	projectRepo *repositories.ProjectRepository
+	workerRepo  *repositories.WorkerNodeRepository
 	rdb         *redis.Client
 	inQueue     *queue.InProcess
 	log         *zerolog.Logger
@@ -25,6 +31,7 @@ type TaskDispatcher struct {
 func NewTaskDispatcher(
 	taskRepo *repositories.TaskRepository,
 	projectRepo *repositories.ProjectRepository,
+	workerRepo *repositories.WorkerNodeRepository,
 	rdb *redis.Client,
 	inQueue *queue.InProcess,
 	log *zerolog.Logger,
@@ -32,6 +39,7 @@ func NewTaskDispatcher(
 	return &TaskDispatcher{
 		taskRepo:    taskRepo,
 		projectRepo: projectRepo,
+		workerRepo:  workerRepo,
 		rdb:         rdb,
 		inQueue:     inQueue,
 		log:         log,
@@ -62,20 +70,71 @@ func (d *TaskDispatcher) CreateTask(projectID string, taskType models.TaskType, 
 }
 
 func (d *TaskDispatcher) queueTask(task *models.ProjectTask) {
-	// Determine queue based on task type (role-based)
-	roleQueue := fmt.Sprintf("pushpaka:tasks:%s", task.Type)
-	
-	// Payload for worker (simplified version of DeploymentJob if needed, or just TaskID)
-	// For now, let's assume workers pick up TaskID and fetch details.
+	// Payload for worker
 	payload := []byte(task.ID)
 
+	// 1. Check for Active Tunnels (Hybrid/Vaahan Mode)
+	// We iterate through active sessions to see if any worker can handle this task.
+	// In the future, we should target the specific worker assigned to the project.
+	go d.dispatchViaTunnel(task)
+
+	// 2. In-Process Queue (Dev/Single Binary Mode)
 	if d.inQueue != nil {
 		roleString := string(task.Type)
 		_ = d.inQueue.Push(roleString, payload)
 	}
 
+	// 3. Redis Queue (Production/Distributed Mode)
 	if d.rdb != nil {
+		roleQueue := fmt.Sprintf("pushpaka:tasks:%s", task.Type)
 		d.rdb.LPush(context.Background(), roleQueue, payload)
+	}
+}
+
+func (d *TaskDispatcher) dispatchViaTunnel(task *models.ProjectTask) {
+	// Find active workers that might be able to handle this.
+	// For simplicity, we check all registered workers that are "active"
+	workers, err := d.workerRepo.ListAll()
+	if err != nil {
+		return
+	}
+
+	for _, w := range workers {
+		if w.Status != models.WorkerStatusActive || w.ID == "local" {
+			continue
+		}
+
+		// Try to get tunnel session
+		session, err := tunnel.GlobalManager.GetSession(w.ID)
+		if err != nil {
+			continue
+		}
+
+		// Create a transport that dials through the Yamux session
+		tr := &http.Transport{
+			DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+				return session.Open()
+			},
+		}
+		hc := &http.Client{
+			Transport: tr,
+			Timeout:   5 * time.Second,
+		}
+
+		// Send task info as JSON to the worker for role routing
+		taskPayload, _ := json.Marshal(map[string]string{
+			"id":   task.ID,
+			"type": string(task.Type),
+		})
+
+		resp, err := hc.Post("http://worker/internal/task", "application/json", bytes.NewReader(taskPayload))
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusAccepted {
+				d.log.Info().Str("task_id", task.ID).Str("type", string(task.Type)).Str("worker_id", w.ID).Msg("task dispatched via tunnel")
+				return // Dispatched successfully to one worker
+			}
+		}
 	}
 }
 
@@ -147,4 +206,39 @@ func (d *TaskDispatcher) GetProjectTasks(projectID string) ([]models.ProjectTask
 
 func (d *TaskDispatcher) GetTask(id string) (*models.ProjectTask, error) {
 	return d.taskRepo.Get(id)
+}
+
+// RecoverStuckTasks finds all tasks currently in "running" state from before the restart
+// and re-queues them for execution. This ensures no tasks are lost during server restarts.
+func (d *TaskDispatcher) RecoverStuckTasks(ctx context.Context) error {
+	// Find all tasks with status "running"
+	tasks, err := d.taskRepo.FindByStatus(models.TaskStatusRunning)
+	if err != nil {
+		d.log.Error().Err(err).Msg("failed to find running tasks for recovery")
+		return err
+	}
+
+	if len(tasks) == 0 {
+		return nil
+	}
+
+	d.log.Info().Int("count", len(tasks)).Msg("recovering stuck tasks after restart")
+
+	for _, task := range tasks {
+		// Reset task to pending state for re-execution
+		task.Status = models.TaskStatusPending
+		task.StartedAt = nil
+		task.Error = "Task was interrupted by server restart"
+
+		if err := d.taskRepo.Update(&task); err != nil {
+			d.log.Error().Err(err).Str("task_id", task.ID).Msg("failed to reset stuck task")
+			continue
+		}
+
+		// Re-queue the task
+		d.queueTask(&task)
+		d.log.Info().Str("task_id", task.ID).Str("type", string(task.Type)).Msg("recovered and re-queued stuck task")
+	}
+
+	return nil
 }

@@ -26,7 +26,7 @@ front-build:
 	node scripts/patch-layout.js remove
 	cd frontend && STATIC_EXPORT=1 pnpm build || (node ../scripts/patch-layout.js restore && exit 1)
 	node scripts/patch-layout.js restore
-	node scripts/copy-frontend.js
+	node scripts/cpfe.js
 
 build: front-build
 	go build $(LDFLAGS) -o pushpaka$(EXT) ./cmd/pushpaka

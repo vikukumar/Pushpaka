@@ -47,7 +47,7 @@ func NewTestWorker(
 func (w *TestWorker) Start(ctx context.Context, q *queue.InProcess) error {
 	w.ctx, w.cancel = context.WithCancel(ctx)
 	w.queueStats = q
-	w.logger.Info().Int("worker_id", w.WorkerID).Msg("test worker started")
+	w.logger.Info().Int("worker_id", w.WorkerID).Str("role", "tester").Msgf("test worker [%d] started", w.WorkerID)
 
 	go w.run()
 	return nil
@@ -73,7 +73,7 @@ func (w *TestWorker) run() {
 					continue
 				}
 			}
-			
+
 			if w.queueStats != nil {
 				// 2. Try In-Process queue
 				select {

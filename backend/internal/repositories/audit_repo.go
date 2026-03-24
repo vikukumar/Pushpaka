@@ -20,13 +20,15 @@ func (r *AuditRepository) Create(log *models.AuditLog) error {
 }
 
 func (r *AuditRepository) FindByUserID(userID string, limit, offset int) ([]models.AuditLog, error) {
-	var logs []models.AuditLog
-	err := r.db.Where("user_id = ?", userID).Order("created_at desc").Limit(limit).Offset(offset).Find(&logs).Error
-	return logs, err
+	basemodel.EnsureSynced[models.AuditLog](r.db)
+	var dest []models.AuditLog
+	err := r.db.Where("user_id = ?", userID).Order("created_at DESC").Limit(limit).Offset(offset).Find(&dest).Error
+	return dest, err
 }
 
 func (r *AuditRepository) FindAll(limit, offset int) ([]models.AuditLog, error) {
-	var logs []models.AuditLog
-	err := r.db.Order("created_at desc").Limit(limit).Offset(offset).Find(&logs).Error
-	return logs, err
+	basemodel.EnsureSynced[models.AuditLog](r.db)
+	var dest []models.AuditLog
+	err := r.db.Order("created_at DESC").Limit(limit).Offset(offset).Find(&dest).Error
+	return dest, err
 }

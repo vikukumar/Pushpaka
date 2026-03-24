@@ -1,11 +1,10 @@
 package repositories
 
 import (
-	"errors"
-
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
@@ -18,18 +17,11 @@ func NewNotificationRepository(db *gorm.DB) *NotificationRepository {
 }
 
 func (r *NotificationRepository) FindByUserID(userID string) (*models.NotificationConfig, error) {
-	var cfg models.NotificationConfig
-	err := r.db.Where("user_id = ?", userID).First(&cfg).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	return &cfg, nil
+	return basemodel.First[models.NotificationConfig](r.db, "user_id = ?", userID)
 }
 
 func (r *NotificationRepository) Upsert(cfg *models.NotificationConfig) error {
+	basemodel.EnsureSynced[models.NotificationConfig](r.db)
 	return r.db.Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "user_id"}}, // Unique index should exist on user_id
 		DoUpdates: clause.AssignmentColumns([]string{

@@ -13,7 +13,7 @@ import (
 
 	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/database"
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/Pushpaka/queue"
 
 	"github.com/vikukumar/Pushpaka/worker/internal/client"
 	"github.com/vikukumar/Pushpaka/worker/internal/config"
@@ -72,17 +72,12 @@ func Run(ctx context.Context, opts RunOptions) error {
 		defer sqlDB.Close()
 	}
 
-	// In Vaahan mode, ensure the schema is initialized if brand new.
-	if opts.Mode == "vaahan" {
-		_ = db.AutoMigrate(&models.Deployment{}, &models.DeploymentLog{})
-	}
-
 	// In remote modes (vaahan/hybrid), the worker bypasses Redis and receives deployment tasks
 	// directly over the Yamux multiplexed websocket from the main API!
 	if opts.Mode == "vaahan" || opts.Mode == "hybrid" {
-		deployCh := make(chan []byte, 100)
+		iq := queue.New(100)
 
-		nodeClient := client.NewWorkerClient(opts.ServerURL, opts.ZonePAT, db, cfg, deployCh)
+		nodeClient := client.NewWorkerClient(opts.ServerURL, opts.ZonePAT, db, cfg, iq)
 
 		var wg sync.WaitGroup
 		wg.Add(1)
@@ -92,7 +87,7 @@ func Run(ctx context.Context, opts RunOptions) error {
 		}()
 
 		log.Info().Msg("Starting in-process deployment workers bound to Yamux tunnel")
-		if err := runInProcess(ctx, deployCh, nil, db, cfg); err != nil {
+		if err := runInProcess(ctx, iq, nil, db, cfg); err != nil {
 			return err
 		}
 
@@ -167,15 +162,16 @@ func RunInProcessWithDB(ctx context.Context, q interface{}, reporter StatsReport
 	return runInProcess(ctx, q, reporter, db, cfg)
 }
 
-// InProcessQueue is an interface for something that can provide channels for roles.
-type InProcessQueue interface {
-	Chan(role string) <-chan []byte
-}
-
 func runInProcess(ctx context.Context, q interface{}, reporter StatsReporter, db *gorm.DB, cfg *config.Config) error {
-	iq, ok := q.(InProcessQueue)
-	if !ok {
-		return fmt.Errorf("invalid in-process queue type")
+	var iq interface {
+		Chan(role string) <-chan []byte
+	}
+	if casted, ok := q.(interface {
+		Chan(role string) <-chan []byte
+	}); ok {
+		iq = casted
+	} else {
+		return fmt.Errorf("invalid in-process queue type: %T", q)
 	}
 
 	var wg sync.WaitGroup

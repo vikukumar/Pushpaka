@@ -24,18 +24,18 @@ func NewAIConfigRepository(db *gorm.DB) *AIConfigRepository {
 // ─── AI Config ────────────────────────────────────────────────────────────────
 
 func (r *AIConfigRepository) GetByUserID(userID string) (*models.AIConfig, error) {
-	var cfg models.AIConfig
-	err := r.db.Where("user_id = ?", userID).First(&cfg).Error
+	cfg, err := basemodel.First[models.AIConfig](r.db, "user_id = ?", userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	return &cfg, nil
+	return cfg, nil
 }
 
 func (r *AIConfigRepository) Upsert(cfg *models.AIConfig) error {
+	basemodel.EnsureSynced[models.AIConfig](r.db)
 	if cfg.ID == "" {
 		cfg.ID = uuid.New().String()
 		cfg.CreatedAt = time.Now().UTC()
@@ -64,19 +64,15 @@ func (r *AIConfigRepository) Upsert(cfg *models.AIConfig) error {
 // ─── RAG Documents ────────────────────────────────────────────────────────────
 
 func (r *AIConfigRepository) ListRAG(userID string) ([]models.RAGDocument, error) {
-	var docs []models.RAGDocument
-	err := r.db.Where("user_id = ?", userID).Order("created_at desc").Find(&docs).Error
-	return docs, err
+	return basemodel.Query[models.RAGDocument](r.db, "user_id = ?", userID)
 }
 
 func (r *AIConfigRepository) CreateRAG(doc *models.RAGDocument) error {
-	if doc.ID == "" {
-		doc.ID = uuid.New().String()
-	}
-	return r.db.Create(doc).Error
+	return basemodel.Add(r.db, doc)
 }
 
 func (r *AIConfigRepository) DeleteRAG(id, userID string) error {
+	basemodel.EnsureSynced[models.RAGDocument](r.db)
 	result := r.db.Where("id = ? AND user_id = ?", id, userID).Delete(&models.RAGDocument{})
 	if result.Error != nil {
 		return result.Error
@@ -90,13 +86,11 @@ func (r *AIConfigRepository) DeleteRAG(id, userID string) error {
 // ─── AI Monitor Alerts ────────────────────────────────────────────────────────
 
 func (r *AIConfigRepository) CreateAlert(alert *models.AIMonitorAlert) error {
-	if alert.ID == "" {
-		alert.ID = uuid.New().String()
-	}
-	return r.db.Create(alert).Error
+	return basemodel.Add(r.db, alert)
 }
 
 func (r *AIConfigRepository) ListAlerts(userID string, limit int, onlyUnresolved bool) ([]models.AIMonitorAlert, error) {
+	basemodel.EnsureSynced[models.AIMonitorAlert](r.db)
 	var alerts []models.AIMonitorAlert
 	q := r.db.Where("user_id = ?", userID)
 	if onlyUnresolved {
@@ -107,23 +101,18 @@ func (r *AIConfigRepository) ListAlerts(userID string, limit int, onlyUnresolved
 }
 
 func (r *AIConfigRepository) ResolveAlert(id, userID string) error {
-	result := r.db.Model(&models.AIMonitorAlert{}).Where("id = ? AND user_id = ?", id, userID).Update("resolved", 1)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return errors.New("alert not found")
-	}
-	return nil
+	return basemodel.Update[models.AIMonitorAlert](r.db, id, map[string]interface{}{"resolved": 1})
 }
 
 func (r *AIConfigRepository) AlertExistsForDeployment(deploymentID string) (bool, error) {
+	basemodel.EnsureSynced[models.AIMonitorAlert](r.db)
 	var count int64
 	err := r.db.Model(&models.AIMonitorAlert{}).Where("deployment_id = ? AND resolved = ?", deploymentID, 0).Count(&count).Error
 	return count > 0, err
 }
 
 func (r *AIConfigRepository) ListUsersWithMonitoring() ([]string, error) {
+	basemodel.EnsureSynced[models.AIConfig](r.db)
 	var ids []string
 	err := r.db.Model(&models.AIConfig{}).Where("monitoring_enabled = ?", 1).Pluck("user_id", &ids).Error
 	return ids, err
@@ -132,6 +121,7 @@ func (r *AIConfigRepository) ListUsersWithMonitoring() ([]string, error) {
 // ─── AI Token Usage / Rate Limiting ──────────────────────────────────────────
 
 func (r *AIConfigRepository) GetOrCreateTodayUsage(userID string) (*models.AITokenUsage, error) {
+	basemodel.EnsureSynced[models.AITokenUsage](r.db)
 	today := time.Now().UTC().Format("2006-01-02")
 	var usage models.AITokenUsage
 
@@ -162,9 +152,6 @@ func (r *AIConfigRepository) GetOrCreateTodayUsage(userID string) (*models.AITok
 }
 
 func (r *AIConfigRepository) IncrementTodayUsage(userID string, deltaCalls int) error {
-	// Create a dummy instance first if not exists using a raw query, since some dialects don't support simple increment
-	// on conflict simply via GORM in all setups.
-	// Easiest is to GetOrCreateTodayUsage and then increment.
 	usage, err := r.GetOrCreateTodayUsage(userID)
 	if err != nil {
 		return err

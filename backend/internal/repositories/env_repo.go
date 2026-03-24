@@ -4,6 +4,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
@@ -16,6 +17,7 @@ func NewEnvVarRepository(db *gorm.DB) *EnvVarRepository {
 }
 
 func (r *EnvVarRepository) Upsert(e *models.EnvVar) error {
+	basemodel.EnsureSynced[models.EnvVar](r.db)
 	return r.db.Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "project_id"}, {Name: "key"}},
 		DoUpdates: clause.AssignmentColumns([]string{"value", "updated_at"}),
@@ -23,12 +25,11 @@ func (r *EnvVarRepository) Upsert(e *models.EnvVar) error {
 }
 
 func (r *EnvVarRepository) FindByProjectID(projectID string) ([]models.EnvVar, error) {
-	var envVars []models.EnvVar
-	err := r.db.Where("project_id = ?", projectID).Order("key asc").Find(&envVars).Error
-	return envVars, err
+	return basemodel.Query[models.EnvVar](r.db, "project_id = ?", projectID)
 }
 
 func (r *EnvVarRepository) Delete(projectID, key, userID string) error {
+	basemodel.EnsureSynced[models.EnvVar](r.db)
 	return r.db.Where("project_id = ? AND key = ? AND user_id = ?", projectID, key, userID).Delete(&models.EnvVar{}).Error
 }
 

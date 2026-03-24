@@ -36,7 +36,7 @@ function Invoke-FrontendBuild {
     Pop-Location
     node "$Root\scripts\patch-layout.js" restore
     Write-Host "Copying frontend assets to backend/ui/dist..." -ForegroundColor Cyan
-    node "$Root\scripts\copy-frontend.js"
+    node "$Root\scripts\cpfe.js"
 }
 
 $ldflags = "-ldflags=-w -s"

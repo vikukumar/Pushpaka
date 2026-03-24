@@ -28,9 +28,10 @@ func (r *TaskRepository) Get(id string) (*models.ProjectTask, error) {
 }
 
 func (r *TaskRepository) FindByProject(projectID string, limit int) ([]models.ProjectTask, error) {
-	var tasks []models.ProjectTask
-	err := r.db.Where("project_id = ?", projectID).Order("created_at desc").Limit(limit).Find(&tasks).Error
-	return tasks, err
+	basemodel.EnsureSynced[models.ProjectTask](r.db)
+	var dest []models.ProjectTask
+	err := r.db.Where("project_id = ?", projectID).Order("created_at DESC").Limit(limit).Find(&dest).Error
+	return dest, err
 }
 
 func (r *TaskRepository) FindByProjectID(projectID string) ([]models.ProjectTask, error) {
@@ -38,8 +39,15 @@ func (r *TaskRepository) FindByProjectID(projectID string) ([]models.ProjectTask
 }
 
 func (r *TaskRepository) FindPending(taskType models.TaskType, limit int) ([]models.ProjectTask, error) {
-	var tasks []models.ProjectTask
-	err := r.db.Where("type = ? AND status = ?", taskType, models.TaskStatusPending).
-		Order("created_at asc").Limit(limit).Find(&tasks).Error
-	return tasks, err
+	basemodel.EnsureSynced[models.ProjectTask](r.db)
+	var dest []models.ProjectTask
+	err := r.db.Where("type = ? AND status = ?", taskType, models.TaskStatusPending).Order("created_at ASC").Limit(limit).Find(&dest).Error
+	return dest, err
+}
+
+func (r *TaskRepository) FindByStatus(status models.TaskStatus) ([]models.ProjectTask, error) {
+	basemodel.EnsureSynced[models.ProjectTask](r.db)
+	var dest []models.ProjectTask
+	err := r.db.Where("status = ?", status).Order("created_at ASC").Find(&dest).Error
+	return dest, err
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"sync/atomic"
 
 	"github.com/glebarez/sqlite"
 	"gorm.io/driver/mysql"
@@ -15,40 +14,36 @@ import (
 
 var (
 	DB           *gorm.DB
-	DBReady      atomic.Bool
 	syncedModels sync.Map
 )
 
-// IsDBReady turns the atomic flag into a boolean for handlers.
-func IsDBReady() bool {
-	return DBReady.Load()
-}
-
-// SetDBReady updates the atomic readiness flag.
-func SetDBReady(ready bool) {
-	DBReady.Store(ready)
-}
+var syncMutex sync.Mutex
 
 // EnsureSynced checks if a model's table has been migration-checked in this session.
 // If not, it runs a targeted AutoMigrate. Thread-safe.
 func EnsureSynced[T any](db *gorm.DB) {
-	// If global migration (background) is done, we don't need to check individually.
-	if IsDBReady() {
-		return
-	}
-
 	var model T
 	typeName := fmt.Sprintf("%T", model)
 
-	if _, loaded := syncedModels.Load(typeName); !loaded {
-		// First-time access: sync the table.
-		// Targeted AutoMigrate is fast as it only checks one structure.
-		if err := db.AutoMigrate(&model); err != nil {
-			log.Printf("[DB] Target sync failed for %s: %v", typeName, err)
-			return
-		}
-		syncedModels.Store(typeName, true)
+	if _, loaded := syncedModels.Load(typeName); loaded {
+		return
 	}
+
+	syncMutex.Lock()
+	defer syncMutex.Unlock()
+
+	// Double-check after acquiring lock
+	if _, loaded := syncedModels.Load(typeName); loaded {
+		return
+	}
+
+	// First-time access: sync the table.
+	// Targeted AutoMigrate is fast as it only checks one structure.
+	if err := db.AutoMigrate(&model); err != nil {
+		log.Printf("[DB] Target sync failed for %s: %v", typeName, err)
+		return
+	}
+	syncedModels.Store(typeName, true)
 }
 
 // Connect initializes the database connection based on driver and DSN

@@ -33,8 +33,8 @@ func NewAIWorker(id int, commitRepo *repositories.CommitRepository, projectRepo 
 func (w *AIWorker) Start(ctx context.Context, q *queue.InProcess) error {
 	w.ctx, w.cancel = context.WithCancel(ctx)
 	w.queueStats = q
-	w.logger.Info().Int("worker_id", w.WorkerID).Msg("AI worker started")
-	
+	w.logger.Info().Int("worker_id", w.WorkerID).Str("role", "ai").Msgf("AI worker [%d] started", w.WorkerID)
+
 	go w.run()
 	return nil
 }

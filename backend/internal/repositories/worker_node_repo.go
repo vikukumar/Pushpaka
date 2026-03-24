@@ -6,6 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
@@ -20,58 +21,54 @@ func NewWorkerNodeRepository(db *gorm.DB) *WorkerNodeRepository {
 }
 
 func (r *WorkerNodeRepository) Create(worker *models.WorkerNode) error {
-	return r.db.Create(worker).Error
+	return basemodel.Add(r.db, worker)
 }
 
 func (r *WorkerNodeRepository) Update(worker *models.WorkerNode) error {
-	return r.db.Save(worker).Error
+	return basemodel.Modify(r.db, worker)
 }
 
 func (r *WorkerNodeRepository) FindByID(id string) (*models.WorkerNode, error) {
-	var worker models.WorkerNode
-	err := r.db.First(&worker, "id = ?", id).Error
+	worker, err := basemodel.Get[models.WorkerNode](r.db, id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrWorkerNotFound
 		}
 		return nil, err
 	}
-	return &worker, nil
+	return worker, nil
 }
 
 func (r *WorkerNodeRepository) FindByAuthToken(token string) (*models.WorkerNode, error) {
-	var worker models.WorkerNode
-	err := r.db.First(&worker, "auth_token = ?", token).Error
+	worker, err := basemodel.First[models.WorkerNode](r.db, "auth_token = ?", token)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrWorkerNotFound
 		}
 		return nil, err
 	}
-	return &worker, nil
+	return worker, nil
 }
 
 func (r *WorkerNodeRepository) ListAll() ([]models.WorkerNode, error) {
-	var workers []models.WorkerNode
-	err := r.db.Order("created_at desc").Find(&workers).Error
-	return workers, err
+	return basemodel.Query[models.WorkerNode](r.db, "1=1")
 }
 
 func (r *WorkerNodeRepository) Delete(id string) error {
-	return r.db.Delete(&models.WorkerNode{}, "id = ?", id).Error
+	return basemodel.Delete[models.WorkerNode](r.db, id)
 }
 
 func (r *WorkerNodeRepository) UpdateLastSeen(id string) error {
 	now := time.Now().UTC()
-	return r.db.Model(&models.WorkerNode{}).Where("id = ?", id).
-		Updates(map[string]interface{}{
-			"last_seen_at": now,
-			"updated_at":   now,
-			"status":       models.WorkerStatusActive,
-		}).Error
+	return basemodel.Update[models.WorkerNode](r.db, id, map[string]interface{}{
+		"last_seen_at": now,
+		"updated_at":   now,
+		"status":       models.WorkerStatusActive,
+	})
 }
 
 func (r *WorkerNodeRepository) MarkStaleWorkersOffline(timeout time.Duration) (int64, error) {
+	basemodel.EnsureSynced[models.WorkerNode](r.db)
 	threshold := time.Now().UTC().Add(-timeout)
 	result := r.db.Model(&models.WorkerNode{}).
 		Where("last_seen_at < ? AND status = ?", threshold, models.WorkerStatusActive).

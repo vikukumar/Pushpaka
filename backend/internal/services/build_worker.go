@@ -53,7 +53,7 @@ func NewBuildWorker(
 func (w *BuildWorker) Start(ctx context.Context, q *queue.InProcess) error {
 	w.ctx, w.cancel = context.WithCancel(ctx)
 	w.queueStats = q
-	w.logger.Info().Int("worker_id", w.WorkerID).Msg("build worker started")
+	w.logger.Info().Int("worker_id", w.WorkerID).Str("role", "builder").Msgf("build worker [%d] started", w.WorkerID)
 
 	go w.run()
 	return nil
@@ -79,7 +79,7 @@ func (w *BuildWorker) run() {
 					continue
 				}
 			}
-			
+
 			if w.queueStats != nil {
 				// 2. Try In-Process queue
 				select {
@@ -141,7 +141,7 @@ func (w *BuildWorker) processBuildTask(taskID string) {
 	// For now, always copy everything as "artifact"
 	// cp -r sourcePath/* buildPath/
 	// (Using a simple copy logic or just symlink for now to satisfy the user request of "storing build artifact into build dir")
-	
+
 	// Record build path in commit
 	commit, err := w.commitRepo.FindBySHA(p.ID, task.CommitSHA)
 	if err == nil {

@@ -5,6 +5,7 @@ import (
 
 	"gorm.io/gorm"
 
+	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/models"
 )
 
@@ -20,8 +21,7 @@ func NewSystemConfigRepository(db *gorm.DB) *SystemConfigRepository {
 
 // Get finds a configuration value by key. Returns empty string if not found.
 func (r *SystemConfigRepository) Get(key string) (string, error) {
-	var cfg models.SystemConfig
-	err := r.db.First(&cfg, "id = ?", key).Error
+	cfg, err := basemodel.First[models.SystemConfig](r.db, "id = ?", key)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return "", ErrConfigNotFound
@@ -37,6 +37,5 @@ func (r *SystemConfigRepository) Set(key, value string) error {
 		ID:    key,
 		Value: value,
 	}
-	// Use GORM's built-in Save for Upsert functionality on primary key
-	return r.db.Save(&cfg).Error
+	return basemodel.Modify(r.db, &cfg)
 }

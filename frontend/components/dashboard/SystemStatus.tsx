@@ -151,7 +151,7 @@ export function SystemStatus() {
           detail={
             !workers.tracked
               ? 'External workers via Redis (untracked)'
-              : `${workers.total} workers \u00b7 ${workers.active_jobs} active \u00b7 ${workers.idle} idle`
+              : `${workers.build} workers \u00b7 ${workers.active_jobs} active \u00b7 ${workers.idle} idle`
           }
           ok={!workers.tracked ? true : workers.total > 0}
           extra={

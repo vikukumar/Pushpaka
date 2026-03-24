@@ -110,7 +110,7 @@ func (w *GitSyncWorker) runSyncWorker(id int) {
 		w.queueStats.WorkerStarted("syncer")
 		defer w.queueStats.WorkerStopped("syncer")
 	}
-	w.logger.Info().Int("worker_id", id).Msg("sync worker started")
+	w.logger.Info().Int("worker_id", id).Str("role", "syncer").Msgf("sync worker [%d] started", id)
 	for {
 		select {
 		case <-w.ctx.Done():
@@ -125,7 +125,7 @@ func (w *GitSyncWorker) runSyncWorker(id int) {
 					continue
 				}
 			}
-			
+
 			if w.queueStats != nil {
 				// 2. Try In-Process queue
 				select {
@@ -188,7 +188,7 @@ func (w *GitSyncWorker) processSyncTask(taskID string) {
 		SHA:       task.CommitSHA,
 		Timestamp: time.Now().UTC(),
 	}
-	
+
 	// Try to get full info if we just fetched it or if we can
 	if info, err := w.gitSyncService.GetLatestCommitInfo(p); err == nil && info.SHA == task.CommitSHA {
 		latestInfo = info
@@ -228,7 +228,7 @@ func (w *GitSyncWorker) syncProject(p *models.Project) {
 	// 2. If new commit detected, create Sync task
 	if latest != nil && latest.SHA != p.LatestCommitSHA {
 		w.logger.Info().Str("project_id", p.ID).Str("sha", latest.SHA).Msg("new commit detected, emitting Sync task")
-		
+
 		_, err = w.taskDispatcher.CreateTask(p.ID, models.TaskTypeSync, latest.SHA)
 		if err != nil {
 			w.logger.Error().Err(err).Str("project_id", p.ID).Msg("failed to create sync task")

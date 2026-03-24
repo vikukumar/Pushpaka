@@ -32,23 +32,23 @@ func (r *GitSyncRepository) GetGitSyncTrackByID(id string) (*models.GitSyncTrack
 
 // GetGitSyncTracksByProjectID retrieves all sync tracks for a project
 func (r *GitSyncRepository) GetGitSyncTracksByProjectID(projectID string, limit, offset int) ([]models.GitSyncTrack, error) {
-	var tracks []models.GitSyncTrack
-	err := r.db.Where("project_id = ?", projectID).Order("updated_at desc").Limit(limit).Offset(offset).Find(&tracks).Error
-	return tracks, err
+	basemodel.EnsureSynced[models.GitSyncTrack](r.db)
+	var dest []models.GitSyncTrack
+	err := r.db.Where("project_id = ?", projectID).Order("updated_at DESC").Limit(limit).Offset(offset).Find(&dest).Error
+	return dest, err
 }
 
 // GetOutOfSyncDeployments retrieves all out-of-sync deployments
 func (r *GitSyncRepository) GetOutOfSyncDeployments(limit int) ([]models.GitSyncTrack, error) {
-	var tracks []models.GitSyncTrack
-	err := r.db.Where("sync_status = ?", models.GitSyncOutOfSync).Order("updated_at asc").Limit(limit).Find(&tracks).Error
-	return tracks, err
+	basemodel.EnsureSynced[models.GitSyncTrack](r.db)
+	var dest []models.GitSyncTrack
+	err := r.db.Where("sync_status = ?", models.GitSyncOutOfSync).Order("updated_at ASC").Limit(limit).Find(&dest).Error
+	return dest, err
 }
 
 // GetPendingApprovalSyncs retrieves syncs pending approval
 func (r *GitSyncRepository) GetPendingApprovalSyncs(projectID string) ([]models.GitSyncTrack, error) {
-	var tracks []models.GitSyncTrack
-	err := r.db.Where("project_id = ? AND sync_status = ?", projectID, models.GitSyncPending).Order("updated_at desc").Find(&tracks).Error
-	return tracks, err
+	return basemodel.Query[models.GitSyncTrack](r.db, "project_id = ? AND sync_status = ? ORDER BY updated_at DESC", projectID, models.GitSyncPending)
 }
 
 // UpdateGitSyncTrack updates an existing git sync track
@@ -63,9 +63,7 @@ func (r *GitSyncRepository) CreateGitChange(change *models.GitChange) error {
 
 // GetGitChangesBySyncTrackID retrieves all changes for a sync track
 func (r *GitSyncRepository) GetGitChangesBySyncTrackID(syncTrackID string) ([]models.GitChange, error) {
-	var changes []models.GitChange
-	err := r.db.Where("sync_track_id = ?", syncTrackID).Order("created_at desc").Find(&changes).Error
-	return changes, err
+	return basemodel.Query[models.GitChange](r.db, "sync_track_id = ? ORDER BY created_at DESC", syncTrackID)
 }
 
 // CreateAutoSyncConfig creates auto-sync configuration
@@ -90,13 +88,15 @@ func (r *GitSyncRepository) CreateSyncHistory(history *models.DeploymentSyncHist
 
 // GetSyncHistory retrieves sync history for a deployment
 func (r *GitSyncRepository) GetSyncHistory(deploymentID string, limit, offset int) ([]models.DeploymentSyncHistory, error) {
-	var history []models.DeploymentSyncHistory
-	err := r.db.Where("deployment_id = ?", deploymentID).Order("created_at desc").Limit(limit).Offset(offset).Find(&history).Error
-	return history, err
+	basemodel.EnsureSynced[models.DeploymentSyncHistory](r.db)
+	var dest []models.DeploymentSyncHistory
+	err := r.db.Where("deployment_id = ?", deploymentID).Order("created_at DESC").Limit(limit).Offset(offset).Find(&dest).Error
+	return dest, err
 }
 
 // GetSyncHistoryCount returns the total number of sync history records
 func (r *GitSyncRepository) GetSyncHistoryCount(deploymentID string) (int, error) {
+	basemodel.EnsureSynced[models.DeploymentSyncHistory](r.db)
 	var count int64
 	err := r.db.Model(&models.DeploymentSyncHistory{}).Where("deployment_id = ?", deploymentID).Count(&count).Error
 	return int(count), err

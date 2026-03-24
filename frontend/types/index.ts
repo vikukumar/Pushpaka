@@ -35,6 +35,8 @@ export interface Project {
   latest_commit_sha: string
   latest_commit_msg: string
   latest_commit_at: string
+  language: string
+  package_manager: string
   created_at: string
   updated_at: string
 }

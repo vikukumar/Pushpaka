@@ -21,7 +21,6 @@ import (
 	"github.com/vikukumar/Pushpaka/internal/services"
 	"github.com/vikukumar/Pushpaka/pkg/basemodel"
 	"github.com/vikukumar/Pushpaka/pkg/database"
-	"github.com/vikukumar/Pushpaka/pkg/models"
 	"github.com/vikukumar/Pushpaka/pkg/tunnel"
 	"github.com/vikukumar/Pushpaka/queue"
 	"github.com/vikukumar/Pushpaka/ui"
@@ -74,38 +73,15 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		}()
 	}
 
-	// Background Initialization: AutoMigrate and System Config
-	go func() {
-		log.Info().Msg("starting background database migration...")
-		err := db.AutoMigrate(
-			&models.User{},
-			&models.Project{},
-			&models.EnvVar{},
-			&models.Deployment{},
-			&models.DeploymentLog{},
-			&models.Domain{},
-			&models.SystemConfig{},
-			&models.WorkerNode{},
-			&models.UserEditorState{},
-			&models.AuditLog{},
-			&models.AIConfig{},
-			&models.RAGDocument{},
-			&models.AIMonitorAlert{},
-			&models.AITokenUsage{},
-			&models.NotificationConfig{},
-			&models.K8sConfig{},
-			&models.ProjectCommit{},
-			&models.ProjectTask{},
-		)
-		if err != nil {
-			log.Error().Err(err).Msg("database migration failed in background")
-			// We don't exit here because the server is already starting/started.
-			// Handlers will return 503 until DBReady is true.
-			return
-		}
+	// Repositories for system-level services
+	systemCfgRepo := repositories.NewSystemConfigRepository(db)
+	workerNodeRepo := repositories.NewWorkerNodeRepository(db)
 
+	log.Printf("Database connection established - API ready (JIT migrations enabled)")
+
+	// Background Initialization: System Config
+	go func() {
 		// Initialize System Configuration (ZoneID)
-		systemCfgRepo := repositories.NewSystemConfigRepository(db)
 		zoneID, err := systemCfgRepo.Get("ZONE_ID")
 		if err != nil {
 			zoneID = uuid.New().String()
@@ -117,15 +93,8 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 		} else {
 			log.Info().Str("zone_id", zoneID).Msg("loaded installation ZoneID")
 		}
-
-		// Mark as ready
-		basemodel.SetDBReady(true)
 		log.Info().Msg("background database initialization complete")
 	}()
-
-	// Repositories for system-level services
-	systemCfgRepo := repositories.NewSystemConfigRepository(db)
-	workerNodeRepo := repositories.NewWorkerNodeRepository(db)
 
 	// Redis is optional: skipped when REDIS_URL is empty or an in-process queue is used.
 	var rdb *redis.Client
@@ -161,7 +130,7 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 
 	// Services
 	authSvc := services.NewAuthService(userRepo, cfg)
-	taskDispatcher := services.NewTaskDispatcher(taskRepo, projectRepo, rdb, opts.InProcessQueue, &log.Logger)
+	taskDispatcher := services.NewTaskDispatcher(taskRepo, projectRepo, workerNodeRepo, rdb, opts.InProcessQueue, &log.Logger)
 	projectSvc := services.NewProjectService(projectRepo, taskDispatcher)
 	deploymentSvc := services.NewDeploymentService(deploymentRepo, projectRepo, envRepo, domainRepo, rdb, opts.InProcessQueue, taskDispatcher, cfg.BaseURL)
 	projectSvc.SetDeploymentService(deploymentSvc)

@@ -78,7 +78,7 @@ export function Select({ value, onChange, options, placeholder, className, disab
         <div
           role="listbox"
           aria-labelledby={id}
-          className="absolute z-50 mt-1 w-full rounded-lg overflow-hidden py-0.5 animate-in fade-in slide-in-from-top-1 duration-200 shadow-xl border border-white/10 bg-slate-900/95 backdrop-blur-md"
+          className="absolute z-50 mt-1 w-full rounded-lg overflow-y-auto max-h-60 py-0.5 animate-in fade-in slide-in-from-top-1 duration-200 shadow-xl border border-white/10 bg-slate-900/95 backdrop-blur-md"
         >
           {options.map((opt) => {
             const isSelected = opt.value === value

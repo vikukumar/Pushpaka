@@ -20,11 +20,10 @@ func (r *LogRepository) Create(l *models.DeploymentLog) error {
 }
 
 func (r *LogRepository) FindByDeploymentID(deploymentID string) ([]models.DeploymentLog, error) {
-	var logs []models.DeploymentLog
-	err := r.db.Where("deployment_id = ?", deploymentID).Order("created_at asc").Find(&logs).Error
-	return logs, err
+	return basemodel.Query[models.DeploymentLog](r.db, "deployment_id = ?", deploymentID)
 }
 
 func (r *LogRepository) DeleteByDeploymentID(deploymentID string) error {
+	basemodel.EnsureSynced[models.DeploymentLog](r.db)
 	return r.db.Where("deployment_id = ?", deploymentID).Delete(&models.DeploymentLog{}).Error
 }

@@ -5,10 +5,12 @@ import { CheckCircle2, Circle, Clock, Loader2, XCircle, RefreshCw, Package, Chec
 import { TaskModal } from './TaskModal'
 import { useState } from 'react'
 import { formatDistanceToNow } from 'date-fns'
+import { tasksApi } from '@/lib/api'
+import toast from 'react-hot-toast'
 
 interface TaskProgressProps {
   tasks: ProjectTask[]
-  onRetry?: () => void
+  onRefresh?: () => void
 }
 
 const taskIcons: Record<TaskType, any> = {
@@ -27,7 +29,7 @@ const taskLabels: Record<TaskType, string> = {
   deploy: 'Deployment',
 }
 
-export function TaskProgress({ tasks, onRetry }: TaskProgressProps) {
+export function TaskProgress({ tasks, onRefresh }: TaskProgressProps) {
   const steps: TaskType[] = ['sync', 'build', 'test', 'deploy']
   
   // Find the latest task for each type
@@ -109,16 +111,27 @@ export function TaskProgress({ tasks, onRetry }: TaskProgressProps) {
                 </div>
               </div>
 
-              {status === 'failed' && onRetry && (
+              {status === 'failed' && onRefresh && (
                 <button 
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation()
-                    onRetry()
+                    if (task) {
+                      const toastId = toast.loading(`Restarting ${taskLabels[type]}...`)
+                      try {
+                        await tasksApi.restart(task.id)
+                        toast.success(`Task ${taskLabels[type]} restarting...`)
+                        onRefresh()
+                      } catch (err: any) {
+                        toast.error(err.response?.data?.error || `Failed to restart ${taskLabels[type]}`)
+                      } finally {
+                        toast.dismiss(toastId)
+                      }
+                    }
                   }}
                   className="mt-2 flex items-center gap-1.5 px-2 py-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors text-[10px] font-bold uppercase"
                 >
                   <RefreshCw size={10} />
-                  Retry Sync
+                  Retry {type}
                 </button>
               )}
             </div>
@@ -131,7 +144,7 @@ export function TaskProgress({ tasks, onRetry }: TaskProgressProps) {
           task={selectedTask}
           isOpen={!!selectedTask}
           onClose={() => setSelectedTask(null)}
-          onRestart={onRetry} // Passing onRetry as onRestart to trigger refresh
+          onRestart={onRefresh} // Trigger refresh to load the new pending task row
         />
       )}
     </div>

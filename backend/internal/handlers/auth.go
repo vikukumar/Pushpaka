@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 
 	"github.com/vikukumar/Pushpaka/internal/services"
 	"github.com/vikukumar/Pushpaka/pkg/models"
@@ -35,6 +36,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 
 	resp, err := h.authSvc.Register(&req)
 	if err != nil {
+		log.Error().Err(err).Str("email", req.Email).Msg("registration failed")
 		if errors.Is(err, services.ErrUserExists) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
@@ -63,6 +65,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	resp, err := h.authSvc.Login(&req)
 	if err != nil {
+		log.Error().Err(err).Str("email", req.Email).Msg("login failed")
 		if errors.Is(err, services.ErrInvalidCredentials) {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
 			return

@@ -52,6 +52,10 @@ type Project struct {
 	LatestCommitAt  time.Time `json:"latest_commit_at"`
 	// DeploymentStatus tracks if the project "should" be running (e.g. 'running', 'stopped')
 	DeploymentStatus string `gorm:"type:varchar(50);default:'stopped'" json:"deployment_status"`
+	
+	// Detected info
+	Language       string `gorm:"type:varchar(50)" json:"language"`
+	PackageManager string `gorm:"type:varchar(50)" json:"package_manager"`
 }
 
 type CreateProjectRequest struct {
@@ -76,6 +80,8 @@ type CreateProjectRequest struct {
 	MaxBackups       int    `json:"max_backups"`     // Default: 3
 	AutoSyncEnabled  bool   `json:"auto_sync_enabled"`
 	SyncIntervalSecs int    `json:"sync_interval_secs"`
+	Language         string `json:"language"`
+	PackageManager   string `json:"package_manager"`
 }
 
 // UpdateProjectRequest allows updating mutable project fields.
@@ -102,4 +108,6 @@ type UpdateProjectRequest struct {
 	MaxBackups       int    `json:"max_backups"`
 	AutoSyncEnabled  *bool  `json:"auto_sync_enabled"` // Pointer to distinguish false from unset
 	SyncIntervalSecs *int   `json:"sync_interval_secs"`
+	Language         string `json:"language"`
+	PackageManager   string `json:"package_manager"`
 }
