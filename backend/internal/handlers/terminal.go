@@ -24,7 +24,22 @@ import (
 var termUpgrader = websocket.Upgrader{
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,
-	CheckOrigin:     func(r *http.Request) bool { return true },
+	CheckOrigin: func(r *http.Request) bool {
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true
+		}
+		allowed := os.Getenv("ALLOWED_ORIGINS")
+		if allowed == "" || allowed == "*" {
+			return true
+		}
+		for _, a := range strings.Split(allowed, ",") {
+			if strings.TrimSpace(a) == origin {
+				return true
+			}
+		}
+		return false
+	},
 }
 
 type TerminalHandler struct {

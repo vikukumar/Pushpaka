@@ -61,8 +61,10 @@ function renderMarkdown(text: string): string {
   // Use DOMPurify to sanitize the final HTML
   if (typeof window !== 'undefined') {
     return DOMPurify.sanitize(html, { 
-      ALLOWED_TAGS: ['strong', 'code', 'pre', 'li', 'div', 'span', 'br'],
-      ALLOWED_ATTR: ['class']
+      ALLOWED_TAGS: ['strong', 'code', 'pre', 'li', 'div', 'span', 'br', 'ul', 'ol'],
+      ALLOWED_ATTR: ['class'],
+      FORBID_TAGS: ['script', 'style', 'iframe', 'form', 'object'],
+      FORBID_ATTR: ['onclick', 'onerror', 'onmouseover', 'onload'],
     })
   }
   return html
