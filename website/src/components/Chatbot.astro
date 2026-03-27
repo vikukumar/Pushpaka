@@ -96,7 +96,7 @@ const base = import.meta.env.BASE_URL;
   }
 </style>
 
-<script define:vars={{ supportEntries, supportQuickPrompts, publicChatApiUrl, base }}>
+<script is:inline define:vars={{ supportEntries, supportQuickPrompts, publicChatApiUrl, base }}>
   const chatToggle = document.getElementById('chatbot-toggle');
   const chatWindow = document.getElementById('chat-window');
   const closeChat = document.getElementById('close-chat');
@@ -104,8 +104,6 @@ const base = import.meta.env.BASE_URL;
   const sendButton = document.getElementById('send-button');
   const chatMessages = document.getElementById('chat-messages');
   const quickPrompts = document.getElementById('quick-prompts');
-
-  let isOpen = false;
 
   const fallbackReply = {
     title: 'General Support',
@@ -273,14 +271,12 @@ const base = import.meta.env.BASE_URL;
   }
 
   function openChat() {
-    isOpen = true;
     chatWindow.classList.remove('hidden');
     chatToggle.classList.add('hidden');
     chatInput.focus();
   }
 
   function closeChatWindow() {
-    isOpen = false;
     chatWindow.classList.add('hidden');
     chatToggle.classList.remove('hidden');
   }
