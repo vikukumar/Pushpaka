@@ -87,7 +87,7 @@ jobs:
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && github.event_name != 'pull_request'
+        if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'trivy-filesystem'
@@ -112,7 +112,7 @@ jobs:
 
       - name: Upload GoSec results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && github.event_name != 'pull_request'
+        if: always() && hashFiles('gosec-results.sarif') != ''
         with:
           sarif_file: 'gosec-results.sarif'
           category: 'gosec'
@@ -202,18 +202,21 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Run Gitleaks
         uses: gitleaks/gitleaks-action@v2
         id: gitleaks
+        with:
+          config-path: .gitleaksignore
         continue-on-error: true
 
       - name: Check for Gitleaks findings
+        if: always() && steps.gitleaks.outcome == 'failure'
         run: |
-          if [ ${{ steps.gitleaks.outcome }} == 'failure' ]; then
-            echo "::warning::Gitleaks found potential secrets"
-            exit 1
-          fi
+          echo "::error::Gitleaks found potential secrets. Please check scan results and use .gitleaksignore if they are false positives."
+          exit 1
 
   license:
     name: License Compliance
@@ -240,8 +243,8 @@ jobs:
   summary:
     name: Security Summary
     runs-on: ubuntu-latest
-    if: always()
     needs: [dependency-check, trivy-fs-scan, gosec, eslint, codeql, secrets, license]
+    if: always()
     steps:
       - name: Check security scan results
         run: |
@@ -260,6 +263,7 @@ jobs:
 
       - name: Create security report artifact
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: security-scan-summary
           path: |

@@ -83,7 +83,7 @@ const jsonLd = {
     <meta name="twitter:image:alt" content="Pushpaka - AI-native self-hosted deployment platform" />
     <meta name="format-detection" content="telephone=no" />
     <link rel="icon" type="image/svg+xml" href={`${base}favicon.svg`} />
-    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+    <script is:inline type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
     <title>{title}</title>
   </head>
   <body class="text-gray-100 antialiased">
@@ -121,8 +121,9 @@ const jsonLd = {
         }
         seen.add(element);
         if (!element.hasAttribute('data-reveal')) {
-          element.setAttribute('data-reveal', '');
-          element.style.setProperty('--reveal-delay', `${Math.min(index * 70, 420)}ms`);
+          const htmlElement = element as HTMLElement;
+          htmlElement.setAttribute('data-reveal', '');
+          htmlElement.style.setProperty('--reveal-delay', `${Math.min(index * 70, 420)}ms`);
           index += 1;
         }
       });

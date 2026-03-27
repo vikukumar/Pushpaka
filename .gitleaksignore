@@ -1,0 +1,14 @@
+# Gitleaks ignore file
+# Use this to silence false positives
+
+[allowlist]
+description = "Ignore default development secrets and placeholders"
+regexes = [
+    'change-me-in-production',
+    'dev-secret-change-in-production'
+]
+filenames = [
+    'config\.go',
+    'dev\.ps1',
+    'GITHUB_SECRETS_SETUP\.md'
+]

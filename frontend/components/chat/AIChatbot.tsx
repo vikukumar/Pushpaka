@@ -58,7 +58,7 @@ function renderMarkdown(text: string): string {
     .replace(/\n/g, '<br/>')
     .replace(/🔍|🐳|🌿|⚙️|📊|✨/g, (m) => `<span>${m}</span>`)
   
-  // Use DOMPurify to sanitize the final HTML
+  // Use DOMPurify to sanitize the final HTML with a restrictive configuration
   if (typeof window !== 'undefined') {
     return DOMPurify.sanitize(html, { 
       ALLOWED_TAGS: ['strong', 'code', 'pre', 'li', 'div', 'span', 'br', 'ul', 'ol'],
