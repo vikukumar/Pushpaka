@@ -9,8 +9,8 @@ package main
 
 import (
     "log"
-    "github.com/vikukumar/Pushpaka/internal/config"
-    "github.com/vikukumar/Pushpaka/internal/database"
+    "github.com/vikukumar/pushpaka/internal/config"
+    "github.com/vikukumar/pushpaka/internal/database"
 )
 
 func main() {
@@ -39,8 +39,8 @@ package main
 
 import (
     "log"
-    "github.com/vikukumar/Pushpaka/internal/config"
-    "github.com/vikukumar/Pushpaka/internal/database"
+    "github.com/vikukumar/pushpaka/internal/config"
+    "github.com/vikukumar/pushpaka/internal/database"
 )
 
 func main() {
@@ -65,7 +65,7 @@ package main
 
 import (
     "log"
-    "github.com/vikukumar/Pushpaka/internal/config"
+    "github.com/vikukumar/pushpaka/internal/config"
 )
 
 func main() {
@@ -100,8 +100,8 @@ package repositories
 
 import (
     "github.com/jmoiron/sqlx"
-    "github.com/vikukumar/Pushpaka/internal/config"
-    "github.com/vikukumar/Pushpaka/internal/database"
+    "github.com/vikukumar/pushpaka/internal/config"
+    "github.com/vikukumar/pushpaka/internal/database"
 )
 
 type DeploymentRepository struct {
@@ -133,8 +133,8 @@ package services
 
 import (
     "context"
-    "github.com/vikukumar/Pushpaka/internal/config"
-    "github.com/vikukumar/Pushpaka/internal/database"
+    "github.com/vikukumar/pushpaka/internal/config"
+    "github.com/vikukumar/pushpaka/internal/database"
     "github.com/redis/go-redis/v9"
 )
 
@@ -189,7 +189,7 @@ package tests
 import (
     "os"
     "testing"
-    "github.com/vikukumar/Pushpaka/internal/config"
+    "github.com/vikukumar/pushpaka/internal/config"
 )
 
 func TestWithDevelopmentConfig(t *testing.T) {
@@ -219,7 +219,7 @@ package tests
 import (
     "os"
     "testing"
-    "github.com/vikukumar/Pushpaka/internal/config"
+    "github.com/vikukumar/pushpaka/internal/config"
 )
 
 func TestWithProductionConfig(t *testing.T) {
@@ -257,7 +257,7 @@ package middleware
 
 import (
     "github.com/rs/zerolog/log"
-    "github.com/vikukumar/Pushpaka/internal/config"
+    "github.com/vikukumar/pushpaka/internal/config"
 )
 
 func LoggingMiddleware(cfg *config.Config) func(http.Handler) http.Handler {
@@ -289,8 +289,8 @@ package handlers
 
 import (
     "net/http"
-    "github.com/vikukumar/Pushpaka/internal/config"
-    "github.com/vikukumar/Pushpaka/internal/database"
+    "github.com/vikukumar/pushpaka/internal/config"
+    "github.com/vikukumar/pushpaka/internal/database"
 )
 
 // HealthCheckHandler returns application health status

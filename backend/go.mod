@@ -1,4 +1,4 @@
-module github.com/vikukumar/Pushpaka
+module github.com/vikukumar/pushpaka
 
 go 1.26.0
 

@@ -4,9 +4,9 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 
-	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/handlers"
-	"github.com/vikukumar/Pushpaka/internal/middleware"
+	"github.com/vikukumar/pushpaka/internal/config"
+	"github.com/vikukumar/pushpaka/internal/handlers"
+	"github.com/vikukumar/pushpaka/internal/middleware"
 )
 
 // NewWorkerRouter builds the Gin engine for the isolated Worker Management API.

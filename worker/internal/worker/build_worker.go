@@ -22,9 +22,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
-	"github.com/vikukumar/Pushpaka/pkg/models"
-	"github.com/vikukumar/Pushpaka/worker/internal/config"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/worker/internal/config"
 )
 
 // JobReporter is called on job lifecycle events (may be nil).
@@ -284,12 +284,12 @@ func (w *BuildWorker) processJob(ctx context.Context, job *models.DeploymentJob)
 	if needsClone {
 		if _, err := os.Stat(filepath.Join(sourceDir, ".git")); os.IsNotExist(err) {
 			w.appendLog(job.DeploymentID, "info", "system", fmt.Sprintf("Preparing fresh workspace at: %s", sourceDir))
-			
+
 			// Use forceRemoveDir with retries for Windows file lock resilience.
 			if err := w.forceRemoveDir(sourceDir); err != nil {
 				w.appendLog(job.DeploymentID, "warn", "system", fmt.Sprintf("Failed to fully clear directory: %v. Git clone may fail.", err))
 			}
-			
+
 			if err := w.cloneRepo(ctx, job, sourceDir); err != nil {
 				w.fail(job.DeploymentID, fmt.Sprintf("clone failed: %v", err))
 				return
@@ -2381,13 +2381,13 @@ func (w *BuildWorker) handleSyncTask(ctx context.Context, task *models.ProjectTa
 	// User request: isolated folders per user
 	// For sync, we use a temporary "sync_" prefixed folder within the user's project space
 	sourcePath := w.getWorkspaceDir(w.cfg.ProjectsDir, project.UserID, project.ID, "sync_"+shortID(task.CommitSHA))
-	
+
 	// Create parents and ensure read-write access
 	if err := os.MkdirAll(filepath.Dir(sourcePath), 0755); err != nil {
 		w.completeTask(task.ID, false, fmt.Sprintf("failed to create sync parent dir: %v", err))
 		return
 	}
-	
+
 	// Ensure directory is clean
 	_ = w.forceRemoveDir(sourcePath)
 	if err := os.MkdirAll(sourcePath, 0755); err != nil {
@@ -2411,7 +2411,7 @@ func (w *BuildWorker) handleSyncTask(ctx context.Context, task *models.ProjectTa
 	}
 
 	w.appendLog(task.ID, "info", "system", fmt.Sprintf("Capturing metadata and detecting environment for project: %s", project.Name))
-	
+
 	// For syncing metadata, we perform a shallow clone to save time
 	if err := w.cloneRepo(ctx, job, sourcePath); err != nil {
 		w.appendLog(task.ID, "error", "system", fmt.Sprintf("Metadata capture failed: %v", err))

@@ -14,16 +14,16 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/handlers"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
-	"github.com/vikukumar/Pushpaka/internal/router"
-	"github.com/vikukumar/Pushpaka/internal/services"
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
-	"github.com/vikukumar/Pushpaka/pkg/database"
-	"github.com/vikukumar/Pushpaka/pkg/tunnel"
-	"github.com/vikukumar/Pushpaka/queue"
-	"github.com/vikukumar/Pushpaka/ui"
+	"github.com/vikukumar/pushpaka/internal/config"
+	"github.com/vikukumar/pushpaka/internal/handlers"
+	"github.com/vikukumar/pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/internal/router"
+	"github.com/vikukumar/pushpaka/internal/services"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/database"
+	"github.com/vikukumar/pushpaka/pkg/tunnel"
+	"github.com/vikukumar/pushpaka/queue"
+	"github.com/vikukumar/pushpaka/ui"
 )
 
 // OpenDB opens the database using the given driver and DSN.
@@ -143,7 +143,6 @@ func RunWithOptions(ctx context.Context, opts RunOptions) error {
 	webhookSvc := services.NewWebhookService(webhookRepo, projectRepo, deploymentSvc, cfg)
 	aiSvc := services.NewAIService(cfg)
 	aiExecutor := services.NewAIToolsExecutor(deploymentSvc, logSvc, aiSvc)
-
 
 	gitSyncSvc := services.NewGitSyncService(gitSyncRepo, projectRepo, deploymentRepo, cfg.ProjectsDir)
 	gitSyncWorker := services.NewGitSyncWorker(gitSyncSvc, gitSyncRepo, deploymentRepo, projectRepo, commitRepo, taskDispatcher, notifSvc, rdb, cfg, &log.Logger)

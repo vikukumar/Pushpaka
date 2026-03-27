@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vikukumar/Pushpaka/internal/services"
+	"github.com/vikukumar/pushpaka/internal/services"
 )
 
 type DeploymentManagementHandler struct {

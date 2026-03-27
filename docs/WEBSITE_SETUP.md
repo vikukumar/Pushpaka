@@ -298,7 +298,7 @@ npm run build
 - [Astro Docs](https://docs.astro.build)
 - [Tailwind CSS](https://tailwindcss.com)
 - [GitHub Pages Docs](https://docs.github.com/en/pages)
-- [Pushpaka Repository](https://github.com/vikukumar/Pushpaka)
+- [Pushpaka Repository](https://github.com/vikukumar/pushpaka)
 
 ## 🤝 Contributing
 

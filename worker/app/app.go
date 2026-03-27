@@ -11,13 +11,13 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
-	"github.com/vikukumar/Pushpaka/pkg/database"
-	"github.com/vikukumar/Pushpaka/queue"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/database"
+	"github.com/vikukumar/pushpaka/queue"
 
-	"github.com/vikukumar/Pushpaka/worker/internal/client"
-	"github.com/vikukumar/Pushpaka/worker/internal/config"
-	"github.com/vikukumar/Pushpaka/worker/internal/worker"
+	"github.com/vikukumar/pushpaka/worker/internal/client"
+	"github.com/vikukumar/pushpaka/worker/internal/config"
+	"github.com/vikukumar/pushpaka/worker/internal/worker"
 )
 
 // StatsReporter is implemented by the in-process queue to track worker and job lifecycle events.

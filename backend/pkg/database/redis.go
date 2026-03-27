@@ -8,7 +8,7 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
-	"github.com/vikukumar/Pushpaka/internal/config"
+	"github.com/vikukumar/pushpaka/internal/config"
 )
 
 func NewRedis(redisURL string) (*redis.Client, error) {

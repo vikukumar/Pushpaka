@@ -345,7 +345,7 @@ Rebuild: `npm run build`
 ## 🔗 Important Links
 
 - **Website**: https://vikukumar.github.io/Pushpaka/
-- **Repository**: https://github.com/vikukumar/Pushpaka
+- **Repository**: https://github.com/vikukumar/pushpaka
 - **Astro Docs**: https://docs.astro.build
 - **Tailwind Docs**: https://tailwindcss.com
 - **GitHub Pages**: https://docs.github.com/en/pages
@@ -413,7 +413,7 @@ git push origin main
    ```
 
 2. **Monitor GitHub Actions**
-   - Go to: https://github.com/vikukumar/Pushpaka/actions
+   - Go to: https://github.com/vikukumar/pushpaka/actions
    - Watch "Deploy Website" workflow complete
 
 3. **Verify Deployment**

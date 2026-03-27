@@ -8,8 +8,8 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/models"
 )
 
 // K8sConfigRepository manages per-user Kubernetes cluster configurations.

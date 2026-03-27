@@ -362,8 +362,8 @@ prometheus.retention: 15d
 - 🧭 [WEBSITE_NAVIGATION_UPDATE.md](WEBSITE_NAVIGATION_UPDATE.md) - Navigation guide
 
 ### Community
-- 💬 [GitHub Discussions](https://github.com/vikukumar/Pushpaka/discussions)
-- 🐛 [GitHub Issues](https://github.com/vikukumar/Pushpaka/issues)
+- 💬 [GitHub Discussions](https://github.com/vikukumar/pushpaka/discussions)
+- 🐛 [GitHub Issues](https://github.com/vikukumar/pushpaka/issues)
 - 📧 Email: vikukumar@example.com
 
 ### Technology Stack
@@ -487,5 +487,5 @@ kubectl logs <pod-name> -n pushpaka
 
 **Document Version:** 1.0.0  
 **Last Updated:** March 17, 2026  
-**Repository:** github.com/vikukumar/Pushpaka  
+**Repository:** github.com/vikukumar/pushpaka  
 **Website:** vikukumar.github.io/Pushpaka

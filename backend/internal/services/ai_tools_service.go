@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/pkg/models"
 )
 
 // --- OpenAI Tool Calling Types ---

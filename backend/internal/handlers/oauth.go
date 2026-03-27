@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/vikukumar/Pushpaka/internal/services"
+	"github.com/vikukumar/pushpaka/internal/services"
 )
 
 type OAuthHandler struct {

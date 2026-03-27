@@ -10,7 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/vikukumar/Pushpaka/worker/app"
+	"github.com/vikukumar/pushpaka/worker/app"
 )
 
 var version = "dev"

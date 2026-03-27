@@ -16,9 +16,9 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog/log"
 
-	"github.com/vikukumar/Pushpaka/internal/repositories"
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/models"
 )
 
 const deployJobQueue = "pushpaka:deploy:queue"
@@ -41,8 +41,8 @@ type DeploymentService struct {
 	inQueue        DeploymentJobQueue // non-nil in dev mode (no Redis)
 	baseURL        string
 	// lastSyncCheck tracks the last time we checked a project for auto-sync
-	lastSyncCheck map[string]time.Time
-	syncMu        sync.Mutex
+	lastSyncCheck  map[string]time.Time
+	syncMu         sync.Mutex
 	taskDispatcher *TaskDispatcher
 }
 

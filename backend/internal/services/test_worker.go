@@ -6,9 +6,9 @@ import (
 
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
-	"github.com/vikukumar/Pushpaka/pkg/models"
-	"github.com/vikukumar/Pushpaka/queue"
+	"github.com/vikukumar/pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/queue"
 )
 
 type TestWorker struct {

@@ -23,12 +23,12 @@ type Config struct {
 	// DeploysDir is the directory where active deployments run.
 	DeploysDir    string
 	TestsDir      string
-	BuildWorkers int
-	SyncWorkers  int
-	TestWorkers  int
-	AIWorkers    int
+	BuildWorkers  int
+	SyncWorkers   int
+	TestWorkers   int
+	AIWorkers     int
 	DeployWorkers int
-	AppEnv         string
+	AppEnv        string
 	// AI Settings
 	AIProvider string
 	AIAPIKey   string

@@ -138,7 +138,7 @@ Add new components in `src/components/` and import them.
 
 ## 🔗 Links
 
-- [Pushpaka Repository](https://github.com/vikukumar/Pushpaka)
+- [Pushpaka Repository](https://github.com/vikukumar/pushpaka)
 - [Astro Docs](https://docs.astro.build)
 - [Tailwind Docs](https://tailwindcss.com)
 

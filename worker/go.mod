@@ -1,4 +1,4 @@
-module github.com/vikukumar/Pushpaka/worker
+module github.com/vikukumar/pushpaka/worker
 
 go 1.26.0
 
@@ -10,7 +10,7 @@ require (
 	github.com/lib/pq v1.12.0
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/rs/zerolog v1.34.0
-	github.com/vikukumar/Pushpaka v0.0.0-20260319064650-9ffd39a95938
+	github.com/vikukumar/pushpaka v0.0.0-20260319064650-9ffd39a95938
 	gorm.io/gorm v1.31.1
 	modernc.org/sqlite v1.47.0
 )
@@ -51,4 +51,4 @@ require (
 	modernc.org/memory v1.11.0 // indirect
 )
 
-replace github.com/vikukumar/Pushpaka => ../backend
+replace github.com/vikukumar/pushpaka => ../backend

@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
 )
 
 type Project struct {
@@ -52,7 +52,7 @@ type Project struct {
 	LatestCommitAt  time.Time `json:"latest_commit_at"`
 	// DeploymentStatus tracks if the project "should" be running (e.g. 'running', 'stopped')
 	DeploymentStatus string `gorm:"type:varchar(50);default:'stopped'" json:"deployment_status"`
-	
+
 	// Detected info
 	Language       string `gorm:"type:varchar(50)" json:"language"`
 	PackageManager string `gorm:"type:varchar(50)" json:"package_manager"`

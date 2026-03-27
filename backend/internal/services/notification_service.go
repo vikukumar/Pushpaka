@@ -11,10 +11,10 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/internal/config"
+	"github.com/vikukumar/pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/models"
 )
 
 type NotificationService struct {

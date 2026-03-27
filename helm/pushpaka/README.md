@@ -207,5 +207,5 @@ Same as Pushpaka project (MIT License)
 ## Support
 
 - 📖 [Pushpaka Documentation](https://vikukumar.github.io/Pushpaka/)
-- 🐛 [GitHub Issues](https://github.com/vikukumar/Pushpaka/issues)
-- 💬 [Discussions](https://github.com/vikukumar/Pushpaka/discussions)
+- 🐛 [GitHub Issues](https://github.com/vikukumar/pushpaka/issues)
+- 💬 [Discussions](https://github.com/vikukumar/pushpaka/discussions)

@@ -43,7 +43,7 @@ Dev mode auto-sets:
 
 ```bash
 # Clone the repository
-git clone https://github.com/vikukumar/Pushpaka
+git clone https://github.com/vikukumar/pushpaka
 cd Pushpaka
 
 # Copy environment variables

@@ -10,9 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
-	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/middleware"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/internal/config"
+	"github.com/vikukumar/pushpaka/internal/middleware"
+	"github.com/vikukumar/pushpaka/internal/repositories"
 )
 
 var editorUpgrader = websocket.Upgrader{
@@ -34,7 +34,7 @@ type EditorWSHandler struct {
 	deploymentRepo *repositories.DeploymentRepository
 	deployDir      string
 	cloneDir       string
-	
+
 	// Presence tracking: workspaceID -> map[conn]userID
 	rooms sync.Map
 }
@@ -50,7 +50,7 @@ func NewEditorWSHandler(projectRepo *repositories.ProjectRepository, deploymentR
 
 func (h *EditorWSHandler) Connect(c *gin.Context) {
 	userID := middleware.GetUserID(c)
-	
+
 	conn, err := editorUpgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Error().Err(err).Msg("editor websocket upgrade failed")
@@ -134,7 +134,7 @@ func (h *EditorWSHandler) handleFileWrite(conn *websocket.Conn, userID, workspac
 			_ = conn.WriteJSON(gin.H{"type": "error", "message": "unauthorized"})
 			return
 		}
-		
+
 		// Priority: deployDir/<projectID[:8]> → cloneDir/<latestDeploymentID>
 		deployPath := filepath.Join(h.deployDir, proj.ID[:8])
 		if _, err := os.Stat(deployPath); err == nil {

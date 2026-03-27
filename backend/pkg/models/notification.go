@@ -1,6 +1,6 @@
 package models
 
-import "github.com/vikukumar/Pushpaka/pkg/basemodel"
+import "github.com/vikukumar/pushpaka/pkg/basemodel"
 
 // NotificationConfig holds per-user notification channel settings.
 type NotificationConfig struct {

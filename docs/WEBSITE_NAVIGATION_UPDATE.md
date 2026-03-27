@@ -129,8 +129,8 @@ const mobileNavLinks = [
       <div>
         <h3 class="text-brand-400 font-semibold mb-4">Community</h3>
         <ul class="space-y-2">
-          <li><a href="https://github.com/vikukumar/Pushpaka" class="hover:text-brand-400">GitHub</a></li>
-          <li><a href="https://github.com/vikukumar/Pushpaka/releases" class="hover:text-brand-400">Releases</a></li>
+          <li><a href="https://github.com/vikukumar/pushpaka" class="hover:text-brand-400">GitHub</a></li>
+          <li><a href="https://github.com/vikukumar/pushpaka/releases" class="hover:text-brand-400">Releases</a></li>
           <li><a href="${process.env.PUBLIC_GITHUB_REPO}/blob/main/ROADMAP.md" class="hover:text-brand-400">Roadmap</a></li>
         </ul>
       </div>
@@ -138,8 +138,8 @@ const mobileNavLinks = [
       <div>
         <h3 class="text-brand-400 font-semibold mb-4">Support</h3>
         <ul class="space-y-2">
-          <li><a href="https://github.com/vikukumar/Pushpaka/issues" class="hover:text-brand-400">Issues</a></li>
-          <li><a href="https://github.com/vikukumar/Pushpaka/discussions" class="hover:text-brand-400">Discussions</a></li>
+          <li><a href="https://github.com/vikukumar/pushpaka/issues" class="hover:text-brand-400">Issues</a></li>
+          <li><a href="https://github.com/vikukumar/pushpaka/discussions" class="hover:text-brand-400">Discussions</a></li>
           <li><span class="text-gray-400">💬 Chatbot available on site</span></li>
         </ul>
       </div>
@@ -404,9 +404,9 @@ export const footerLinks = [
   {
     section: 'Resources',
     links: [
-      { label: 'Roadmap', href: 'https://github.com/vikukumar/Pushpaka/blob/main/ROADMAP.md' },
-      { label: 'Releases', href: 'https://github.com/vikukumar/Pushpaka/releases' },
-      { label: 'GitHub', href: 'https://github.com/vikukumar/Pushpaka' },
+      { label: 'Roadmap', href: 'https://github.com/vikukumar/pushpaka/blob/main/ROADMAP.md' },
+      { label: 'Releases', href: 'https://github.com/vikukumar/pushpaka/releases' },
+      { label: 'GitHub', href: 'https://github.com/vikukumar/pushpaka' },
     ],
   },
 ];

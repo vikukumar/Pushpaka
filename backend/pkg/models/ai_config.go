@@ -1,6 +1,6 @@
 package models
 
-import "github.com/vikukumar/Pushpaka/pkg/basemodel"
+import "github.com/vikukumar/pushpaka/pkg/basemodel"
 
 // AIConfig stores per-user LLM integration settings.
 // The APIKey field is never included in JSON responses.

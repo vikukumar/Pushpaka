@@ -152,7 +152,7 @@ jobs:
             
             ### Documentation
             - [Helm Installation](https://pushpaka.vikshro.in/helm-install)
-            - [Values Configuration](https://github.com/vikukumar/Pushpaka/blob/main/helm/pushpaka/values.yaml)
+            - [Values Configuration](https://github.com/vikukumar/pushpaka/blob/main/helm/pushpaka/values.yaml)
             - [Release Notes](https://pushpaka.vikshro.in/releases)
           draft: false
           prerelease: false

@@ -10,7 +10,7 @@ import (
 
 func main() {
 	replacements := map[string]string{
-		"\"github.com/vikukumar/Pushpaka/internal/tunnel\"": "\"github.com/vikukumar/Pushpaka/pkg/tunnel\"",
+		"\"github.com/vikukumar/pushpaka/internal/tunnel\"": "\"github.com/vikukumar/pushpaka/pkg/tunnel\"",
 	}
 
 	err := filepath.WalkDir(".", func(path string, d fs.DirEntry, err error) error {

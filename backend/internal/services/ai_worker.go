@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
-	"github.com/vikukumar/Pushpaka/queue"
+	"github.com/vikukumar/pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/queue"
 )
 
 type AIWorker struct {

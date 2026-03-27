@@ -99,6 +99,6 @@ Thanks to the Traefik, PostgreSQL, Go, and Kubernetes communities for the amazin
 
 ## Support
 
-- 🐛 Report bugs: https://github.com/vikukumar/Pushpaka/issues
-- 💬 Discussions: https://github.com/vikukumar/Pushpaka/discussions
+- 🐛 Report bugs: https://github.com/vikukumar/pushpaka/issues
+- 💬 Discussions: https://github.com/vikukumar/pushpaka/discussions
 - 📚 Docs: https://vikukumar.github.io/Pushpaka/docs

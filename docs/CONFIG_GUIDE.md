@@ -188,7 +188,7 @@ production:
 ### Using DatabaseConfig
 
 ```go
-import "github.com/vikukumar/Pushpaka/internal/config"
+import "github.com/vikukumar/pushpaka/internal/config"
 
 // Load from environment variables
 dbCfg := config.LoadDatabaseConfig("production")
@@ -203,7 +203,7 @@ db, err := database.NewPostgresWithConfig(dbCfg)
 ### Using RedisConfig
 
 ```go
-import "github.com/vikukumar/Pushpaka/internal/config"
+import "github.com/vikukumar/pushpaka/internal/config"
 
 // Load from environment variables
 redisCfg := config.LoadRedisConfig("production")

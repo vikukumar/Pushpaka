@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/internal/config"
+	"github.com/vikukumar/pushpaka/pkg/models"
 )
 
 // AIService provides a provider-agnostic interface to large-language models.

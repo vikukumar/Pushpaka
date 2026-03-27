@@ -13,9 +13,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/vikukumar/Pushpaka/internal/repositories"
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/models"
 )
 
 type GitSyncService struct {
@@ -304,7 +304,7 @@ func (s *GitSyncService) getLocalLatestCommit(repo, branch string) (*models.GitC
 	// 1. Try to find local clone first (most reliable for commit messages)
 	// We need the project ID to find the directory, but s don't have it here directly easily.
 	// As a fallback, use ls-remote for SHA, but it won't give the message.
-	
+
 	cmd := exec.Command("git", "ls-remote", repo, fmt.Sprintf("refs/heads/%s", branch))
 	output, err := cmd.Output()
 	if err != nil {

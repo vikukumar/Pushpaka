@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 
-const repoReleases = 'https://github.com/vikukumar/Pushpaka/releases';
+const repoReleases = 'https://github.com/vikukumar/pushpaka/releases';
 const latestRelease = `${repoReleases}/latest`;
 const latestDownload = `${repoReleases}/latest/download`;
 ---
@@ -81,12 +81,12 @@ const latestDownload = `${repoReleases}/latest/download`;
             <div class="code-block mb-6">
               <pre>
 # Linux/macOS
-curl -L https://github.com/vikukumar/Pushpaka/releases/latest/download/pushpaka-linux-amd64 -o pushpaka
+curl -L https://github.com/vikukumar/pushpaka/releases/latest/download/pushpaka-linux-amd64 -o pushpaka
 chmod +x pushpaka
 ./pushpaka -dev
 
 # Windows
-$url = "https://github.com/vikukumar/Pushpaka/releases/latest/download/pushpaka-windows-amd64.exe"
+$url = "https://github.com/vikukumar/pushpaka/releases/latest/download/pushpaka-windows-amd64.exe"
 Invoke-WebRequest -Uri $url -OutFile .\pushpaka.exe
 .\pushpaka.exe -dev
 

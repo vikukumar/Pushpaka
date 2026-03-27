@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
 )
 
 // DeploymentRole represents the role of a deployment in the project

@@ -19,9 +19,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka/pkg/models"
-	"github.com/vikukumar/Pushpaka/pkg/tunnel"
-	"github.com/vikukumar/Pushpaka/worker/internal/config"
+	"github.com/vikukumar/pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/pkg/tunnel"
+	"github.com/vikukumar/pushpaka/worker/internal/config"
 )
 
 type TaskPusher interface {

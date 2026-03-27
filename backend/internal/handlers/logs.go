@@ -8,7 +8,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 
-	"github.com/vikukumar/Pushpaka/internal/services"
+	"github.com/vikukumar/pushpaka/internal/services"
 )
 
 var upgrader = websocket.Upgrader{

@@ -1,7 +1,7 @@
 package models
 
 import (
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
 )
 
 type UserEditorState struct {

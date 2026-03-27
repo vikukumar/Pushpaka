@@ -1,6 +1,6 @@
 package models
 
-import "github.com/vikukumar/Pushpaka/pkg/basemodel"
+import "github.com/vikukumar/pushpaka/pkg/basemodel"
 
 type Domain struct {
 	basemodel.BaseModel

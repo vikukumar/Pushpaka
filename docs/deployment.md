@@ -31,7 +31,7 @@ docker compose version    # Docker Compose v2.x
 
 ```bash
 # Clone the repository
-git clone https://github.com/vikukumar/Pushpaka /opt/pushpaka
+git clone https://github.com/vikukumar/pushpaka /opt/pushpaka
 cd /opt/pushpaka
 
 # Configure environment

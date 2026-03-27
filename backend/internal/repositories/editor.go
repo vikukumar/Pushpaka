@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/pkg/models"
 	"gorm.io/gorm"
 )
 

@@ -44,11 +44,11 @@ type Config struct {
 	// Set via DEPLOYS_DIR.
 	DeploysDir string
 	TestsDir   string
-	LogLevel  string
+	LogLevel   string
 
 	// Worker counts
-	BuildWorkers int
-	AIWorkers    int
+	BuildWorkers  int
+	AIWorkers     int
 	SyncWorkers   int
 	TestWorkers   int
 	DeployWorkers int
@@ -158,9 +158,9 @@ func Load() *Config {
 			return v
 		}(),
 		AIProvider: getEnv("AI_PROVIDER", "openai"),
-		AIAPIKey:           getEnv("AI_API_KEY", ""),
-		AIModel:            getEnv("AI_MODEL", "gpt-4o-mini"),
-		AIBaseURL:          getEnv("AI_BASE_URL", ""),
+		AIAPIKey:   getEnv("AI_API_KEY", ""),
+		AIModel:    getEnv("AI_MODEL", "gpt-4o-mini"),
+		AIBaseURL:  getEnv("AI_BASE_URL", ""),
 		AIRateLimitPerUserPerDay: func() int {
 			v, _ := strconv.Atoi(getEnv("AI_RATE_LIMIT_PER_USER_PER_DAY", "0"))
 			return v

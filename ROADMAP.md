@@ -133,8 +133,8 @@ We welcome contributions! Areas where we need help:
 
 Have an idea? We'd love to hear it!
 
-- 💬 [GitHub Discussions](https://github.com/vikukumar/Pushpaka/discussions)
-- 🐛 [GitHub Issues](https://github.com/vikukumar/Pushpaka/issues)
+- 💬 [GitHub Discussions](https://github.com/vikukumar/pushpaka/discussions)
+- 🐛 [GitHub Issues](https://github.com/vikukumar/pushpaka/issues)
 - 📧 Email: vikukumar@example.com
 
 ## Sponsorship

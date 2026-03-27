@@ -18,13 +18,13 @@ import (
 	"github.com/rs/zerolog/log"
 	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/handlers"
-	"github.com/vikukumar/Pushpaka/internal/middleware"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
-	"github.com/vikukumar/Pushpaka/internal/services"
-	"github.com/vikukumar/Pushpaka/pkg/tunnel"
-	"github.com/vikukumar/Pushpaka/queue"
+	"github.com/vikukumar/pushpaka/internal/config"
+	"github.com/vikukumar/pushpaka/internal/handlers"
+	"github.com/vikukumar/pushpaka/internal/middleware"
+	"github.com/vikukumar/pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/internal/services"
+	"github.com/vikukumar/pushpaka/pkg/tunnel"
+	"github.com/vikukumar/pushpaka/queue"
 )
 
 // ServiceRegistry holds all the services and repositories needed by the router.

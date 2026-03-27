@@ -165,14 +165,6 @@ export default function IDE({ initialMode, initialProjectId, initialFilePath }: 
   })
   const files: FileEntry[] = filesData?.files ?? []
 
-  if (mode === 'project' && !projectId) {
-    return (
-      <div className="flex-1 flex items-center justify-center bg-[#1e1e1e] text-[#858585]">
-        <Loader2 className="animate-spin mr-2" /> Initializing project...
-      </div>
-    )
-  }
-
   const openFile = useCallback(async (entry: FileEntry) => {
     if (entry.is_dir) return
     const existing = tabs.find(t => t.path === entry.path)
@@ -289,6 +281,14 @@ export default function IDE({ initialMode, initialProjectId, initialFilePath }: 
   }
 
   const activeTab = tabs.find(t => t.path === activePath)
+
+  if (mode === 'project' && !projectId) {
+    return (
+      <div className="flex-1 flex items-center justify-center bg-[#1e1e1e] text-[#858585]">
+        <Loader2 className="animate-spin mr-2" /> Initializing project...
+      </div>
+    )
+  }
 
   return (
     <div className="flex-1 flex overflow-hidden bg-[#1e1e1e]">

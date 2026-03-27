@@ -16,9 +16,9 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/rs/zerolog/log"
 
-	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/middleware"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/internal/config"
+	"github.com/vikukumar/pushpaka/internal/middleware"
+	"github.com/vikukumar/pushpaka/internal/repositories"
 )
 
 var termUpgrader = websocket.Upgrader{

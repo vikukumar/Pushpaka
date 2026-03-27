@@ -2,7 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/vikukumar/Pushpaka/internal/config"
+
+	"github.com/vikukumar/pushpaka/internal/config"
 )
 
 func main() {

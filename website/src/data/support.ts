@@ -72,7 +72,7 @@ export const supportEntries: SupportEntry[] = [
       "Pushpaka exposes API endpoints for auth, projects, deployments, logs, AI operations, notifications, webhooks, infrastructure controls, and health checks. It also supports GitHub and GitLab OAuth, incoming webhooks, and Slack, Discord, and SMTP notifications.",
     links: [
       { label: "Docs", href: "/docs#api-usage" },
-      { label: "Repository", href: "https://github.com/vikukumar/Pushpaka" },
+      { label: "Repository", href: "https://github.com/vikukumar/pushpaka" },
     ],
   },
   {

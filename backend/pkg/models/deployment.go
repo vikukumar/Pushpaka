@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
 )
 
 // DeploymentStatus represents the state of a deployment

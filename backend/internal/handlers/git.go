@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/vikukumar/Pushpaka/internal/config"
-	"github.com/vikukumar/Pushpaka/internal/middleware"
-	"github.com/vikukumar/Pushpaka/internal/repositories"
+	"github.com/vikukumar/pushpaka/internal/config"
+	"github.com/vikukumar/pushpaka/internal/middleware"
+	"github.com/vikukumar/pushpaka/internal/repositories"
 )
 
 type GitHandler struct {

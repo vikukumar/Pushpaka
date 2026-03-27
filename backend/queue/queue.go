@@ -24,10 +24,10 @@ type InProcess struct {
 	totalWorkers atomic.Int32
 	activeJobs   atomic.Int32
 	// Worker counts
-	syncWorkers  atomic.Int32
-	buildWorkers atomic.Int32
-	testWorkers  atomic.Int32
-	aiWorkers    atomic.Int32
+	syncWorkers   atomic.Int32
+	buildWorkers  atomic.Int32
+	testWorkers   atomic.Int32
+	aiWorkers     atomic.Int32
 	deployWorkers atomic.Int32
 	// Active jobs per role
 	syncActive   atomic.Int32
@@ -152,12 +152,12 @@ func (q *InProcess) JobFinished(role string) {
 }
 
 // Getters
-func (q *InProcess) TotalWorkers() int { return int(q.totalWorkers.Load()) }
-func (q *InProcess) ActiveJobs() int   { return int(q.activeJobs.Load()) }
-func (q *InProcess) SyncWorkers() int  { return int(q.syncWorkers.Load()) }
-func (q *InProcess) BuildWorkers() int { return int(q.buildWorkers.Load()) }
-func (q *InProcess) TestWorkers() int  { return int(q.testWorkers.Load()) }
-func (q *InProcess) AIWorkers() int    { return int(q.aiWorkers.Load()) }
+func (q *InProcess) TotalWorkers() int  { return int(q.totalWorkers.Load()) }
+func (q *InProcess) ActiveJobs() int    { return int(q.activeJobs.Load()) }
+func (q *InProcess) SyncWorkers() int   { return int(q.syncWorkers.Load()) }
+func (q *InProcess) BuildWorkers() int  { return int(q.buildWorkers.Load()) }
+func (q *InProcess) TestWorkers() int   { return int(q.testWorkers.Load()) }
+func (q *InProcess) AIWorkers() int     { return int(q.aiWorkers.Load()) }
 func (q *InProcess) DeployWorkers() int { return int(q.deployWorkers.Load()) }
 
 func (q *InProcess) SyncActive() int   { return int(q.syncActive.Load()) }

@@ -165,7 +165,7 @@ nano backend/handlers/api/chat.go
 package main
 
 import (
-    "github.com/vikukumar/Pushpaka/backend/handlers/api"
+    "github.com/vikukumar/pushpaka/backend/handlers/api"
     "github.com/gin-gonic/gin"
 )
 
@@ -316,8 +316,8 @@ Add roadmap link and additional resource sections:
     <div>
       <h3>Community</h3>
       <ul>
-        <li><a href="https://github.com/vikukumar/Pushpaka">GitHub</a></li>
-        <li><a href="https://github.com/vikukumar/Pushpaka/blob/main/ROADMAP.md">Roadmap</a></li>
+        <li><a href="https://github.com/vikukumar/pushpaka">GitHub</a></li>
+        <li><a href="https://github.com/vikukumar/pushpaka/blob/main/ROADMAP.md">Roadmap</a></li>
       </ul>
     </div>
   </div>
@@ -701,6 +701,6 @@ All enterprise features are now integrated. Your Pushpaka deployment supports:
 - 📚 Comprehensive documentation
 - 🔄 Continuous delivery
 
-For questions: [GitHub Discussions](https://github.com/vikukumar/Pushpaka/discussions)
+For questions: [GitHub Discussions](https://github.com/vikukumar/pushpaka/discussions)
 
 **Last Updated:** March 17, 2026

@@ -3,8 +3,8 @@ package repositories
 import (
 	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/models"
 )
 
 type WebhookRepository struct {
@@ -38,7 +38,7 @@ func (r *WebhookRepository) Delete(id, userID string) error {
 
 // PurgeExpiredOAuthStates removes expired OAuth CSRF state tokens.
 func (r *WebhookRepository) PurgeExpiredOAuthStates(db *gorm.DB) error {
-	// Note: oauth_states is likely a raw table not in models. 
+	// Note: oauth_states is likely a raw table not in models.
 	// If it is a model, we should call EnsureSynced.
 	return db.Exec("DELETE FROM oauth_states WHERE expires_at < ?", models.NowUTC().String()).Error
 }

@@ -3,8 +3,8 @@ package repositories
 import (
 	"gorm.io/gorm"
 
-	"github.com/vikukumar/Pushpaka/pkg/basemodel"
-	"github.com/vikukumar/Pushpaka/pkg/models"
+	"github.com/vikukumar/pushpaka/pkg/basemodel"
+	"github.com/vikukumar/pushpaka/pkg/models"
 )
 
 type ProjectRepository struct {
@@ -68,6 +68,6 @@ func (r *ProjectRepository) UpdateTaskStatus(id, taskID, status string) error {
 	return r.db.Model(&models.Project{}).Where("id = ?", id).Updates(map[string]interface{}{
 		"current_task_id": taskID,
 		"latest_task_id":  taskID,
-		"task_status":    status,
+		"task_status":     status,
 	}).Error
 }
